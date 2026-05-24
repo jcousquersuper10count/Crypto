@@ -1,6 +1,15 @@
 // ===== Configuration =====
 const SHEET_ID = '18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8';
-const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8}/export?format=csv`;
+
+// Multiple endpoints to try (CORS can be tricky with Google Sheets)
+const SHEET_URLS = [
+    // 1. Published CSV (works if sheet is "Published to web")
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv`,
+    // 2. gviz endpoint (sometimes works with CORS)
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
+    // 3. CORS proxy fallback
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`,
+];
 
 // CoinGecko free API (no key needed)
 const CG_BASE = 'https://api.coingecko.com/api/v3';
@@ -39,7 +48,7 @@ const COINGECKO_MAP = {
     'QI': 'benqi', 'DUCK': 'duck-chain',
     'ai16z': 'ai16z', 'CETUS': 'cetus-protocol', 
     '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null,
-    'RECALL': 'recall', 'X': null, 'SUI': 'sui', 'GRASS': 'grass'
+    'RECALL': 'recall', 'X': null
 };
 
 // ===== State =====
@@ -646,31 +655,58 @@ function updateLastRefresh() {
 async function loadSheetData() {
     setStatus('Chargement Sheet...');
     
+    let csv = null;
+    let lastError = null;
+    
+    // Try each URL until one works
+    for (const url of SHEET_URLS) {
+        try {
+            console.log('Trying:', url.substring(0, 80) + '...');
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const text = await resp.text();
+            
+            // Validate it looks like CSV (should contain "Type" and "Date" headers)
+            if (text.includes('Type') && text.includes('Date')) {
+                csv = text;
+                console.log('✓ Sheet loaded from:', url.substring(0, 60));
+                break;
+            } else {
+                throw new Error('Response is not valid CSV');
+            }
+        } catch (e) {
+            lastError = e;
+            console.warn('✗ Failed:', url.substring(0, 60), e.message);
+        }
+    }
+    
+    if (!csv) {
+        console.error('All Sheet URLs failed. Last error:', lastError);
+        setStatus('Erreur Sheet');
+        document.getElementById('holdingsBody').innerHTML = `
+            <tr><td colspan="7" class="loading-cell">
+                <div class="error-msg">
+                    Impossible de charger Google Sheets.<br><br>
+                    <strong>Solution :</strong> Dans Google Sheets, allez dans :<br>
+                    Fichier → Partager → Publier sur le Web → Publier (format CSV)<br><br>
+                    Et vérifiez aussi que le fichier est partagé en "Accessible à tous avec le lien".<br><br>
+                    Erreur: ${lastError?.message || 'Inconnue'}
+                </div>
+            </td></tr>`;
+        return false;
+    }
+    
     try {
-        const resp = await fetch(SHEET_CSV_URL);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const csv = await resp.text();
         transactions = parseCSV(csv);
         holdings = computeHoldings(transactions);
-        
         console.log(`Parsed ${transactions.length} transactions, ${Object.keys(holdings).length} assets`);
         
         populateAssetFilter();
         renderHistory();
-        
         return true;
     } catch (e) {
-        console.error('Sheet load error:', e);
-        setStatus('Erreur Sheet');
-        
-        // Show error
-        document.getElementById('holdingsBody').innerHTML = `
-            <tr><td colspan="7" class="loading-cell">
-                <div class="error-msg">
-                    Impossible de charger Google Sheets. Vérifiez que le fichier est bien partagé en "Accessible à tous avec le lien".<br>
-                    <br>Erreur: ${e.message}
-                </div>
-            </td></tr>`;
+        console.error('CSV parse error:', e);
+        setStatus('Erreur parsing');
         return false;
     }
 }
