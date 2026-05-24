@@ -49,7 +49,7 @@ const COINGECKO_MAP = {
     'QI': 'benqi', 'DUCK': 'duck-chain',
     'ai16z': 'ai16z', 'CETUS': 'cetus-protocol', 
     '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null,
-    'RECALL': 'recall', 'X': null
+    'RECALL': 'recall', 'X': null, 'GRASS': 'grass'
 };
 
 // ===== State =====
