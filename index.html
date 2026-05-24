@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Portfolio Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">◈</span>
+                    <span class="logo-text">VAULT</span>
+                </div>
+                <span class="logo-sub">Portfolio Tracker</span>
+            </div>
+            <div class="header-right">
+                <div class="status-pill" id="statusPill">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Chargement...</span>
+                </div>
+                <button class="btn-refresh" onclick="refreshAll()" title="Rafraîchir">⟳</button>
+                <div class="last-update" id="lastUpdate">--</div>
+            </div>
+        </header>
+
+        <!-- Portfolio Summary -->
+        <section class="summary-section">
+            <div class="total-value-card">
+                <div class="total-label">Valeur totale du portefeuille</div>
+                <div class="total-value" id="totalValue">--</div>
+                <div class="total-change" id="totalChange">--</div>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-card-label">Actifs</div>
+                    <div class="summary-card-value" id="assetCount">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-label">Investi (EUR)</div>
+                    <div class="summary-card-value" id="totalInvested">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-label">P&L Total</div>
+                    <div class="summary-card-value" id="totalPnl">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-label">Meilleur Actif</div>
+                    <div class="summary-card-value" id="bestAsset">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="holdings" onclick="switchTab('holdings')">💰 Holdings</button>
+            <button class="tab-btn" data-tab="market" onclick="switchTab('market')">📊 Marché</button>
+            <button class="tab-btn" data-tab="history" onclick="switchTab('history')">📜 Historique</button>
+            <button class="tab-btn" data-tab="analytics" onclick="switchTab('analytics')">📈 Analytiques</button>
+        </nav>
+
+        <!-- Holdings Tab -->
+        <section class="tab-content active" id="tab-holdings">
+            <div class="holdings-header">
+                <h2>Vos positions</h2>
+                <div class="holdings-controls">
+                    <select id="sortBy" onchange="renderHoldings()">
+                        <option value="value">Par valeur</option>
+                        <option value="name">Par nom</option>
+                        <option value="change">Par variation 24h</option>
+                    </select>
+                    <button class="btn-toggle" id="hideSmall" onclick="toggleSmall()">Masquer &lt;1$</button>
+                </div>
+            </div>
+            <div class="holdings-table-wrap">
+                <table class="holdings-table">
+                    <thead>
+                        <tr>
+                            <th>Actif</th>
+                            <th>Quantité</th>
+                            <th>Prix</th>
+                            <th>Valeur (USD)</th>
+                            <th>24h</th>
+                            <th>7j</th>
+                            <th>Allocation</th>
+                        </tr>
+                    </thead>
+                    <tbody id="holdingsBody">
+                        <tr><td colspan="7" class="loading-cell">Chargement des données...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Market Tab -->
+        <section class="tab-content" id="tab-market">
+            <div class="market-header">
+                <h2>Suivi du marché</h2>
+                <div class="market-search">
+                    <input type="text" id="marketSearch" placeholder="Rechercher une crypto..." oninput="filterMarket()">
+                </div>
+            </div>
+            <div class="market-grid" id="marketGrid">
+                <div class="loading-cell">Chargement des données marché...</div>
+            </div>
+        </section>
+
+        <!-- History Tab -->
+        <section class="tab-content" id="tab-history">
+            <div class="history-header">
+                <h2>Dernières transactions</h2>
+                <div class="history-filters">
+                    <select id="historyType" onchange="renderHistory()">
+                        <option value="all">Toutes</option>
+                        <option value="Trade">Trades</option>
+                        <option value="Deposit">Dépôts</option>
+                    </select>
+                    <select id="historyAsset" onchange="renderHistory()">
+                        <option value="all">Tous les actifs</option>
+                    </select>
+                </div>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="loading-cell">Chargement de l'historique...</div>
+            </div>
+        </section>
+
+        <!-- Analytics Tab -->
+        <section class="tab-content" id="tab-analytics">
+            <h2>Analytiques</h2>
+            <div class="analytics-grid">
+                <div class="chart-card">
+                    <h3>Répartition du portefeuille</h3>
+                    <canvas id="allocationChart" width="400" height="300"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Activité de trading</h3>
+                    <canvas id="activityChart" width="400" height="300"></canvas>
+                </div>
+                <div class="chart-card full-width">
+                    <h3>Statistiques de trading</h3>
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="loading-cell">Calcul...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Données via <a href="https://www.coingecko.com/" target="_blank">CoinGecko API</a> · Transactions depuis Google Sheets</p>
+            <p>Rafraîchissement automatique toutes les 60 secondes</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
