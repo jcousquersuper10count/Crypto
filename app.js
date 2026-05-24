@@ -1,11 +1,12 @@
 // ===== Configuration =====
 const SHEET_ID = '18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8';
+const PUB_ID = '2PACX-1vQHtSe6vE3WSfSsoW15kEaKv75UYpRGM0QJ26_MJlys7ML1NPid2b_Ys6jII04owAH9v4NfOelpVsAm';
 
 // Multiple endpoints to try (CORS can be tricky with Google Sheets)
 const SHEET_URLS = [
-    // 1. Published CSV (works if sheet is "Published to web")
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv`,
-    // 2. gviz endpoint (sometimes works with CORS)
+    // 1. Published CSV via pub ID (most reliable for CORS)
+    `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv`,
+    // 2. gviz endpoint
     `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
     // 3. CORS proxy fallback
     `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`,
@@ -56,7 +57,6 @@ let transactions = [];
 let holdings = {};
 let prices = {};
 let marketData = [];
-let hideSmallBalances = false;
 
 // ===== Parse CSV from Google Sheets =====
 function parseCSV(text) {
@@ -166,7 +166,7 @@ async function fetchPrices(assetList) {
     for (let i = 0; i < ids.length; i += 50) {
         const batch = ids.slice(i, i + 50);
         try {
-            const url = `${CG_BASE}/coins/markets?vs_currency=usd&ids=${batch.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
+            const url = `${CG_BASE}/coins/markets?vs_currency=usd&ids=${batch.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d,30d,1y`;
             const resp = await fetch(url);
             if (resp.ok) {
                 const data = await resp.json();
@@ -177,6 +177,8 @@ async function fetchPrices(assetList) {
                             price: coin.current_price || 0,
                             change24h: coin.price_change_percentage_24h || 0,
                             change7d: coin.price_change_percentage_7d_in_currency || 0,
+                            change30d: coin.price_change_percentage_30d_in_currency || 0,
+                            change1y: coin.price_change_percentage_1y_in_currency || 0,
                             marketCap: coin.market_cap || 0,
                             image: coin.image || '',
                             name: coin.name || sym,
@@ -198,7 +200,7 @@ async function fetchPrices(assetList) {
 // ===== Fetch Top Market Data =====
 async function fetchMarketData() {
     try {
-        const url = `${CG_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d`;
+        const url = `${CG_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d,1y`;
         const resp = await fetch(url);
         if (resp.ok) {
             return await resp.json();
@@ -216,18 +218,15 @@ function renderHoldings() {
     const tbody = document.getElementById('holdingsBody');
     const sortBy = document.getElementById('sortBy').value;
     
-    // Build display data
+    // Build display data — auto-hide values under $10
     let items = Object.entries(holdings)
         .filter(([sym, qty]) => qty > 0.0000001)
         .map(([sym, qty]) => {
             const p = prices[sym] || {};
             const value = qty * (p.price || 0);
-            return { sym, qty, price: p.price || 0, value, change24h: p.change24h || 0, change7d: p.change7d || 0, image: p.image || '', name: p.name || sym };
-        });
-    
-    if (hideSmallBalances) {
-        items = items.filter(i => i.value >= 1);
-    }
+            return { sym, qty, price: p.price || 0, value, change24h: p.change24h || 0, change7d: p.change7d || 0, change30d: p.change30d || 0, change1y: p.change1y || 0, image: p.image || '', name: p.name || sym };
+        })
+        .filter(i => i.value >= 10);
     
     // Sort
     if (sortBy === 'value') items.sort((a, b) => b.value - a.value);
@@ -237,14 +236,17 @@ function renderHoldings() {
     const totalValue = items.reduce((s, i) => s + i.value, 0);
     
     if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Aucune position trouvée</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="loading-cell">Aucune position ≥ 10$ trouvée</td></tr>';
         return;
+    }
+    
+    function fmtChange(val) {
+        const cls = val >= 0 ? 'change-positive' : 'change-negative';
+        return `<td class="${cls}">${val >= 0 ? '+' : ''}${val.toFixed(2)}%</td>`;
     }
     
     tbody.innerHTML = items.map(item => {
         const alloc = totalValue > 0 ? (item.value / totalValue * 100) : 0;
-        const ch24Class = item.change24h >= 0 ? 'change-positive' : 'change-negative';
-        const ch7dClass = item.change7d >= 0 ? 'change-positive' : 'change-negative';
         
         return `<tr>
             <td>
@@ -261,8 +263,10 @@ function renderHoldings() {
             <td class="qty-cell">${formatQty(item.qty)}</td>
             <td class="price-cell">${formatUSD(item.price)}</td>
             <td class="value-cell">${formatUSD(item.value)}</td>
-            <td class="${ch24Class}">${item.change24h >= 0 ? '+' : ''}${item.change24h.toFixed(2)}%</td>
-            <td class="${ch7dClass}">${item.change7d >= 0 ? '+' : ''}${item.change7d.toFixed(2)}%</td>
+            ${fmtChange(item.change24h)}
+            ${fmtChange(item.change7d)}
+            ${fmtChange(item.change30d)}
+            ${fmtChange(item.change1y)}
             <td>
                 <div class="alloc-bar-wrap">
                     <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${Math.min(alloc, 100)}%"></div></div>
@@ -327,11 +331,27 @@ function renderMarket() {
         return;
     }
     
-    grid.innerHTML = marketData.map(coin => {
+    // Build reverse map: coingecko symbol -> our holding symbol
+    const ownedSymbols = new Set(
+        Object.entries(holdings)
+            .filter(([s, q]) => q > 0.0000001 && (q * ((prices[s]||{}).price||0)) >= 10)
+            .map(([s]) => s.toUpperCase())
+    );
+    
+    // Sort: owned first, then by market cap rank
+    const sorted = [...marketData].sort((a, b) => {
+        const aOwned = ownedSymbols.has(a.symbol.toUpperCase()) ? 0 : 1;
+        const bOwned = ownedSymbols.has(b.symbol.toUpperCase()) ? 0 : 1;
+        if (aOwned !== bOwned) return aOwned - bOwned;
+        return (a.market_cap_rank || 999) - (b.market_cap_rank || 999);
+    });
+    
+    grid.innerHTML = sorted.map(coin => {
         const ch24 = coin.price_change_percentage_24h || 0;
         const chClass = ch24 >= 0 ? 'change-positive' : 'change-negative';
+        const isOwned = ownedSymbols.has(coin.symbol.toUpperCase());
         
-        return `<div class="market-card" data-name="${coin.name.toLowerCase()} ${coin.symbol.toLowerCase()}">
+        return `<div class="market-card ${isOwned ? 'owned' : ''}" data-name="${coin.name.toLowerCase()} ${coin.symbol.toLowerCase()}">
             <div class="market-card-top">
                 <div class="market-card-asset">
                     <div class="asset-icon"><img src="${coin.image}" alt="${coin.symbol}" onerror="this.parentElement.textContent='${coin.symbol.slice(0,2).toUpperCase()}'"></div>
@@ -340,6 +360,7 @@ function renderMarket() {
                         <div class="asset-symbol">${coin.name}</div>
                     </div>
                 </div>
+                ${isOwned ? '<span class="market-card-owned-badge">EN PORTEFEUILLE</span>' : ''}
                 <span class="market-card-rank">#${coin.market_cap_rank || '--'}</span>
             </div>
             <div class="market-card-price">${formatUSD(coin.current_price)}</div>
@@ -399,27 +420,28 @@ function renderHistory() {
 }
 
 function renderAnalytics() {
-    // Allocation chart (simple CSS donut)
     const canvas = document.getElementById('allocationChart');
+    // Make canvas bigger for labels
+    canvas.width = 500;
+    canvas.height = 400;
     const ctx = canvas.getContext('2d');
     
     const items = Object.entries(holdings)
         .filter(([s, q]) => q > 0.0000001)
         .map(([sym, qty]) => ({ sym, value: qty * ((prices[sym] || {}).price || 0) }))
-        .filter(i => i.value >= 1)
+        .filter(i => i.value >= 10)
         .sort((a, b) => b.value - a.value);
     
     const total = items.reduce((s, i) => s + i.value, 0);
     
     if (total <= 0) return;
     
-    const colors = ['#06d6a0', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#10b981', '#f97316', '#6366f1'];
+    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#1d4ed8', '#7c3aed', '#0891b2', '#0d9488', '#059669', '#d97706', '#dc2626', '#e11d48'];
     
-    // Draw donut
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-    const radius = Math.min(cx, cy) - 30;
-    const innerRadius = radius * 0.55;
+    const radius = 140;
+    const innerRadius = radius * 0.5;
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -428,6 +450,7 @@ function renderAnalytics() {
     const otherValue = items.slice(10).reduce((s, i) => s + i.value, 0);
     if (otherValue > 0) topItems.push({ sym: 'Autres', value: otherValue });
     
+    // Draw slices
     topItems.forEach((item, i) => {
         const sliceAngle = (item.value / total) * Math.PI * 2;
         ctx.beginPath();
@@ -436,19 +459,65 @@ function renderAnalytics() {
         ctx.closePath();
         ctx.fillStyle = colors[i % colors.length];
         ctx.fill();
+        
+        // Draw label on each slice
+        const pct = item.value / total;
+        if (pct >= 0.03) { // Only label slices >= 3%
+            const midAngle = startAngle + sliceAngle / 2;
+            const labelRadius = (radius + innerRadius) / 2;
+            const lx = cx + Math.cos(midAngle) * labelRadius;
+            const ly = cy + Math.sin(midAngle) * labelRadius;
+            
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px "Space Grotesk"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.sym, lx, ly - 6);
+            ctx.font = '9px "JetBrains Mono"';
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillText((pct * 100).toFixed(1) + '%', lx, ly + 7);
+            ctx.restore();
+        }
+        
+        // Draw line + external label for small slices
+        if (pct < 0.03 && pct >= 0.005) {
+            const midAngle = startAngle + sliceAngle / 2;
+            const outerX = cx + Math.cos(midAngle) * (radius + 8);
+            const outerY = cy + Math.sin(midAngle) * (radius + 8);
+            const farX = cx + Math.cos(midAngle) * (radius + 35);
+            const farY = cy + Math.sin(midAngle) * (radius + 35);
+            
+            ctx.save();
+            ctx.strokeStyle = colors[i % colors.length];
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(outerX, outerY);
+            ctx.lineTo(farX, farY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#475569';
+            ctx.font = '9px "JetBrains Mono"';
+            ctx.textAlign = midAngle > Math.PI / 2 && midAngle < Math.PI * 1.5 ? 'right' : 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${item.sym} ${(pct * 100).toFixed(1)}%`, farX + (ctx.textAlign === 'left' ? 3 : -3), farY);
+            ctx.restore();
+        }
+        
         startAngle += sliceAngle;
     });
     
     // Center text
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = '#1e293b';
     ctx.font = 'bold 18px "Space Grotesk"';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(formatUSD(total), cx, cy - 5);
-    ctx.font = '12px "JetBrains Mono"';
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('TOTAL', cx, cy + 15);
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('TOTAL', cx, cy + 12);
     
-    // Legend
+    // Legend below
     const legendContainer = canvas.parentElement;
     let legendEl = legendContainer.querySelector('.donut-legend');
     if (!legendEl) {
@@ -459,7 +528,7 @@ function renderAnalytics() {
     legendEl.innerHTML = topItems.map((item, i) => 
         `<div class="donut-legend-item">
             <div class="donut-legend-dot" style="background:${colors[i % colors.length]}"></div>
-            ${item.sym} (${(item.value / total * 100).toFixed(1)}%)
+            ${item.sym} ${formatUSD(item.value)} (${(item.value / total * 100).toFixed(1)}%)
         </div>`
     ).join('');
     
@@ -496,7 +565,7 @@ function renderActivityChart() {
     const gap = w / months.length * 0.3;
     
     // Grid lines
-    ctx.strokeStyle = '#1e293b';
+    ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
         const y = padding + (h * i / 4);
@@ -514,8 +583,8 @@ function renderActivityChart() {
         
         // Gradient bar
         const gradient = ctx.createLinearGradient(x, y, x, padding + h);
-        gradient.addColorStop(0, '#06d6a0');
-        gradient.addColorStop(1, 'rgba(6, 214, 160, 0.2)');
+        gradient.addColorStop(0, '#1e3a8a');
+        gradient.addColorStop(1, 'rgba(37, 99, 235, 0.15)');
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -622,12 +691,6 @@ function switchTab(tabId) {
     
     if (tabId === 'analytics') renderAnalytics();
     if (tabId === 'market' && marketData.length === 0) loadMarketData();
-}
-
-function toggleSmall() {
-    hideSmallBalances = !hideSmallBalances;
-    document.getElementById('hideSmall').classList.toggle('active');
-    renderHoldings();
 }
 
 function filterMarket() {

@@ -74,7 +74,6 @@
                         <option value="name">Par nom</option>
                         <option value="change">Par variation 24h</option>
                     </select>
-                    <button class="btn-toggle" id="hideSmall" onclick="toggleSmall()">Masquer &lt;1$</button>
                 </div>
             </div>
             <div class="holdings-table-wrap">
@@ -87,11 +86,13 @@
                             <th>Valeur (USD)</th>
                             <th>24h</th>
                             <th>7j</th>
+                            <th>30j</th>
+                            <th>1an</th>
                             <th>Allocation</th>
                         </tr>
                     </thead>
                     <tbody id="holdingsBody">
-                        <tr><td colspan="7" class="loading-cell">Chargement des données...</td></tr>
+                        <tr><td colspan="9" class="loading-cell">Chargement des données...</td></tr>
                     </tbody>
                 </table>
             </div>
