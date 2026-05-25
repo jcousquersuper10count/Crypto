@@ -652,6 +652,108 @@ a:hover { text-decoration: underline; }
 
 .donut-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
+/* ===== Evolution Tab ===== */
+.evolution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.evolution-header h2 { font-family: var(--font-display); font-weight: 600; color: var(--accent); }
+
+.evolution-status {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.period-selector {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.period-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.45rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-btn:hover { border-color: var(--accent-light); color: var(--accent); }
+
+.period-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+}
+
+.evolution-chart-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+.evolution-chart-wrap canvas { max-width: 100%; }
+
+.evolution-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.evo-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.evo-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+}
+
+.evo-stat-value {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.evolution-note {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    background: var(--accent-dim);
+    border: 1px solid rgba(30, 58, 138, 0.15);
+    border-radius: var(--radius-sm);
+}
+
+.evolution-note p {
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-family: var(--font-sans);
+    margin: 0;
+}
+
 /* ===== Footer ===== */
 .footer {
     text-align: center;

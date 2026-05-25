@@ -59,6 +59,7 @@
         <!-- Tab Navigation -->
         <nav class="tab-nav">
             <button class="tab-btn active" data-tab="holdings" onclick="switchTab('holdings')">💰 Holdings</button>
+            <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">📉 Évolution</button>
             <button class="tab-btn" data-tab="market" onclick="switchTab('market')">📊 Marché</button>
             <button class="tab-btn" data-tab="history" onclick="switchTab('history')">📜 Historique</button>
             <button class="tab-btn" data-tab="analytics" onclick="switchTab('analytics')">📈 Analytiques</button>
@@ -95,6 +96,31 @@
                         <tr><td colspan="9" class="loading-cell">Chargement des données...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- Evolution Tab -->
+        <section class="tab-content" id="tab-evolution">
+            <div class="evolution-header">
+                <h2>Évolution du portefeuille</h2>
+                <div class="evolution-status" id="evolutionStatus"></div>
+            </div>
+            <div class="period-selector">
+                <button class="period-btn active" data-period="7" onclick="selectPeriod(7)">7j</button>
+                <button class="period-btn" data-period="30" onclick="selectPeriod(30)">30j</button>
+                <button class="period-btn" data-period="90" onclick="selectPeriod(90)">3 mois</button>
+                <button class="period-btn" data-period="180" onclick="selectPeriod(180)">6 mois</button>
+                <button class="period-btn" data-period="365" onclick="selectPeriod(365)">1 an</button>
+                <button class="period-btn" data-period="730" onclick="selectPeriod(730)">2 ans</button>
+                <button class="period-btn" data-period="1095" onclick="selectPeriod(1095)">3 ans</button>
+                <button class="period-btn" data-period="0" onclick="selectPeriod(0)">Max</button>
+            </div>
+            <div class="evolution-chart-wrap">
+                <canvas id="evolutionChart" width="1100" height="400"></canvas>
+            </div>
+            <div class="evolution-stats" id="evolutionStats"></div>
+            <div class="evolution-note">
+                <p>💡 La valeur de votre portefeuille est enregistrée automatiquement à chaque visite (max 1 fois / 4h).</p>
             </div>
         </section>
 

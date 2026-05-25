@@ -12,6 +12,10 @@ const SHEET_URLS = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`,
 ];
 
+// Google Apps Script URL for portfolio value logging
+// INSTRUCTIONS: Remplace cette URL par celle de ton déploiement Apps Script
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJbGQ9SqkQQ5nVhGU_vW5oDWbtb0uEJpaQVf0TtUy0gRRLBdSrJmymlRBhls7O4rot/exec';
+
 // CoinGecko free API (no key needed)
 const CG_BASE = 'https://api.coingecko.com/api/v3';
 
@@ -49,7 +53,7 @@ const COINGECKO_MAP = {
     'QI': 'benqi', 'DUCK': 'duck-chain',
     'ai16z': 'ai16z', 'CETUS': 'cetus-protocol', 
     '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null,
-    'RECALL': 'recall', 'X': null, 'GRASS': 'grass'
+    'RECALL': 'recall', 'X': null
 };
 
 // ===== State =====
@@ -57,6 +61,8 @@ let transactions = [];
 let holdings = {};
 let prices = {};
 let marketData = [];
+let portfolioHistory = [];
+let selectedPeriod = 7;
 
 // ===== Parse CSV from Google Sheets =====
 function parseCSV(text) {
@@ -691,6 +697,7 @@ function switchTab(tabId) {
     
     if (tabId === 'analytics') renderAnalytics();
     if (tabId === 'market' && marketData.length === 0) loadMarketData();
+    if (tabId === 'evolution') renderEvolution();
 }
 
 function filterMarket() {
@@ -808,6 +815,268 @@ async function refreshAll() {
     btn.classList.remove('spinning');
 }
 
+// ===== Portfolio Evolution =====
+function isAppsScriptConfigured() {
+    return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('COLLE_TON_URL');
+}
+
+async function logPortfolioValue(valueUSD, nbAssets) {
+    if (!isAppsScriptConfigured()) return;
+    
+    // Estimate EUR value (rough)
+    const valueEUR = valueUSD * 0.92;
+    
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ valueUSD, valueEUR, nbAssets }),
+            mode: 'no-cors' // Apps Script redirects, so we use no-cors for POST
+        });
+        console.log('✓ Portfolio value logged');
+    } catch (e) {
+        console.warn('Portfolio log error:', e);
+    }
+}
+
+async function fetchPortfolioHistory() {
+    if (!isAppsScriptConfigured()) {
+        document.getElementById('evolutionStatus').textContent = '⚠ Apps Script non configuré (voir README)';
+        return [];
+    }
+    
+    try {
+        const resp = await fetch(APPS_SCRIPT_URL);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (json.status === 'ok' && json.data) {
+            return json.data.map(d => ({
+                date: new Date(d.date),
+                valueUSD: d.valueUSD,
+                valueEUR: d.valueEUR,
+                nbAssets: d.nbAssets
+            })).sort((a, b) => a.date - b.date);
+        }
+    } catch (e) {
+        console.warn('Fetch history error:', e);
+        document.getElementById('evolutionStatus').textContent = '⚠ Erreur de chargement';
+    }
+    return [];
+}
+
+function selectPeriod(days) {
+    selectedPeriod = days;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.period-btn[data-period="${days}"]`).classList.add('active');
+    renderEvolution();
+}
+
+function renderEvolution() {
+    const canvas = document.getElementById('evolutionChart');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (portfolioHistory.length < 2) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '14px "DM Sans"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Pas assez de données. Revenez dans quelques jours !', canvas.width / 2, canvas.height / 2 - 10);
+        ctx.font = '12px "JetBrains Mono"';
+        ctx.fillText(`${portfolioHistory.length} point(s) enregistré(s)`, canvas.width / 2, canvas.height / 2 + 15);
+        renderEvolutionStats([]);
+        return;
+    }
+    
+    // Filter by period
+    let data = [...portfolioHistory];
+    if (selectedPeriod > 0) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - selectedPeriod);
+        data = data.filter(d => d.date >= cutoff);
+    }
+    
+    if (data.length < 2) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '14px "DM Sans"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Pas assez de données sur cette période.', canvas.width / 2, canvas.height / 2);
+        renderEvolutionStats([]);
+        return;
+    }
+    
+    // Chart dimensions
+    const pad = { top: 30, right: 30, bottom: 50, left: 80 };
+    const w = canvas.width - pad.left - pad.right;
+    const h = canvas.height - pad.top - pad.bottom;
+    
+    const values = data.map(d => d.valueUSD);
+    const minVal = Math.min(...values) * 0.95;
+    const maxVal = Math.max(...values) * 1.05;
+    const range = maxVal - minVal || 1;
+    
+    // X/Y mapping
+    const xScale = (i) => pad.left + (i / (data.length - 1)) * w;
+    const yScale = (v) => pad.top + h - ((v - minVal) / range) * h;
+    
+    // Grid lines
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.5;
+    const gridLines = 5;
+    for (let i = 0; i <= gridLines; i++) {
+        const y = pad.top + (h * i / gridLines);
+        const val = maxVal - (i / gridLines) * range;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + w, y);
+        ctx.stroke();
+        
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px "JetBrains Mono"';
+        ctx.textAlign = 'right';
+        ctx.fillText('$' + val.toFixed(0), pad.left - 8, y + 4);
+    }
+    
+    // X axis labels
+    const labelCount = Math.min(data.length, 8);
+    const step = Math.max(1, Math.floor(data.length / labelCount));
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px "JetBrains Mono"';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < data.length; i += step) {
+        const x = xScale(i);
+        const d = data[i].date;
+        const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        ctx.fillText(label, x, pad.top + h + 20);
+    }
+    
+    // Area fill
+    const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
+    const isUp = values[values.length - 1] >= values[0];
+    if (isUp) {
+        gradient.addColorStop(0, 'rgba(30, 58, 138, 0.2)');
+        gradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
+    } else {
+        gradient.addColorStop(0, 'rgba(220, 38, 38, 0.15)');
+        gradient.addColorStop(1, 'rgba(220, 38, 38, 0.02)');
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), pad.top + h);
+    data.forEach((d, i) => ctx.lineTo(xScale(i), yScale(d.valueUSD)));
+    ctx.lineTo(xScale(data.length - 1), pad.top + h);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Line
+    ctx.beginPath();
+    data.forEach((d, i) => {
+        const x = xScale(i);
+        const y = yScale(d.valueUSD);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = isUp ? '#1e3a8a' : '#dc2626';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    // Dots at first and last
+    [0, data.length - 1].forEach(i => {
+        const x = xScale(i);
+        const y = yScale(data[i].valueUSD);
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = isUp ? '#1e3a8a' : '#dc2626';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Value label
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 11px "Space Grotesk"';
+        ctx.textAlign = i === 0 ? 'left' : 'right';
+        ctx.fillText('$' + data[i].valueUSD.toFixed(2), x + (i === 0 ? 10 : -10), y - 10);
+    });
+    
+    renderEvolutionStats(data);
+}
+
+function renderEvolutionStats(data) {
+    const container = document.getElementById('evolutionStats');
+    
+    if (data.length < 2) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    const first = data[0].valueUSD;
+    const last = data[data.length - 1].valueUSD;
+    const diff = last - first;
+    const pct = first > 0 ? ((diff / first) * 100) : 0;
+    const high = Math.max(...data.map(d => d.valueUSD));
+    const low = Math.min(...data.map(d => d.valueUSD));
+    const avg = data.reduce((s, d) => s + d.valueUSD, 0) / data.length;
+    
+    const cls = diff >= 0 ? 'change-positive' : 'change-negative';
+    
+    // Compute period-specific changes
+    const now = last;
+    function findValueDaysAgo(days) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        // Find closest entry to cutoff
+        let closest = null;
+        let minDiff = Infinity;
+        portfolioHistory.forEach(d => {
+            const dd = Math.abs(d.date - cutoff);
+            if (dd < minDiff) { minDiff = dd; closest = d; }
+        });
+        return closest ? closest.valueUSD : null;
+    }
+    
+    const periods = [
+        { label: '1 jour', days: 1 },
+        { label: '7 jours', days: 7 },
+        { label: '30 jours', days: 30 },
+        { label: '3 mois', days: 90 },
+        { label: '6 mois', days: 180 },
+        { label: '1 an', days: 365 },
+        { label: '2 ans', days: 730 },
+        { label: '3 ans', days: 1095 },
+    ];
+    
+    let html = '';
+    periods.forEach(p => {
+        const pastVal = findValueDaysAgo(p.days);
+        if (pastVal !== null && pastVal > 0) {
+            const ch = ((now - pastVal) / pastVal) * 100;
+            const chCls = ch >= 0 ? 'change-positive' : 'change-negative';
+            html += `<div class="evo-stat">
+                <div class="evo-stat-label">${p.label}</div>
+                <div class="evo-stat-value ${chCls}">${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%</div>
+            </div>`;
+        }
+    });
+    
+    // Add high/low/avg
+    html += `<div class="evo-stat">
+        <div class="evo-stat-label">Plus haut</div>
+        <div class="evo-stat-value">$${high.toFixed(0)}</div>
+    </div>`;
+    html += `<div class="evo-stat">
+        <div class="evo-stat-label">Plus bas</div>
+        <div class="evo-stat-value">$${low.toFixed(0)}</div>
+    </div>`;
+    html += `<div class="evo-stat">
+        <div class="evo-stat-label">Moyenne</div>
+        <div class="evo-stat-value">$${avg.toFixed(0)}</div>
+    </div>`;
+    
+    container.innerHTML = html;
+}
+
 // ===== Init =====
 async function init() {
     setStatus('Initialisation...');
@@ -815,7 +1084,25 @@ async function init() {
     const success = await loadSheetData();
     if (success) {
         await loadPriceData();
-        // Market data loaded lazily when tab is clicked
+        
+        // Log current portfolio value
+        const totalValue = Object.entries(holdings)
+            .filter(([s, q]) => q > 0.0000001)
+            .reduce((sum, [sym, qty]) => sum + qty * ((prices[sym] || {}).price || 0), 0);
+        const nbAssets = Object.entries(holdings)
+            .filter(([s, q]) => q > 0.0000001 && q * ((prices[s]||{}).price||0) >= 10)
+            .length;
+        
+        if (totalValue > 0) {
+            logPortfolioValue(totalValue, nbAssets);
+        }
+        
+        // Load portfolio history
+        portfolioHistory = await fetchPortfolioHistory();
+        if (portfolioHistory.length > 0) {
+            document.getElementById('evolutionStatus').textContent = 
+                `${portfolioHistory.length} points · Depuis le ${portfolioHistory[0].date.toLocaleDateString('fr-FR')}`;
+        }
     }
     
     setStatus('En direct', true);
