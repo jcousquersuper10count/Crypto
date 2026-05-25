@@ -219,8 +219,15 @@ a:hover { text-decoration: underline; }
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.8rem;
+}
+
+.total-breakdown {
+    margin-top: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.75);
 }
 
 .summary-card {
@@ -341,6 +348,16 @@ a:hover { text-decoration: underline; }
     border-bottom: 2px solid var(--border);
     background: var(--bg-input);
 }
+
+.holdings-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.holdings-table th.sortable:hover { background: var(--accent-dim); }
+.holdings-table th.sort-asc { background: var(--accent-dim); }
+.holdings-table th.sort-desc { background: var(--accent-dim); }
 
 .holdings-table td {
     padding: 0.8rem 1rem;
@@ -772,7 +789,7 @@ a:hover { text-decoration: underline; }
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-grid { grid-template-columns: repeat(3, 1fr); }
     .analytics-grid { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .total-value { font-size: 2.2rem; }

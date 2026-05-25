@@ -3,42 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Portfolio Tracker</title>
+    <title>VAULT — Portfolio Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app">
-        <!-- Header -->
         <header class="header">
             <div class="header-left">
-                <div class="logo">
-                    <span class="logo-icon">◈</span>
-                    <span class="logo-text">VAULT</span>
-                </div>
+                <div class="logo"><span class="logo-icon">◈</span><span class="logo-text">VAULT</span></div>
                 <span class="logo-sub">Portfolio Tracker</span>
             </div>
             <div class="header-right">
-                <div class="status-pill" id="statusPill">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Chargement...</span>
-                </div>
+                <div class="status-pill"><span class="status-dot"></span><span class="status-text">Chargement...</span></div>
                 <button class="btn-refresh" onclick="refreshAll()" title="Rafraîchir">⟳</button>
                 <div class="last-update" id="lastUpdate">--</div>
             </div>
         </header>
 
-        <!-- Portfolio Summary -->
+        <!-- Summary -->
         <section class="summary-section">
             <div class="total-value-card">
                 <div class="total-label">Valeur totale du portefeuille</div>
                 <div class="total-value" id="totalValue">--</div>
                 <div class="total-change" id="totalChange">--</div>
+                <div class="total-breakdown" id="breakdown"></div>
             </div>
             <div class="summary-grid">
                 <div class="summary-card">
-                    <div class="summary-card-label">Actifs</div>
+                    <div class="summary-card-label">Actifs ≥ 10$</div>
                     <div class="summary-card-value" id="assetCount">--</div>
                 </div>
                 <div class="summary-card">
@@ -50,13 +44,17 @@
                     <div class="summary-card-value" id="totalPnl">--</div>
                 </div>
                 <div class="summary-card">
-                    <div class="summary-card-label">Meilleur Actif</div>
+                    <div class="summary-card-label">Meilleur 24h</div>
                     <div class="summary-card-value" id="bestAsset">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-label">Fear & Greed</div>
+                    <div class="summary-card-value" id="fearGreed">--</div>
                 </div>
             </div>
         </section>
 
-        <!-- Tab Navigation -->
+        <!-- Tabs -->
         <nav class="tab-nav">
             <button class="tab-btn active" data-tab="holdings" onclick="switchTab('holdings')">💰 Holdings</button>
             <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">📉 Évolution</button>
@@ -65,31 +63,24 @@
             <button class="tab-btn" data-tab="analytics" onclick="switchTab('analytics')">📈 Analytiques</button>
         </nav>
 
-        <!-- Holdings Tab -->
+        <!-- Holdings -->
         <section class="tab-content active" id="tab-holdings">
             <div class="holdings-header">
                 <h2>Vos positions</h2>
-                <div class="holdings-controls">
-                    <select id="sortBy" onchange="renderHoldings()">
-                        <option value="value">Par valeur</option>
-                        <option value="name">Par nom</option>
-                        <option value="change">Par variation 24h</option>
-                    </select>
-                </div>
             </div>
             <div class="holdings-table-wrap">
                 <table class="holdings-table">
                     <thead>
                         <tr>
-                            <th>Actif</th>
-                            <th>Quantité</th>
-                            <th>Prix</th>
-                            <th>Valeur (USD)</th>
-                            <th>24h</th>
-                            <th>7j</th>
-                            <th>30j</th>
-                            <th>1an</th>
-                            <th>Allocation</th>
+                            <th data-col="name" onclick="sortTable('name')" class="sortable">Actif ⇅</th>
+                            <th data-col="qty" onclick="sortTable('qty')" class="sortable">Quantité ⇅</th>
+                            <th data-col="price" onclick="sortTable('price')" class="sortable">Prix ⇅</th>
+                            <th data-col="value" onclick="sortTable('value')" class="sortable sort-desc">Valeur ⇅</th>
+                            <th data-col="change24h" onclick="sortTable('change24h')" class="sortable">24h ⇅</th>
+                            <th data-col="change7d" onclick="sortTable('change7d')" class="sortable">7j ⇅</th>
+                            <th data-col="change30d" onclick="sortTable('change30d')" class="sortable">30j ⇅</th>
+                            <th data-col="change1y" onclick="sortTable('change1y')" class="sortable">1an ⇅</th>
+                            <th data-col="alloc" onclick="sortTable('alloc')" class="sortable">Alloc ⇅</th>
                         </tr>
                     </thead>
                     <tbody id="holdingsBody">
@@ -99,7 +90,7 @@
             </div>
         </section>
 
-        <!-- Evolution Tab -->
+        <!-- Evolution -->
         <section class="tab-content" id="tab-evolution">
             <div class="evolution-header">
                 <h2>Évolution du portefeuille</h2>
@@ -120,24 +111,24 @@
             </div>
             <div class="evolution-stats" id="evolutionStats"></div>
             <div class="evolution-note">
-                <p>💡 La valeur de votre portefeuille est enregistrée automatiquement à chaque visite (max 1 fois / 4h).</p>
+                <p>💡 Valeur enregistrée automatiquement à chaque visite (max 1x / 4h).</p>
             </div>
         </section>
 
-        <!-- Market Tab -->
+        <!-- Market -->
         <section class="tab-content" id="tab-market">
             <div class="market-header">
                 <h2>Suivi du marché</h2>
                 <div class="market-search">
-                    <input type="text" id="marketSearch" placeholder="Rechercher une crypto..." oninput="filterMarket()">
+                    <input type="text" id="marketSearch" placeholder="Rechercher..." oninput="filterMarket()">
                 </div>
             </div>
             <div class="market-grid" id="marketGrid">
-                <div class="loading-cell">Chargement des données marché...</div>
+                <div class="loading-cell">Chargement...</div>
             </div>
         </section>
 
-        <!-- History Tab -->
+        <!-- History -->
         <section class="tab-content" id="tab-history">
             <div class="history-header">
                 <h2>Dernières transactions</h2>
@@ -153,11 +144,11 @@
                 </div>
             </div>
             <div class="history-list" id="historyList">
-                <div class="loading-cell">Chargement de l'historique...</div>
+                <div class="loading-cell">Chargement...</div>
             </div>
         </section>
 
-        <!-- Analytics Tab -->
+        <!-- Analytics -->
         <section class="tab-content" id="tab-analytics">
             <h2>Analytiques</h2>
             <div class="analytics-grid">
@@ -170,21 +161,17 @@
                     <canvas id="activityChart" width="400" height="300"></canvas>
                 </div>
                 <div class="chart-card full-width">
-                    <h3>Statistiques de trading</h3>
-                    <div class="stats-grid" id="statsGrid">
-                        <div class="loading-cell">Calcul...</div>
-                    </div>
+                    <h3>Statistiques</h3>
+                    <div class="stats-grid" id="statsGrid"><div class="loading-cell">Calcul...</div></div>
                 </div>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="footer">
-            <p>Données via <a href="https://www.coingecko.com/" target="_blank">CoinGecko API</a> · Transactions depuis Google Sheets</p>
-            <p>Rafraîchissement automatique toutes les 60 secondes</p>
+            <p>Données: <a href="https://www.coingecko.com/" target="_blank">CoinGecko</a> · <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear & Greed</a> · Google Sheets</p>
+            <p>Sources: SwissBorg · Revolut Crypto · Revolut Robo-Advisor</p>
         </footer>
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>

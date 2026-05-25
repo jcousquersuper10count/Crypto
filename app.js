@@ -1,25 +1,39 @@
+// ============================================================
+// VAULT — Crypto + ETF Portfolio Dashboard
+// ============================================================
+
 // ===== Configuration =====
 const SHEET_ID = '18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8';
 const PUB_ID = '2PACX-1vQHtSe6vE3WSfSsoW15kEaKv75UYpRGM0QJ26_MJlys7ML1NPid2b_Ys6jII04owAH9v4NfOelpVsAm';
 
-// Multiple endpoints to try (CORS can be tricky with Google Sheets)
-const SHEET_URLS = [
-    // 1. Published CSV via pub ID (most reliable for CORS)
-    `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv`,
-    // 2. gviz endpoint
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
-    // 3. CORS proxy fallback
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`)}`,
+// Sheet URLs — each tab published as CSV
+// User must "Publish to Web" each sheet tab individually or the whole document
+// The gid parameter selects the sheet tab (0 = first tab)
+// For named sheets, we use the gviz endpoint
+const SHEET_URLS_SWISSBORG = [
+    `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&gid=0`,
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`)}`,
 ];
 
-// Google Apps Script URL for portfolio value logging
-// INSTRUCTIONS: Remplace cette URL par celle de ton déploiement Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJbGQ9SqkQQ5nVhGU_vW5oDWbtb0uEJpaQVf0TtUy0gRRLBdSrJmymlRBhls7O4rot/exec';
+// Revolut tabs — user will create these tabs and paste their CSV data
+const SHEET_URLS_REVOLUT_CRYPTO = [
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Revolut_Crypto`,
+    `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&sheet=Revolut_Crypto`,
+];
 
-// CoinGecko free API (no key needed)
+const SHEET_URLS_REVOLUT_ROBO = [
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Revolut_Robo`,
+    `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&sheet=Revolut_Robo`,
+];
+
+// CoinGecko
 const CG_BASE = 'https://api.coingecko.com/api/v3';
 
-// Map of asset symbols to CoinGecko IDs
+// Apps Script for portfolio logging
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJbGQ9SqkQQ5nVhGU_vW5oDWbtb0uEJpaQVf0TtUy0gRRLBdSrJmymlRBhls7O4rot/exec';
+
+// CoinGecko ID map
 const COINGECKO_MAP = {
     'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'XRP': 'ripple',
     'ADA': 'cardano', 'DOGE': 'dogecoin', 'AVAX': 'avalanche-2', 'LINK': 'chainlink',
@@ -43,7 +57,6 @@ const COINGECKO_MAP = {
     'ELON': 'dogelon-mars', 'VET': 'vechain', 'SUPER': 'superfarm',
     'AERO': 'aerodrome-finance', 'PI': 'pi-network', 'AR': 'arweave',
     'LUNA': 'terra-luna-2', 'RECALL': 'recall', 'GOAT': 'goatseus-maximus',
-    'USDC': 'usd-coin', 'USDT': 'tether',
     'SAMO': 'samoyedcoin', 'CTXC': 'cortex', 'MOG': 'mog-coin',
     'API3': 'api3', 'IO': 'io-net', 'FORTH': 'ampleforth-governance-token',
     'TAI': 'tars-protocol', 'AMP': 'amp-token', 'IQ': 'everipedia',
@@ -51,60 +64,48 @@ const COINGECKO_MAP = {
     'BMT': 'bmt-token', 'HIFI': 'hifi-finance', 'MXC': 'mxc',
     'IDEX': 'aurora-dao', 'CAT': 'simon-s-cat', 'SATS': '1000sats',
     'QI': 'benqi', 'DUCK': 'duck-chain',
-    'ai16z': 'ai16z', 'CETUS': 'cetus-protocol', 
-    '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null,
-    'RECALL': 'recall', 'X': null,
-    // Revolut crypto additions
+    'ai16z': 'ai16z', 'CETUS': 'cetus-protocol',
+    '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null, 'X': null,
     'ATOM': 'cosmos', 'MEW': 'cat-in-a-dogs-world', 'DOT': 'polkadot',
     'SEI': 'sei-network', 'CRO': 'crypto-com-chain', 'ROSE': 'oasis-network',
     'LMWR': 'limewire-token', 'ZKJ': 'polyhedra-network'
 };
 
-// ===== Revolut Robo-Advisor ETF Data =====
-// ISINs for price lookup via public APIs
-const REVOLUT_ETFS = {
-    '2B72':  { name: 'Amundi MSCI Emerging Markets II ETF', isin: 'LU2573966905', qty: 158.449808 },
-    'WELK':  { name: 'Amundi MSCI World Climate Paris Aligned PAB', isin: 'IE000COYXKJ3', qty: 121.721795 },
-    'EBUY':  { name: 'Amundi MSCI World Ex-Europe ETF', isin: 'LU2572257124', qty: 51.987275 },
-    'AMEL':  { name: 'Amundi MSCI Emerging Markets III ETF', isin: 'LU2573967036', qty: 36.260348 },
-    'LYMS':  { name: 'Amundi MSCI EM Asia ETF', isin: 'LU1781541849', qty: 33.617063 },
-    'LEMA':  { name: 'Amundi MSCI EM Latin America ETF', isin: 'LU1681045024', qty: 30.428771 },
-    'XDWI':  { name: 'Xtrackers MSCI World IT ETF', isin: 'IE00BM67HT60', qty: 21.357784 },
-    'PRAJ':  { name: 'Amundi Prime Japan ETF', isin: 'LU2089238385', qty: 14.634074 },
-    '79U0':  { name: 'Amundi MSCI USA ETF', isin: 'LU1681042864', qty: 11.416671 },
-    'LYP5':  { name: 'Amundi MSCI World ETF', isin: 'LU2655993207', qty: 9.525122 },
-    'UBUD':  { name: 'UBS MSCI Japan SF ETF', isin: 'LU0950671825', qty: 9.145290 },
-    'LYP6':  { name: 'Amundi Stoxx Europe 600 ETF', isin: 'LU0908500753', qty: 3.681600 },
-    'LGQK':  { name: 'L&G Quality Equity Dividends ESG ETF', isin: 'IE00BYYHSQ67', qty: 0.595979 },
-};
-
-// Revolut Crypto current holdings (computed from transaction history)
-const REVOLUT_CRYPTO = {
-    'ATOM': 106.25943300,
-    'MEW': 71.65343845,
-    'VET': 26.73442965,
-    'ZKJ': 1.39294481,
-    'BTC': 0.03625918,
-    'DOT': 0.00327007,
+// ETF name map (ticker -> full name)
+const ETF_NAMES = {
+    '2B72': 'Amundi MSCI Emerging Markets II', 'WELK': 'Amundi MSCI World Climate Paris',
+    'EBUY': 'Amundi MSCI World Ex-Europe', 'AMEL': 'Amundi MSCI Emerging Markets III',
+    'LYMS': 'Amundi MSCI EM Asia', 'LEMA': 'Amundi MSCI EM Latin America',
+    'XDWI': 'Xtrackers MSCI World IT', 'PRAJ': 'Amundi Prime Japan',
+    '79U0': 'Amundi MSCI USA', 'LYP5': 'Amundi MSCI World',
+    'UBUD': 'UBS MSCI Japan SF', 'LYP6': 'Amundi Stoxx Europe 600',
+    'LGQK': 'L&G Quality Equity Dividends ESG', 'EXW1': 'iShares EURO STOXX 50',
+    'EXI2': 'iShares DJ Global Titans 50', 'XUCD': 'Xtrackers MSCI USA Consumer',
+    'IS3Q': 'iShares MSCI World Quality', 'IS3K': 'iShares High Yield Corp Bond',
+    'XDWT': 'Xtrackers MSCI World IT', 'AMEM': 'Amundi MSCI Emerging Markets',
+    'DBXJ': 'Xtrackers MSCI Japan',
 };
 
 // ===== State =====
-let transactions = [];
-let holdings = {};
+let swissborgTx = [];
+let revolutCryptoTx = [];
+let revolutRoboTx = [];
+let cryptoHoldings = {};  // merged crypto holdings
+let etfHoldings = {};     // ETF holdings {ticker: qty}
 let prices = {};
+let etfPrices = {};
 let marketData = [];
 let portfolioHistory = [];
 let selectedPeriod = 7;
-let etfPrices = {};
+let fearGreedData = null;
+let currentSort = { col: 'value', dir: 'desc' };
 
-// ===== Parse CSV from Google Sheets =====
+// ===== CSV Parsing =====
 function parseCSV(text) {
     const lines = text.split('\n');
     if (lines.length < 2) return [];
-    
     const headers = parseCSVLine(lines[0]);
     const rows = [];
-    
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const values = parseCSVLine(lines[i]);
@@ -117,318 +118,455 @@ function parseCSV(text) {
 
 function parseCSVLine(line) {
     const result = [];
-    let current = '';
-    let inQuotes = false;
-    
+    let current = '', inQuotes = false;
     for (let i = 0; i < line.length; i++) {
         const ch = line[i];
-        if (ch === '"') {
-            inQuotes = !inQuotes;
-        } else if (ch === ',' && !inQuotes) {
-            result.push(current);
-            current = '';
-        } else {
-            current += ch;
-        }
+        if (ch === '"') inQuotes = !inQuotes;
+        else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+        else current += ch;
     }
     result.push(current);
     return result;
 }
 
-function parseNumber(s) {
+function parseNum(s) {
     if (!s) return 0;
-    s = s.trim().replace(/"/g, '').replace(/\xa0/g, '');
-    // Handle scientific notation with comma: 1,00E+12
+    s = s.trim().replace(/"/g, '').replace(/\xa0/g, '').replace(/\s/g, '').replace(/€/g, '').replace(/\$/g, '');
     if (s.includes('E+') || s.includes('E-') || s.includes('e+') || s.includes('e-')) {
         s = s.replace(',', '.');
         return parseFloat(s) || 0;
     }
-    // Handle comma as decimal separator
-    if (s.includes(',') && !s.includes('.')) {
-        s = s.replace(',', '.');
-    }
+    // French format: space as thousands, comma as decimal
+    if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
     return parseFloat(s) || 0;
 }
 
-// ===== Compute Holdings =====
-function computeHoldings(txns) {
-    const balances = {};
-    const fiat = new Set(['EUR', 'USD']);
-    
-    txns.forEach(tx => {
-        const recvAmt = parseNumber(tx['Amount received']);
-        const recvAsset = tx['Asset received'] || '';
-        const sentAmt = parseNumber(tx['Amount sent']);
-        const sentAsset = tx['Asset sent'] || '';
-        const feeAmt = parseNumber(tx['Fee']);
-        const feeAsset = tx['Asset of the fee'] || '';
-        
-        if (recvAmt && recvAsset && !fiat.has(recvAsset)) {
-            balances[recvAsset] = (balances[recvAsset] || 0) + recvAmt;
-        }
-        if (sentAmt && sentAsset && !fiat.has(sentAsset)) {
-            balances[sentAsset] = (balances[sentAsset] || 0) - sentAmt;
-        }
-        if (feeAmt && feeAsset && !fiat.has(feeAsset)) {
-            balances[feeAsset] = (balances[feeAsset] || 0) - feeAmt;
-        }
-    });
-    
-    // Filter out near-zero balances
-    const result = {};
-    for (const [asset, bal] of Object.entries(balances)) {
-        if (Math.abs(bal) > 0.0000001) {
-            result[asset] = bal;
-        }
+// ===== Fetch CSV with fallbacks =====
+async function fetchCSV(urls, label) {
+    for (const url of urls) {
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) continue;
+            const text = await resp.text();
+            if (text.length > 50 && !text.includes('<!DOCTYPE')) {
+                console.log(`✓ ${label} loaded`);
+                return text;
+            }
+        } catch(e) { }
     }
-    return result;
+    console.warn(`✗ ${label}: all URLs failed`);
+    return null;
 }
 
-// ===== Fetch Prices from CoinGecko =====
-async function fetchPrices(assetList) {
-    // Get CoinGecko IDs for our assets
-    const ids = [];
-    const idToSymbol = {};
-    
-    assetList.forEach(sym => {
-        const cgId = COINGECKO_MAP[sym];
-        if (cgId) {
-            ids.push(cgId);
-            idToSymbol[cgId] = sym;
-        }
+// ===== Compute Holdings =====
+function computeSwissborgHoldings(txns) {
+    const bal = {};
+    const fiat = new Set(['EUR', 'USD']);
+    txns.forEach(tx => {
+        const ra = parseNum(tx['Amount received']), rs = tx['Asset received'] || '';
+        const sa = parseNum(tx['Amount sent']), ss = tx['Asset sent'] || '';
+        const fa = parseNum(tx['Fee']), fs = tx['Asset of the fee'] || '';
+        if (ra && rs && !fiat.has(rs)) bal[rs] = (bal[rs] || 0) + ra;
+        if (sa && ss && !fiat.has(ss)) bal[ss] = (bal[ss] || 0) - sa;
+        if (fa && fs && !fiat.has(fs)) bal[fs] = (bal[fs] || 0) - fa;
     });
-    
-    if (ids.length === 0) return {};
-    
-    // Batch in groups of 50
+    return bal;
+}
+
+function computeRevolutCryptoHoldings(txns) {
+    const bal = {};
+    txns.forEach(tx => {
+        const sym = (tx['Symbol'] || '').trim();
+        const typ = (tx['Type'] || '').trim();
+        const qty = parseNum(tx['Quantity']);
+        if (!sym || !qty) return;
+        if (['Achat', 'Récompense de staking', 'Récompense Apprendre'].includes(typ)) {
+            bal[sym] = (bal[sym] || 0) + qty;
+        } else if (typ === 'Vente') {
+            bal[sym] = (bal[sym] || 0) - qty;
+        }
+        // 'Mise en staking' and 'Envoi' don't change balance (internal move)
+    });
+    return bal;
+}
+
+function computeRevolutRoboHoldings(txns) {
+    const bal = {};
+    txns.forEach(tx => {
+        const ticker = (tx['Ticker'] || '').trim();
+        const typ = (tx['Type'] || '').trim();
+        const qty = parseNum(tx['Quantity']);
+        if (!ticker || !qty) return;
+        if (typ.includes('BUY')) bal[ticker] = (bal[ticker] || 0) + qty;
+        else if (typ.includes('SELL')) bal[ticker] = (bal[ticker] || 0) - qty;
+    });
+    return bal;
+}
+
+function mergeHoldings() {
+    cryptoHoldings = {};
+    const sb = computeSwissborgHoldings(swissborgTx);
+    const rc = computeRevolutCryptoHoldings(revolutCryptoTx);
+
+    // Merge
+    for (const [sym, qty] of Object.entries(sb)) {
+        cryptoHoldings[sym] = (cryptoHoldings[sym] || 0) + qty;
+    }
+    for (const [sym, qty] of Object.entries(rc)) {
+        cryptoHoldings[sym] = (cryptoHoldings[sym] || 0) + qty;
+    }
+
+    // Filter dust
+    for (const sym of Object.keys(cryptoHoldings)) {
+        if (Math.abs(cryptoHoldings[sym]) < 0.0000001) delete cryptoHoldings[sym];
+    }
+
+    // ETFs
+    etfHoldings = {};
+    const robo = computeRevolutRoboHoldings(revolutRoboTx);
+    for (const [ticker, qty] of Object.entries(robo)) {
+        if (qty > 0.0001) etfHoldings[ticker] = qty;
+    }
+}
+
+// ===== Source detection =====
+function getSource(sym) {
+    const inSB = computeSwissborgHoldings(swissborgTx)[sym] > 0.0000001;
+    const inRC = computeRevolutCryptoHoldings(revolutCryptoTx)[sym] > 0.0000001;
+    if (inSB && inRC) return 'Multi';
+    if (inRC) return 'Revolut';
+    return 'SwissBorg';
+}
+
+// ===== Fetch Prices =====
+async function fetchPrices(assetList) {
+    const ids = [], idToSym = {};
+    assetList.forEach(sym => {
+        const id = COINGECKO_MAP[sym];
+        if (id) { ids.push(id); idToSym[id] = sym; }
+    });
+    if (!ids.length) return {};
+
     const priceData = {};
     for (let i = 0; i < ids.length; i += 50) {
         const batch = ids.slice(i, i + 50);
         try {
-            const url = `${CG_BASE}/coins/markets?vs_currency=usd&ids=${batch.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d,30d,1y`;
-            const resp = await fetch(url);
+            const resp = await fetch(`${CG_BASE}/coins/markets?vs_currency=usd&ids=${batch.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d,30d,1y`);
             if (resp.ok) {
                 const data = await resp.json();
-                data.forEach(coin => {
-                    const sym = idToSymbol[coin.id];
-                    if (sym) {
-                        priceData[sym] = {
-                            price: coin.current_price || 0,
-                            change24h: coin.price_change_percentage_24h || 0,
-                            change7d: coin.price_change_percentage_7d_in_currency || 0,
-                            change30d: coin.price_change_percentage_30d_in_currency || 0,
-                            change1y: coin.price_change_percentage_1y_in_currency || 0,
-                            marketCap: coin.market_cap || 0,
-                            image: coin.image || '',
-                            name: coin.name || sym,
-                            rank: coin.market_cap_rank || 999
-                        };
-                    }
+                data.forEach(c => {
+                    const sym = idToSym[c.id];
+                    if (sym) priceData[sym] = {
+                        price: c.current_price || 0,
+                        change24h: c.price_change_percentage_24h || 0,
+                        change7d: c.price_change_percentage_7d_in_currency || 0,
+                        change30d: c.price_change_percentage_30d_in_currency || 0,
+                        change1y: c.price_change_percentage_1y_in_currency || 0,
+                        marketCap: c.market_cap || 0,
+                        image: c.image || '', name: c.name || sym,
+                        rank: c.market_cap_rank || 999
+                    };
                 });
             }
-            // Rate limiting - wait between batches
             if (i + 50 < ids.length) await sleep(1500);
-        } catch (e) {
-            console.warn('CoinGecko batch fetch error:', e);
-        }
+        } catch(e) { console.warn('CG error:', e); }
     }
-    
     return priceData;
 }
 
-// ===== Fetch Top Market Data =====
+async function fetchETFPrices() {
+    etfPrices = {};
+    const tickers = Object.keys(etfHoldings);
+    for (const ticker of tickers) {
+        for (const suffix of ['.DE', '.PA', '.AS', '.L']) {
+            try {
+                const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}${suffix}?interval=1d&range=5d`)}`;
+                const resp = await fetch(url);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const p = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+                    const cur = data?.chart?.result?.[0]?.meta?.currency || 'EUR';
+                    if (p) { etfPrices[ticker] = { price: p, currency: cur, name: ETF_NAMES[ticker] || ticker }; break; }
+                }
+            } catch(e) {}
+        }
+        if (!etfPrices[ticker]) etfPrices[ticker] = { price: 0, currency: 'EUR', name: ETF_NAMES[ticker] || ticker };
+    }
+}
+
 async function fetchMarketData() {
     try {
-        const url = `${CG_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d,1y`;
-        const resp = await fetch(url);
-        if (resp.ok) {
-            return await resp.json();
+        // Fetch top 50 + explicitly include GRASS
+        const grassId = 'grass';
+        const resp = await fetch(`${CG_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d,1y`);
+        if (!resp.ok) return [];
+        const data = await resp.json();
+
+        // Check if GRASS is already in top 50
+        const hasGrass = data.some(c => c.id === grassId);
+        if (!hasGrass) {
+            try {
+                const resp2 = await fetch(`${CG_BASE}/coins/markets?vs_currency=usd&ids=${grassId}&sparkline=false&price_change_percentage=24h,7d,30d,1y`);
+                if (resp2.ok) {
+                    const extra = await resp2.json();
+                    data.push(...extra);
+                }
+            } catch(e) {}
         }
-    } catch (e) {
-        console.warn('Market data fetch error:', e);
-    }
-    return [];
+
+        // Also add any held crypto not in the list
+        const inList = new Set(data.map(c => c.id));
+        const missing = Object.keys(cryptoHoldings)
+            .filter(sym => cryptoHoldings[sym] > 0.0000001)
+            .map(sym => COINGECKO_MAP[sym])
+            .filter(id => id && !inList.has(id));
+
+        if (missing.length > 0) {
+            try {
+                await sleep(1200);
+                const resp3 = await fetch(`${CG_BASE}/coins/markets?vs_currency=usd&ids=${missing.join(',')}&sparkline=false&price_change_percentage=24h,7d,30d,1y`);
+                if (resp3.ok) {
+                    const extra2 = await resp3.json();
+                    data.push(...extra2);
+                }
+            } catch(e) {}
+        }
+
+        return data;
+    } catch(e) { return []; }
+}
+
+async function fetchFearGreed() {
+    try {
+        const resp = await fetch('https://api.alternative.me/fng/?limit=1');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.data && data.data[0]) {
+                fearGreedData = { value: parseInt(data.data[0].value), label: data.data[0].value_classification };
+            }
+        }
+    } catch(e) { console.warn('F&G error:', e); }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ===== Rendering =====
+// ===== Build unified items =====
 function getAllItems() {
-    // Crypto holdings (Swissborg + Revolut merged)
-    let items = Object.entries(holdings)
-        .filter(([sym, qty]) => qty > 0.0000001)
-        .map(([sym, qty]) => {
-            const p = prices[sym] || {};
-            const value = qty * (p.price || 0);
-            const source = REVOLUT_CRYPTO[sym] ? (holdings[sym] > REVOLUT_CRYPTO[sym] + 0.0001 ? 'Multi' : 'Revolut') : 'SwissBorg';
-            return { sym, qty, price: p.price || 0, value, change24h: p.change24h || 0, change7d: p.change7d || 0, change30d: p.change30d || 0, change1y: p.change1y || 0, image: p.image || '', name: p.name || sym, type: 'crypto', source };
-        });
-    
-    // ETF holdings (Revolut Robo-Advisor)
-    for (const [ticker, etf] of Object.entries(REVOLUT_ETFS)) {
-        const ep = etfPrices[ticker] || {};
-        const priceUSD = ep.currency === 'EUR' ? (ep.price || 0) * 1.09 : (ep.price || 0);
-        const value = etf.qty * priceUSD;
+    const items = [];
+
+    // Crypto
+    for (const [sym, qty] of Object.entries(cryptoHoldings)) {
+        if (qty <= 0.0000001) continue;
+        const p = prices[sym] || {};
         items.push({
-            sym: ticker, qty: etf.qty, price: priceUSD, value,
-            change24h: 0, change7d: 0, change30d: 0, change1y: 0,
-            image: '', name: etf.name, type: 'etf', source: 'Robo-Advisor'
+            sym, qty, price: p.price || 0, value: qty * (p.price || 0),
+            change24h: p.change24h || 0, change7d: p.change7d || 0,
+            change30d: p.change30d || 0, change1y: p.change1y || 0,
+            image: p.image || '', name: p.name || sym,
+            type: 'crypto', source: getSource(sym)
         });
     }
-    
+
+    // ETFs
+    for (const [ticker, qty] of Object.entries(etfHoldings)) {
+        const ep = etfPrices[ticker] || {};
+        const priceUSD = ep.currency === 'EUR' ? (ep.price || 0) * 1.09 : (ep.price || 0);
+        items.push({
+            sym: ticker, qty, price: priceUSD, value: qty * priceUSD,
+            change24h: 0, change7d: 0, change30d: 0, change1y: 0,
+            image: '', name: ep.name || ETF_NAMES[ticker] || ticker,
+            type: 'etf', source: 'Robo-Advisor'
+        });
+    }
+
     return items;
 }
 
+// ===== Rendering =====
 function renderHoldings() {
     const tbody = document.getElementById('holdingsBody');
-    const sortBy = document.getElementById('sortBy').value;
-    
     let items = getAllItems().filter(i => i.value >= 10);
-    
+
     // Sort
-    if (sortBy === 'value') items.sort((a, b) => b.value - a.value);
-    else if (sortBy === 'name') items.sort((a, b) => a.sym.localeCompare(b.sym));
-    else if (sortBy === 'change') items.sort((a, b) => b.change24h - a.change24h);
-    
+    items.sort((a, b) => {
+        let va, vb;
+        switch (currentSort.col) {
+            case 'name': va = a.sym.toLowerCase(); vb = b.sym.toLowerCase(); return currentSort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+            case 'qty': va = a.qty; vb = b.qty; break;
+            case 'price': va = a.price; vb = b.price; break;
+            case 'value': va = a.value; vb = b.value; break;
+            case 'change24h': va = a.change24h; vb = b.change24h; break;
+            case 'change7d': va = a.change7d; vb = b.change7d; break;
+            case 'change30d': va = a.change30d; vb = b.change30d; break;
+            case 'change1y': va = a.change1y; vb = b.change1y; break;
+            case 'alloc': va = a.value; vb = b.value; break;
+            default: va = a.value; vb = b.value;
+        }
+        return currentSort.dir === 'asc' ? va - vb : vb - va;
+    });
+
     const totalValue = items.reduce((s, i) => s + i.value, 0);
-    
-    if (items.length === 0) {
+
+    if (!items.length) {
         tbody.innerHTML = '<tr><td colspan="9" class="loading-cell">Aucune position ≥ 10$ trouvée</td></tr>';
         return;
     }
-    
-    function fmtChange(val, isEtf) {
+
+    function fmtCh(val, isEtf) {
         if (isEtf) return '<td class="change-na">—</td>';
         const cls = val >= 0 ? 'change-positive' : 'change-negative';
         return `<td class="${cls}">${val >= 0 ? '+' : ''}${val.toFixed(2)}%</td>`;
     }
-    
-    function sourceTag(source) {
-        const colors = { 'SwissBorg': '#06d6a0', 'Revolut': '#0075eb', 'Multi': '#8b5cf6', 'Robo-Advisor': '#ea580c' };
-        const color = colors[source] || '#94a3b8';
-        return `<span style="font-size:0.6rem;font-family:var(--font-mono);background:${color}15;color:${color};padding:0.1rem 0.4rem;border-radius:3px;margin-left:0.3rem">${source}</span>`;
+
+    function srcTag(s) {
+        const c = { SwissBorg: '#06d6a0', Revolut: '#0075eb', Multi: '#8b5cf6', 'Robo-Advisor': '#ea580c' }[s] || '#94a3b8';
+        return `<span style="font-size:0.6rem;font-family:var(--font-mono);background:${c}15;color:${c};padding:0.1rem 0.4rem;border-radius:3px;margin-left:0.3rem">${s}</span>`;
     }
-    
+
     tbody.innerHTML = items.map(item => {
         const alloc = totalValue > 0 ? (item.value / totalValue * 100) : 0;
         const isEtf = item.type === 'etf';
-        
         return `<tr>
-            <td>
-                <div class="asset-cell">
-                    <div class="asset-icon" style="${isEtf ? 'background:#ea580c15;color:#ea580c;border-color:#ea580c30' : ''}">
-                        ${item.image ? `<img src="${item.image}" alt="${item.sym}" onerror="this.parentElement.textContent='${item.sym.slice(0,2)}'">` : item.sym.slice(0, 2)}
-                    </div>
-                    <div>
-                        <div class="asset-name">${isEtf ? item.sym : item.name} ${sourceTag(item.source)}</div>
-                        <div class="asset-symbol">${isEtf ? item.name.substring(0, 35) : item.sym}</div>
-                    </div>
+            <td><div class="asset-cell">
+                <div class="asset-icon" ${isEtf ? 'style="background:#ea580c15;color:#ea580c;border-color:#ea580c30"' : ''}>
+                    ${item.image ? `<img src="${item.image}" alt="${item.sym}" onerror="this.parentElement.textContent='${item.sym.slice(0,2)}'">` : item.sym.slice(0,2)}
                 </div>
-            </td>
+                <div>
+                    <div class="asset-name">${isEtf ? item.sym : item.name} ${srcTag(item.source)}</div>
+                    <div class="asset-symbol">${isEtf ? item.name.substring(0,35) : item.sym}</div>
+                </div>
+            </div></td>
             <td class="qty-cell">${formatQty(item.qty)}</td>
             <td class="price-cell">${item.price > 0 ? formatUSD(item.price) : '—'}</td>
             <td class="value-cell">${item.value > 0 ? formatUSD(item.value) : '—'}</td>
-            ${fmtChange(item.change24h, isEtf)}
-            ${fmtChange(item.change7d, isEtf)}
-            ${fmtChange(item.change30d, isEtf)}
-            ${fmtChange(item.change1y, isEtf)}
-            <td>
-                <div class="alloc-bar-wrap">
-                    <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${Math.min(alloc, 100)}%"></div></div>
-                    <span class="alloc-pct">${alloc.toFixed(1)}%</span>
-                </div>
-            </td>
+            ${fmtCh(item.change24h, isEtf)}
+            ${fmtCh(item.change7d, isEtf)}
+            ${fmtCh(item.change30d, isEtf)}
+            ${fmtCh(item.change1y, isEtf)}
+            <td><div class="alloc-bar-wrap">
+                <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${Math.min(alloc,100)}%"></div></div>
+                <span class="alloc-pct">${alloc.toFixed(1)}%</span>
+            </div></td>
         </tr>`;
     }).join('');
 }
 
+function sortTable(col) {
+    if (currentSort.col === col) currentSort.dir = currentSort.dir === 'desc' ? 'asc' : 'desc';
+    else { currentSort.col = col; currentSort.dir = 'desc'; }
+    // Update header arrows
+    document.querySelectorAll('.holdings-table th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+    const th = document.querySelector(`.holdings-table th[data-col="${col}"]`);
+    if (th) th.classList.add(currentSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    renderHoldings();
+}
+
 function renderSummary() {
     const items = getAllItems();
-    
     const totalValue = items.reduce((s, i) => s + i.value, 0);
+    const cryptoValue = items.filter(i => i.type === 'crypto').reduce((s, i) => s + i.value, 0);
+    const etfValue = items.filter(i => i.type === 'etf').reduce((s, i) => s + i.value, 0);
     const positiveCount = items.filter(i => i.value >= 10).length;
-    
+
     document.getElementById('totalValue').textContent = formatUSD(totalValue);
     document.getElementById('assetCount').textContent = positiveCount;
-    
-    // Weighted average 24h change (crypto only, ETFs don't have this)
+
+    // Crypto vs ETF breakdown
+    const breakdownEl = document.getElementById('breakdown');
+    if (breakdownEl) {
+        breakdownEl.innerHTML = `<span style="color:var(--accent)">Crypto ${formatUSD(cryptoValue)}</span> · <span style="color:#ea580c">ETF ${formatUSD(etfValue)}</span>`;
+    }
+
+    // Weighted 24h change (crypto only)
     const cryptoItems = items.filter(i => i.type === 'crypto' && i.value >= 10);
     const cryptoTotal = cryptoItems.reduce((s, i) => s + i.value, 0);
     if (cryptoTotal > 0) {
         const wavg = cryptoItems.reduce((s, i) => s + (i.change24h * i.value), 0) / cryptoTotal;
-        const changeEl = document.getElementById('totalChange');
-        changeEl.textContent = `${wavg >= 0 ? '▲' : '▼'} ${wavg >= 0 ? '+' : ''}${wavg.toFixed(2)}% (24h crypto)`;
-        changeEl.className = `total-change ${wavg >= 0 ? 'change-positive' : 'change-negative'}`;
+        const el = document.getElementById('totalChange');
+        el.textContent = `${wavg >= 0 ? '▲' : '▼'} ${wavg >= 0 ? '+' : ''}${wavg.toFixed(2)}% (24h crypto)`;
+        el.className = `total-change ${wavg >= 0 ? 'change-positive' : 'change-negative'}`;
     }
-    
-    // Compute total invested from EUR/USD deposits
-    let totalInvested = 0;
-    transactions.forEach(tx => {
-        if (tx.Type === 'Deposit' && ['EUR', 'USD'].includes(tx['Asset received'])) {
-            totalInvested += parseNumber(tx['Amount received']);
+
+    // Total invested
+    let inv = 0;
+    swissborgTx.forEach(tx => {
+        if (tx.Type === 'Deposit' && ['EUR','USD'].includes(tx['Asset received'])) inv += parseNum(tx['Amount received']);
+    });
+    // Add Revolut Robo cash top-ups
+    revolutRoboTx.forEach(tx => {
+        if ((tx['Type']||'').includes('CASH TOP-UP')) {
+            const amt = (tx['Total Amount']||'').replace(/[^0-9.,]/g,'');
+            inv += parseNum(amt);
         }
     });
-    document.getElementById('totalInvested').textContent = `€${totalInvested.toFixed(0)}`;
-    
-    // P&L
-    const pnl = totalValue - totalInvested;
+    document.getElementById('totalInvested').textContent = `€${inv.toFixed(0)}`;
+
+    const pnl = totalValue - inv;
     const pnlEl = document.getElementById('totalPnl');
     pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${formatUSD(pnl)}`;
     pnlEl.className = `summary-card-value ${pnl >= 0 ? 'change-positive' : 'change-negative'}`;
-    
-    // Best asset (crypto only)
-    const best = cryptoItems.filter(i => i.value >= 10).sort((a, b) => b.change24h - a.change24h)[0];
+
+    // Best asset
+    const best = cryptoItems.sort((a, b) => b.change24h - a.change24h)[0];
     if (best) {
-        const bestEl = document.getElementById('bestAsset');
-        bestEl.textContent = `${best.sym} ${best.change24h >= 0 ? '+' : ''}${best.change24h.toFixed(1)}%`;
-        bestEl.className = `summary-card-value ${best.change24h >= 0 ? 'change-positive' : 'change-negative'}`;
+        const el = document.getElementById('bestAsset');
+        el.textContent = `${best.sym} ${best.change24h >= 0 ? '+' : ''}${best.change24h.toFixed(1)}%`;
+        el.className = `summary-card-value ${best.change24h >= 0 ? 'change-positive' : 'change-negative'}`;
     }
+
+    // Fear & Greed
+    renderFearGreed();
+}
+
+function renderFearGreed() {
+    const el = document.getElementById('fearGreed');
+    if (!el || !fearGreedData) return;
+    const v = fearGreedData.value;
+    let color = '#ef4444';
+    if (v > 75) color = '#16a34a';
+    else if (v > 55) color = '#22c55e';
+    else if (v > 45) color = '#f59e0b';
+    else if (v > 25) color = '#f97316';
+    el.innerHTML = `
+        <div style="text-align:center">
+            <div style="font-size:2.2rem;font-weight:700;color:${color};font-family:var(--font-display)">${v}</div>
+            <div style="font-size:0.75rem;color:${color};font-family:var(--font-mono);font-weight:600">${fearGreedData.label}</div>
+            <div style="width:100%;height:6px;background:var(--bg-secondary);border-radius:3px;margin-top:0.5rem;overflow:hidden">
+                <div style="width:${v}%;height:100%;background:${color};border-radius:3px"></div>
+            </div>
+        </div>`;
 }
 
 function renderMarket() {
     const grid = document.getElementById('marketGrid');
-    
-    if (marketData.length === 0) {
-        grid.innerHTML = '<div class="loading-cell">Données non disponibles</div>';
-        return;
-    }
-    
-    // Build reverse map: coingecko symbol -> our holding symbol
-    const ownedSymbols = new Set(
-        Object.entries(holdings)
-            .filter(([s, q]) => q > 0.0000001 && (q * ((prices[s]||{}).price||0)) >= 10)
-            .map(([s]) => s.toUpperCase())
-    );
-    
-    // Sort: owned first, then by market cap rank
+    if (!marketData.length) { grid.innerHTML = '<div class="loading-cell">Données non disponibles</div>'; return; }
+
+    const ownedSyms = new Set(Object.entries(cryptoHoldings).filter(([s,q]) => q > 0.0000001).map(([s]) => s.toUpperCase()));
+
     const sorted = [...marketData].sort((a, b) => {
-        const aOwned = ownedSymbols.has(a.symbol.toUpperCase()) ? 0 : 1;
-        const bOwned = ownedSymbols.has(b.symbol.toUpperCase()) ? 0 : 1;
-        if (aOwned !== bOwned) return aOwned - bOwned;
+        const ao = ownedSyms.has(a.symbol.toUpperCase()) ? 0 : 1;
+        const bo = ownedSyms.has(b.symbol.toUpperCase()) ? 0 : 1;
+        if (ao !== bo) return ao - bo;
         return (a.market_cap_rank || 999) - (b.market_cap_rank || 999);
     });
-    
-    grid.innerHTML = sorted.map(coin => {
-        const ch24 = coin.price_change_percentage_24h || 0;
-        const chClass = ch24 >= 0 ? 'change-positive' : 'change-negative';
-        const isOwned = ownedSymbols.has(coin.symbol.toUpperCase());
-        
-        return `<div class="market-card ${isOwned ? 'owned' : ''}" data-name="${coin.name.toLowerCase()} ${coin.symbol.toLowerCase()}">
+
+    grid.innerHTML = sorted.map(c => {
+        const ch = c.price_change_percentage_24h || 0;
+        const cls = ch >= 0 ? 'change-positive' : 'change-negative';
+        const owned = ownedSyms.has(c.symbol.toUpperCase());
+        return `<div class="market-card ${owned ? 'owned' : ''}" data-name="${c.name.toLowerCase()} ${c.symbol}">
             <div class="market-card-top">
                 <div class="market-card-asset">
-                    <div class="asset-icon"><img src="${coin.image}" alt="${coin.symbol}" onerror="this.parentElement.textContent='${coin.symbol.slice(0,2).toUpperCase()}'"></div>
-                    <div>
-                        <div class="asset-name">${coin.symbol.toUpperCase()}</div>
-                        <div class="asset-symbol">${coin.name}</div>
-                    </div>
+                    <div class="asset-icon"><img src="${c.image}" alt="${c.symbol}" onerror="this.parentElement.textContent='${c.symbol.slice(0,2).toUpperCase()}'"></div>
+                    <div><div class="asset-name">${c.symbol.toUpperCase()}</div><div class="asset-symbol">${c.name}</div></div>
                 </div>
-                ${isOwned ? '<span class="market-card-owned-badge">EN PORTEFEUILLE</span>' : ''}
-                <span class="market-card-rank">#${coin.market_cap_rank || '--'}</span>
+                ${owned ? '<span class="market-card-owned-badge">EN PORTEFEUILLE</span>' : ''}
+                <span class="market-card-rank">#${c.market_cap_rank || '--'}</span>
             </div>
-            <div class="market-card-price">${formatUSD(coin.current_price)}</div>
+            <div class="market-card-price">${formatUSD(c.current_price)}</div>
             <div class="market-card-bottom">
-                <span class="${chClass}">${ch24 >= 0 ? '+' : ''}${ch24.toFixed(2)}%</span>
-                <span class="market-card-mcap">MCap: ${formatCompact(coin.market_cap)}</span>
+                <span class="${cls}">${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%</span>
+                <span class="market-card-mcap">MCap: ${formatCompact(c.market_cap)}</span>
             </div>
         </div>`;
     }).join('');
@@ -438,164 +576,155 @@ function renderHistory() {
     const list = document.getElementById('historyList');
     const typeFilter = document.getElementById('historyType').value;
     const assetFilter = document.getElementById('historyAsset').value;
-    
-    let filtered = [...transactions].reverse(); // newest first
-    
-    if (typeFilter !== 'all') {
-        filtered = filtered.filter(tx => tx.Type === typeFilter);
-    }
-    
-    if (assetFilter !== 'all') {
-        filtered = filtered.filter(tx =>
-            tx['Asset received'] === assetFilter || tx['Asset sent'] === assetFilter
-        );
-    }
-    
-    // Show last 100
-    filtered = filtered.slice(0, 100);
-    
-    if (filtered.length === 0) {
-        list.innerHTML = '<div class="loading-cell">Aucune transaction</div>';
-        return;
-    }
-    
+
+    // Unify all transactions into a common format
+    let allTx = [];
+
+    // SwissBorg
+    swissborgTx.forEach(tx => {
+        const d = tx.Date ? new Date(tx.Date) : null;
+        allTx.push({
+            date: d, type: tx.Type || '', source: 'SwissBorg',
+            recvQty: parseNum(tx['Amount received']), recvAsset: tx['Asset received'] || '',
+            sentQty: parseNum(tx['Amount sent']), sentAsset: tx['Asset sent'] || '',
+            desc: tx.Description || ''
+        });
+    });
+
+    // Revolut Crypto
+    revolutCryptoTx.forEach(tx => {
+        const dateStr = (tx['Date'] || '').trim();
+        let d = null;
+        // Parse French date format: "26 janv. 2025, 09:30:26"
+        try {
+            const months = {janv:'Jan',févr:'Feb',mars:'Mar',avr:'Apr',mai:'May',juin:'Jun',juil:'Jul',août:'Aug',sept:'Sep',oct:'Oct',nov:'Nov',déc:'Dec'};
+            let s = dateStr;
+            for (const [fr, en] of Object.entries(months)) s = s.replace(fr + '.', en).replace(fr, en);
+            d = new Date(s);
+            if (isNaN(d)) d = null;
+        } catch(e) {}
+
+        const typ = (tx['Type'] || '').trim();
+        const sym = (tx['Symbol'] || '').trim();
+        const qty = parseNum(tx['Quantity']);
+
+        if (typ.includes('Achat') || typ.includes('Récompense') || typ.includes('staking')) {
+            allTx.push({ date: d, type: typ.includes('Achat') ? 'Trade' : 'Deposit', source: 'Revolut', recvQty: qty, recvAsset: sym, sentQty: 0, sentAsset: '', desc: typ });
+        } else if (typ === 'Vente') {
+            allTx.push({ date: d, type: 'Trade', source: 'Revolut', recvQty: 0, recvAsset: '', sentQty: qty, sentAsset: sym, desc: 'Vente' });
+        }
+    });
+
+    // Revolut Robo
+    revolutRoboTx.forEach(tx => {
+        const d = tx.Date ? new Date(tx.Date) : null;
+        const ticker = (tx['Ticker'] || '').trim();
+        const typ = (tx['Type'] || '').trim();
+        const qty = parseNum(tx['Quantity']);
+        if (!ticker) return;
+        if (typ.includes('BUY')) {
+            allTx.push({ date: d, type: 'Trade', source: 'Robo-Advisor', recvQty: qty, recvAsset: ticker, sentQty: 0, sentAsset: '', desc: 'Achat ETF' });
+        } else if (typ.includes('SELL')) {
+            allTx.push({ date: d, type: 'Trade', source: 'Robo-Advisor', recvQty: 0, recvAsset: '', sentQty: qty, sentAsset: ticker, desc: 'Vente ETF' });
+        }
+    });
+
+    // Filter
+    let filtered = allTx.filter(tx => tx.date).sort((a, b) => b.date - a.date);
+    if (typeFilter !== 'all') filtered = filtered.filter(tx => tx.type === typeFilter);
+    if (assetFilter !== 'all') filtered = filtered.filter(tx => tx.recvAsset === assetFilter || tx.sentAsset === assetFilter);
+
+    filtered = filtered.slice(0, 150);
+
+    if (!filtered.length) { list.innerHTML = '<div class="loading-cell">Aucune transaction</div>'; return; }
+
     list.innerHTML = filtered.map(tx => {
-        const date = tx.Date ? new Date(tx.Date) : null;
-        const dateStr = date ? date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '--';
-        const timeStr = date ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
-        const typeClass = tx.Type === 'Trade' ? 'trade' : 'deposit';
-        
-        const recv = parseNumber(tx['Amount received']);
-        const recvAsset = tx['Asset received'] || '';
-        const sent = parseNumber(tx['Amount sent']);
-        const sentAsset = tx['Asset sent'] || '';
-        const desc = tx.Description || '';
-        
+        const ds = tx.date.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+        const ts = tx.date.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+        const tc = tx.type === 'Trade' ? 'trade' : 'deposit';
+        const srcColors = { SwissBorg: '#06d6a0', Revolut: '#0075eb', 'Robo-Advisor': '#ea580c' };
+        const sc = srcColors[tx.source] || '#94a3b8';
         return `<div class="history-item">
-            <div class="history-date">${dateStr}<br>${timeStr}</div>
-            <div class="history-type ${typeClass}">${tx.Type}</div>
-            <div class="history-received">${recv ? `+${formatQty(recv)} ${recvAsset}` : '--'}</div>
-            <div class="history-sent">${sent ? `-${formatQty(sent)} ${sentAsset}` : '--'}</div>
-            <div class="history-desc" title="${desc}">${desc || '--'}</div>
+            <div class="history-date">${ds}<br>${ts}</div>
+            <div class="history-type ${tc}">${tx.type}</div>
+            <div class="history-received">${tx.recvQty ? `+${formatQty(tx.recvQty)} ${tx.recvAsset}` : '—'}</div>
+            <div class="history-sent">${tx.sentQty ? `-${formatQty(tx.sentQty)} ${tx.sentAsset}` : '—'}</div>
+            <div class="history-desc"><span style="color:${sc};font-size:0.65rem;font-weight:600">${tx.source}</span> ${tx.desc}</div>
         </div>`;
     }).join('');
 }
 
+function populateAssetFilter() {
+    const select = document.getElementById('historyAsset');
+    select.innerHTML = '<option value="all">Tous les actifs</option>';
+    const assets = new Set();
+    swissborgTx.forEach(tx => { if (tx['Asset received']) assets.add(tx['Asset received']); if (tx['Asset sent']) assets.add(tx['Asset sent']); });
+    revolutCryptoTx.forEach(tx => { if (tx['Symbol']) assets.add(tx['Symbol']); });
+    revolutRoboTx.forEach(tx => { if (tx['Ticker']) assets.add(tx['Ticker']); });
+    [...assets].filter(a => !['EUR','USD'].includes(a)).sort().forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a; opt.textContent = a;
+        select.appendChild(opt);
+    });
+}
+
+// ===== Analytics =====
 function renderAnalytics() {
     const canvas = document.getElementById('allocationChart');
-    // Make canvas bigger for labels
-    canvas.width = 500;
-    canvas.height = 400;
+    canvas.width = 500; canvas.height = 400;
     const ctx = canvas.getContext('2d');
-    
-    const items = getAllItems()
-        .filter(i => i.value >= 10)
-        .sort((a, b) => b.value - a.value);
-    
+
+    const items = getAllItems().filter(i => i.value >= 10).sort((a, b) => b.value - a.value);
     const total = items.reduce((s, i) => s + i.value, 0);
-    
     if (total <= 0) return;
-    
-    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#1d4ed8', '#7c3aed', '#0891b2', '#0d9488', '#059669', '#d97706', '#dc2626', '#e11d48'];
-    
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const radius = 140;
-    const innerRadius = radius * 0.5;
-    
+
+    const colors = ['#1e3a8a','#2563eb','#3b82f6','#60a5fa','#1d4ed8','#7c3aed','#0891b2','#0d9488','#059669','#d97706','#dc2626','#e11d48'];
+    const cx = canvas.width / 2, cy = canvas.height / 2, radius = 140, innerR = radius * 0.5;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     let startAngle = -Math.PI / 2;
-    const topItems = items.slice(0, 10);
-    const otherValue = items.slice(10).reduce((s, i) => s + i.value, 0);
-    if (otherValue > 0) topItems.push({ sym: 'Autres', value: otherValue });
-    
-    // Draw slices
-    topItems.forEach((item, i) => {
-        const sliceAngle = (item.value / total) * Math.PI * 2;
+    const top = items.slice(0, 10);
+    const otherVal = items.slice(10).reduce((s, i) => s + i.value, 0);
+    if (otherVal > 0) top.push({ sym: 'Autres', value: otherVal, type: 'other' });
+
+    top.forEach((item, i) => {
+        const slice = (item.value / total) * Math.PI * 2;
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
-        ctx.arc(cx, cy, innerRadius, startAngle + sliceAngle, startAngle, true);
+        ctx.arc(cx, cy, radius, startAngle, startAngle + slice);
+        ctx.arc(cx, cy, innerR, startAngle + slice, startAngle, true);
         ctx.closePath();
         ctx.fillStyle = colors[i % colors.length];
         ctx.fill();
-        
-        // Draw label on each slice
+
         const pct = item.value / total;
-        if (pct >= 0.03) { // Only label slices >= 3%
-            const midAngle = startAngle + sliceAngle / 2;
-            const labelRadius = (radius + innerRadius) / 2;
-            const lx = cx + Math.cos(midAngle) * labelRadius;
-            const ly = cy + Math.sin(midAngle) * labelRadius;
-            
-            ctx.save();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 11px "Space Grotesk"';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+        if (pct >= 0.03) {
+            const mid = startAngle + slice / 2;
+            const lr = (radius + innerR) / 2;
+            const lx = cx + Math.cos(mid) * lr, ly = cy + Math.sin(mid) * lr;
+            ctx.save(); ctx.fillStyle = '#fff'; ctx.font = 'bold 11px "Space Grotesk"';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(item.sym, lx, ly - 6);
-            ctx.font = '9px "JetBrains Mono"';
-            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.font = '9px "JetBrains Mono"'; ctx.fillStyle = 'rgba(255,255,255,0.8)';
             ctx.fillText((pct * 100).toFixed(1) + '%', lx, ly + 7);
             ctx.restore();
         }
-        
-        // Draw line + external label for small slices
-        if (pct < 0.03 && pct >= 0.005) {
-            const midAngle = startAngle + sliceAngle / 2;
-            const outerX = cx + Math.cos(midAngle) * (radius + 8);
-            const outerY = cy + Math.sin(midAngle) * (radius + 8);
-            const farX = cx + Math.cos(midAngle) * (radius + 35);
-            const farY = cy + Math.sin(midAngle) * (radius + 35);
-            
-            ctx.save();
-            ctx.strokeStyle = colors[i % colors.length];
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(outerX, outerY);
-            ctx.lineTo(farX, farY);
-            ctx.stroke();
-            
-            ctx.fillStyle = '#475569';
-            ctx.font = '9px "JetBrains Mono"';
-            ctx.textAlign = midAngle > Math.PI / 2 && midAngle < Math.PI * 1.5 ? 'right' : 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`${item.sym} ${(pct * 100).toFixed(1)}%`, farX + (ctx.textAlign === 'left' ? 3 : -3), farY);
-            ctx.restore();
-        }
-        
-        startAngle += sliceAngle;
+        startAngle += slice;
     });
-    
-    // Center text
-    ctx.fillStyle = '#1e293b';
-    ctx.font = 'bold 18px "Space Grotesk"';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+
+    ctx.fillStyle = '#1e293b'; ctx.font = 'bold 18px "Space Grotesk"';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(formatUSD(total), cx, cy - 5);
-    ctx.font = '11px "JetBrains Mono"';
-    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px "JetBrains Mono"'; ctx.fillStyle = '#94a3b8';
     ctx.fillText('TOTAL', cx, cy + 12);
-    
-    // Legend below
-    const legendContainer = canvas.parentElement;
-    let legendEl = legendContainer.querySelector('.donut-legend');
-    if (!legendEl) {
-        legendEl = document.createElement('div');
-        legendEl.className = 'donut-legend';
-        legendContainer.appendChild(legendEl);
-    }
-    legendEl.innerHTML = topItems.map((item, i) => 
-        `<div class="donut-legend-item">
-            <div class="donut-legend-dot" style="background:${colors[i % colors.length]}"></div>
-            ${item.sym} ${formatUSD(item.value)} (${(item.value / total * 100).toFixed(1)}%)
-        </div>`
+
+    // Legend
+    let leg = canvas.parentElement.querySelector('.donut-legend');
+    if (!leg) { leg = document.createElement('div'); leg.className = 'donut-legend'; canvas.parentElement.appendChild(leg); }
+    leg.innerHTML = top.map((item, i) =>
+        `<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${colors[i % colors.length]}"></div>${item.sym} ${formatUSD(item.value)} (${(item.value / total * 100).toFixed(1)}%)</div>`
     ).join('');
-    
-    // Activity chart
+
     renderActivityChart();
-    
-    // Stats
     renderStats();
 }
 
@@ -603,371 +732,121 @@ function renderActivityChart() {
     const canvas = document.getElementById('activityChart');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Count trades per month
+
     const monthly = {};
-    transactions.forEach(tx => {
-        if (tx.Type === 'Trade' && tx.Date) {
-            const d = new Date(tx.Date);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            monthly[key] = (monthly[key] || 0) + 1;
-        }
+    const allTx = [...swissborgTx, ...revolutCryptoTx, ...revolutRoboTx];
+    allTx.forEach(tx => {
+        const d = tx.Date ? new Date(tx.Date) : null;
+        if (!d || isNaN(d)) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        monthly[key] = (monthly[key] || 0) + 1;
     });
-    
+
     const months = Object.keys(monthly).sort().slice(-12);
     const values = months.map(m => monthly[m]);
     const max = Math.max(...values, 1);
-    
-    const padding = 40;
-    const w = canvas.width - padding * 2;
-    const h = canvas.height - padding * 2;
-    const barW = w / months.length * 0.7;
-    const gap = w / months.length * 0.3;
-    
-    // Grid lines
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 0.5;
-    for (let i = 0; i <= 4; i++) {
-        const y = padding + (h * i / 4);
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(canvas.width - padding, y);
-        ctx.stroke();
-    }
-    
-    // Bars
-    months.forEach((month, i) => {
-        const x = padding + i * (barW + gap) + gap / 2;
-        const barH = (values[i] / max) * h;
-        const y = padding + h - barH;
-        
-        // Gradient bar
-        const gradient = ctx.createLinearGradient(x, y, x, padding + h);
-        gradient.addColorStop(0, '#1e3a8a');
-        gradient.addColorStop(1, 'rgba(37, 99, 235, 0.15)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.roundRect(x, y, barW, barH, [3, 3, 0, 0]);
-        ctx.fill();
-        
-        // Label
-        ctx.fillStyle = '#64748b';
-        ctx.font = '9px "JetBrains Mono"';
-        ctx.textAlign = 'center';
-        ctx.fillText(month.slice(5), x + barW / 2, padding + h + 15);
-        
-        // Value
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px "JetBrains Mono"';
-        ctx.fillText(values[i], x + barW / 2, y - 5);
+    const pad = 40, w = canvas.width - pad*2, h = canvas.height - pad*2;
+    const barW = w / months.length * 0.7, gap = w / months.length * 0.3;
+
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) { const y = pad + (h*i/4); ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(canvas.width-pad,y); ctx.stroke(); }
+
+    months.forEach((m, i) => {
+        const x = pad + i*(barW+gap) + gap/2;
+        const bh = (values[i]/max)*h, y = pad+h-bh;
+        const g = ctx.createLinearGradient(x,y,x,pad+h);
+        g.addColorStop(0,'#1e3a8a'); g.addColorStop(1,'rgba(37,99,235,0.15)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x,y,barW,bh,[3,3,0,0]); ctx.fill();
+        ctx.fillStyle = '#64748b'; ctx.font = '9px "JetBrains Mono"'; ctx.textAlign = 'center';
+        ctx.fillText(m.slice(5), x+barW/2, pad+h+15);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10px "JetBrains Mono"';
+        ctx.fillText(values[i], x+barW/2, y-5);
     });
 }
 
 function renderStats() {
     const grid = document.getElementById('statsGrid');
-    
-    const trades = transactions.filter(tx => tx.Type === 'Trade');
-    const deposits = transactions.filter(tx => tx.Type === 'Deposit');
-    
-    // Unique assets traded
-    const assetsTraded = new Set();
-    trades.forEach(tx => {
-        if (tx['Asset received']) assetsTraded.add(tx['Asset received']);
-        if (tx['Asset sent']) assetsTraded.add(tx['Asset sent']);
-    });
-    
-    // Trading period
-    const dates = transactions.filter(tx => tx.Date).map(tx => new Date(tx.Date));
-    const firstDate = new Date(Math.min(...dates));
-    const lastDate = new Date(Math.max(...dates));
-    const daysDiff = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-    
+    const trades = swissborgTx.filter(t => t.Type === 'Trade').length + revolutCryptoTx.filter(t => ['Achat','Vente'].includes((t.Type||'').trim())).length;
+    const roboTrades = revolutRoboTx.filter(t => (t.Type||'').includes('BUY') || (t.Type||'').includes('SELL')).length;
+    const assets = new Set([...Object.keys(cryptoHoldings), ...Object.keys(etfHoldings)]);
     const stats = [
-        { value: trades.length, label: 'Trades exécutés' },
-        { value: deposits.length, label: 'Dépôts reçus' },
-        { value: assetsTraded.size, label: 'Actifs différents' },
-        { value: daysDiff, label: 'Jours d\'activité' },
-        { value: Math.round(trades.length / Math.max(daysDiff / 30, 1)), label: 'Trades / mois' },
-        { value: transactions.length, label: 'Total transactions' },
+        { value: trades, label: 'Trades crypto' },
+        { value: roboTrades, label: 'Trades ETF' },
+        { value: assets.size, label: 'Actifs total' },
+        { value: Object.keys(cryptoHoldings).filter(s => cryptoHoldings[s] > 0.0000001).length, label: 'Cryptos détenues' },
+        { value: Object.keys(etfHoldings).length, label: 'ETFs détenus' },
+        { value: swissborgTx.length + revolutCryptoTx.length + revolutRoboTx.length, label: 'Total opérations' },
     ];
-    
-    grid.innerHTML = stats.map(s => `
-        <div class="stat-item">
-            <div class="stat-value">${typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</div>
-            <div class="stat-label">${s.label}</div>
-        </div>
-    `).join('');
+    grid.innerHTML = stats.map(s => `<div class="stat-item"><div class="stat-value">${s.value.toLocaleString()}</div><div class="stat-label">${s.label}</div></div>`).join('');
 }
 
-// Populate asset filter for history
-function populateAssetFilter() {
-    const select = document.getElementById('historyAsset');
-    const assets = new Set();
-    transactions.forEach(tx => {
-        if (tx['Asset received']) assets.add(tx['Asset received']);
-        if (tx['Asset sent']) assets.add(tx['Asset sent']);
-    });
-    const sorted = [...assets].filter(a => !['EUR', 'USD'].includes(a)).sort();
-    sorted.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a;
-        opt.textContent = a;
-        select.appendChild(opt);
-    });
-}
-
-// ===== Utility Functions =====
-function formatUSD(val) {
-    if (val === 0 || val === undefined) return '$0.00';
-    if (Math.abs(val) >= 1000) return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (Math.abs(val) >= 1) return '$' + val.toFixed(2);
-    if (Math.abs(val) >= 0.01) return '$' + val.toFixed(4);
-    return '$' + val.toFixed(8);
-}
-
-function formatQty(val) {
-    if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
-    if (val >= 1000) return val.toLocaleString('en-US', { maximumFractionDigits: 2 });
-    if (val >= 1) return val.toFixed(4);
-    if (val >= 0.0001) return val.toFixed(6);
-    return val.toFixed(8);
-}
-
-function formatCompact(val) {
-    if (!val) return '--';
-    if (val >= 1e12) return '$' + (val / 1e12).toFixed(1) + 'T';
-    if (val >= 1e9) return '$' + (val / 1e9).toFixed(1) + 'B';
-    if (val >= 1e6) return '$' + (val / 1e6).toFixed(1) + 'M';
-    return '$' + val.toLocaleString();
-}
-
-// ===== Tab Management =====
+// ===== Tabs =====
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
     document.getElementById(`tab-${tabId}`).classList.add('active');
-    
     if (tabId === 'analytics') renderAnalytics();
-    if (tabId === 'market' && marketData.length === 0) loadMarketData();
+    if (tabId === 'market' && !marketData.length) loadMarketData();
     if (tabId === 'evolution') renderEvolution();
 }
 
 function filterMarket() {
-    const query = document.getElementById('marketSearch').value.toLowerCase();
-    document.querySelectorAll('.market-card').forEach(card => {
-        const name = card.dataset.name || '';
-        card.style.display = name.includes(query) ? '' : 'none';
-    });
+    const q = document.getElementById('marketSearch').value.toLowerCase();
+    document.querySelectorAll('.market-card').forEach(c => { c.style.display = (c.dataset.name || '').includes(q) ? '' : 'none'; });
 }
 
-// ===== Status Updates =====
-function setStatus(text, live = false) {
-    document.querySelector('.status-text').textContent = text;
-    const dot = document.querySelector('.status-dot');
-    if (live) dot.classList.add('live');
-    else dot.classList.remove('live');
+// ===== Status =====
+function setStatus(t, live) {
+    document.querySelector('.status-text').textContent = t;
+    const d = document.querySelector('.status-dot');
+    live ? d.classList.add('live') : d.classList.remove('live');
 }
-
 function updateLastRefresh() {
-    document.getElementById('lastUpdate').textContent = 
-        'Maj: ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('lastUpdate').textContent = 'Maj: ' + new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
 }
 
-// ===== Main Data Loading =====
-async function loadSheetData() {
-    setStatus('Chargement Sheet...');
-    
-    let csv = null;
-    let lastError = null;
-    
-    // Try each URL until one works
-    for (const url of SHEET_URLS) {
-        try {
-            console.log('Trying:', url.substring(0, 80) + '...');
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const text = await resp.text();
-            
-            // Validate it looks like CSV (should contain "Type" and "Date" headers)
-            if (text.includes('Type') && text.includes('Date')) {
-                csv = text;
-                console.log('✓ Sheet loaded from:', url.substring(0, 60));
-                break;
-            } else {
-                throw new Error('Response is not valid CSV');
-            }
-        } catch (e) {
-            lastError = e;
-            console.warn('✗ Failed:', url.substring(0, 60), e.message);
-        }
-    }
-    
-    if (!csv) {
-        console.error('All Sheet URLs failed. Last error:', lastError);
-        setStatus('Erreur Sheet');
-        document.getElementById('holdingsBody').innerHTML = `
-            <tr><td colspan="7" class="loading-cell">
-                <div class="error-msg">
-                    Impossible de charger Google Sheets.<br><br>
-                    <strong>Solution :</strong> Dans Google Sheets, allez dans :<br>
-                    Fichier → Partager → Publier sur le Web → Publier (format CSV)<br><br>
-                    Et vérifiez aussi que le fichier est partagé en "Accessible à tous avec le lien".<br><br>
-                    Erreur: ${lastError?.message || 'Inconnue'}
-                </div>
-            </td></tr>`;
-        return false;
-    }
-    
-    try {
-        transactions = parseCSV(csv);
-        holdings = computeHoldings(transactions);
-        console.log(`Parsed ${transactions.length} transactions, ${Object.keys(holdings).length} assets`);
-        
-        populateAssetFilter();
-        renderHistory();
-        return true;
-    } catch (e) {
-        console.error('CSV parse error:', e);
-        setStatus('Erreur parsing');
-        return false;
-    }
+// ===== Utility =====
+function formatUSD(v) {
+    if (!v) return '$0.00';
+    if (Math.abs(v) >= 1000) return '$' + v.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    if (Math.abs(v) >= 1) return '$' + v.toFixed(2);
+    if (Math.abs(v) >= 0.01) return '$' + v.toFixed(4);
+    return '$' + v.toFixed(8);
 }
-
-async function loadPriceData() {
-    setStatus('Chargement prix...');
-    
-    // Merge Revolut crypto into holdings
-    for (const [sym, qty] of Object.entries(REVOLUT_CRYPTO)) {
-        holdings[sym] = (holdings[sym] || 0) + qty;
-    }
-    
-    const positiveAssets = Object.entries(holdings)
-        .filter(([s, q]) => q > 0.0000001)
-        .map(([s]) => s);
-    
-    prices = await fetchPrices(positiveAssets);
-    
-    // Fetch ETF prices
-    await fetchETFPrices();
-    
-    renderHoldings();
-    renderSummary();
+function formatQty(v) {
+    if (v >= 1e6) return (v/1e6).toFixed(2)+'M';
+    if (v >= 1000) return v.toLocaleString('en-US', { maximumFractionDigits:2 });
+    if (v >= 1) return v.toFixed(4);
+    if (v >= 0.0001) return v.toFixed(6);
+    return v.toFixed(8);
 }
-
-// Fetch ETF prices using a free proxy to query by ISIN
-async function fetchETFPrices() {
-    etfPrices = {};
-    
-    // Use Google Finance or fallback: estimate from last known cost basis
-    // For reliability, we'll use the Borsa Italiana / Xetra proxy approach
-    const tickers = Object.keys(REVOLUT_ETFS);
-    
-    // Try to get prices from a public source
-    for (const ticker of tickers) {
-        const etf = REVOLUT_ETFS[ticker];
-        try {
-            // Try Yahoo Finance via allorigins proxy
-            const yahooSymbol = etf.isin;
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.DE?interval=1d&range=5d`)}`;
-            const resp = await fetch(url);
-            if (resp.ok) {
-                const data = await resp.json();
-                const close = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-                if (close) {
-                    etfPrices[ticker] = { price: close, name: etf.name, currency: 'EUR' };
-                    continue;
-                }
-            }
-        } catch(e) {}
-        
-        // Fallback: try with .PA (Paris)
-        try {
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.PA?interval=1d&range=5d`)}`;
-            const resp = await fetch(url);
-            if (resp.ok) {
-                const data = await resp.json();
-                const close = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-                if (close) {
-                    etfPrices[ticker] = { price: close, name: etf.name, currency: 'EUR' };
-                    continue;
-                }
-            }
-        } catch(e) {}
-        
-        // If all fails, mark as unknown
-        etfPrices[ticker] = { price: 0, name: etf.name, currency: 'EUR' };
-    }
-}
-
-async function loadMarketData() {
-    setStatus('Marché...');
-    marketData = await fetchMarketData();
-    renderMarket();
-}
-
-async function refreshAll() {
-    const btn = document.querySelector('.btn-refresh');
-    btn.classList.add('spinning');
-    
-    const success = await loadSheetData();
-    if (success) {
-        await loadPriceData();
-        await loadMarketData();
-    }
-    
-    setStatus('En direct', true);
-    updateLastRefresh();
-    btn.classList.remove('spinning');
+function formatCompact(v) {
+    if (!v) return '--';
+    if (v >= 1e12) return '$'+(v/1e12).toFixed(1)+'T';
+    if (v >= 1e9) return '$'+(v/1e9).toFixed(1)+'B';
+    if (v >= 1e6) return '$'+(v/1e6).toFixed(1)+'M';
+    return '$'+v.toLocaleString();
 }
 
 // ===== Portfolio Evolution =====
-function isAppsScriptConfigured() {
-    return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('COLLE_TON_URL');
-}
+function isAppsScriptConfigured() { return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('COLLE_TON_URL'); }
 
 async function logPortfolioValue(valueUSD, nbAssets) {
     if (!isAppsScriptConfigured()) return;
-    
-    // Estimate EUR value (rough)
-    const valueEUR = valueUSD * 0.92;
-    
     try {
-        await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ valueUSD, valueEUR, nbAssets }),
-            mode: 'no-cors' // Apps Script redirects, so we use no-cors for POST
-        });
-        console.log('✓ Portfolio value logged');
-    } catch (e) {
-        console.warn('Portfolio log error:', e);
-    }
+        await fetch(APPS_SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({valueUSD, valueEUR: valueUSD*0.92, nbAssets}), mode:'no-cors' });
+    } catch(e) {}
 }
 
 async function fetchPortfolioHistory() {
-    if (!isAppsScriptConfigured()) {
-        document.getElementById('evolutionStatus').textContent = '⚠ Apps Script non configuré (voir README)';
-        return [];
-    }
-    
+    if (!isAppsScriptConfigured()) { document.getElementById('evolutionStatus').textContent = '⚠ Apps Script non configuré'; return []; }
     try {
-        const resp = await fetch(APPS_SCRIPT_URL);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const json = await resp.json();
-        if (json.status === 'ok' && json.data) {
-            return json.data.map(d => ({
-                date: new Date(d.date),
-                valueUSD: d.valueUSD,
-                valueEUR: d.valueEUR,
-                nbAssets: d.nbAssets
-            })).sort((a, b) => a.date - b.date);
-        }
-    } catch (e) {
-        console.warn('Fetch history error:', e);
-        document.getElementById('evolutionStatus').textContent = '⚠ Erreur de chargement';
-    }
+        const r = await fetch(APPS_SCRIPT_URL);
+        if (!r.ok) return [];
+        const j = await r.json();
+        if (j.status === 'ok' && j.data) return j.data.map(d => ({ date: new Date(d.date), valueUSD: d.valueUSD, valueEUR: d.valueEUR, nbAssets: d.nbAssets })).sort((a,b) => a.date - b.date);
+    } catch(e) {}
     return [];
 }
 
@@ -982,242 +861,141 @@ function renderEvolution() {
     const canvas = document.getElementById('evolutionChart');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     if (portfolioHistory.length < 2) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '14px "DM Sans"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Pas assez de données. Revenez dans quelques jours !', canvas.width / 2, canvas.height / 2 - 10);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '14px "DM Sans"'; ctx.textAlign = 'center';
+        ctx.fillText('Pas assez de données. Revenez dans quelques jours !', canvas.width/2, canvas.height/2-10);
         ctx.font = '12px "JetBrains Mono"';
-        ctx.fillText(`${portfolioHistory.length} point(s) enregistré(s)`, canvas.width / 2, canvas.height / 2 + 15);
-        renderEvolutionStats([]);
+        ctx.fillText(`${portfolioHistory.length} point(s)`, canvas.width/2, canvas.height/2+15);
+        document.getElementById('evolutionStats').innerHTML = '';
         return;
     }
-    
-    // Filter by period
+
     let data = [...portfolioHistory];
-    if (selectedPeriod > 0) {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - selectedPeriod);
-        data = data.filter(d => d.date >= cutoff);
-    }
-    
-    if (data.length < 2) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '14px "DM Sans"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Pas assez de données sur cette période.', canvas.width / 2, canvas.height / 2);
-        renderEvolutionStats([]);
-        return;
-    }
-    
-    // Chart dimensions
-    const pad = { top: 30, right: 30, bottom: 50, left: 80 };
-    const w = canvas.width - pad.left - pad.right;
-    const h = canvas.height - pad.top - pad.bottom;
-    
-    const values = data.map(d => d.valueUSD);
-    const minVal = Math.min(...values) * 0.95;
-    const maxVal = Math.max(...values) * 1.05;
-    const range = maxVal - minVal || 1;
-    
-    // X/Y mapping
-    const xScale = (i) => pad.left + (i / (data.length - 1)) * w;
-    const yScale = (v) => pad.top + h - ((v - minVal) / range) * h;
-    
-    // Grid lines
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 0.5;
-    const gridLines = 5;
-    for (let i = 0; i <= gridLines; i++) {
-        const y = pad.top + (h * i / gridLines);
-        const val = maxVal - (i / gridLines) * range;
-        ctx.beginPath();
-        ctx.moveTo(pad.left, y);
-        ctx.lineTo(pad.left + w, y);
-        ctx.stroke();
-        
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px "JetBrains Mono"';
-        ctx.textAlign = 'right';
-        ctx.fillText('$' + val.toFixed(0), pad.left - 8, y + 4);
-    }
-    
-    // X axis labels
-    const labelCount = Math.min(data.length, 8);
-    const step = Math.max(1, Math.floor(data.length / labelCount));
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px "JetBrains Mono"';
-    ctx.textAlign = 'center';
-    for (let i = 0; i < data.length; i += step) {
-        const x = xScale(i);
-        const d = data[i].date;
-        const label = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-        ctx.fillText(label, x, pad.top + h + 20);
-    }
-    
-    // Area fill
-    const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + h);
-    const isUp = values[values.length - 1] >= values[0];
-    if (isUp) {
-        gradient.addColorStop(0, 'rgba(30, 58, 138, 0.2)');
-        gradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
-    } else {
-        gradient.addColorStop(0, 'rgba(220, 38, 38, 0.15)');
-        gradient.addColorStop(1, 'rgba(220, 38, 38, 0.02)');
-    }
-    
-    ctx.beginPath();
-    ctx.moveTo(xScale(0), pad.top + h);
-    data.forEach((d, i) => ctx.lineTo(xScale(i), yScale(d.valueUSD)));
-    ctx.lineTo(xScale(data.length - 1), pad.top + h);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-    
+    if (selectedPeriod > 0) { const cut = new Date(); cut.setDate(cut.getDate()-selectedPeriod); data = data.filter(d => d.date >= cut); }
+    if (data.length < 2) { ctx.fillStyle='#94a3b8'; ctx.font='14px "DM Sans"'; ctx.textAlign='center'; ctx.fillText('Pas assez de données sur cette période.',canvas.width/2,canvas.height/2); return; }
+
+    const pad = {top:30,right:30,bottom:50,left:80};
+    const w = canvas.width-pad.left-pad.right, h = canvas.height-pad.top-pad.bottom;
+    const vals = data.map(d => d.valueUSD);
+    const mn = Math.min(...vals)*0.95, mx = Math.max(...vals)*1.05, rng = mx-mn||1;
+    const xS = i => pad.left+(i/(data.length-1))*w;
+    const yS = v => pad.top+h-((v-mn)/rng)*h;
+
+    // Grid
+    ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=0.5;
+    for (let i=0;i<=5;i++){const y=pad.top+(h*i/5);const v=mx-(i/5)*rng;ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+w,y);ctx.stroke();ctx.fillStyle='#94a3b8';ctx.font='10px "JetBrains Mono"';ctx.textAlign='right';ctx.fillText('$'+v.toFixed(0),pad.left-8,y+4);}
+
+    // X labels
+    const lc=Math.min(data.length,8),st=Math.max(1,Math.floor(data.length/lc));
+    ctx.fillStyle='#94a3b8';ctx.font='10px "JetBrains Mono"';ctx.textAlign='center';
+    for(let i=0;i<data.length;i+=st)ctx.fillText(data[i].date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),xS(i),pad.top+h+20);
+
+    const isUp=vals[vals.length-1]>=vals[0];
+    // Area
+    const g=ctx.createLinearGradient(0,pad.top,0,pad.top+h);
+    g.addColorStop(0,isUp?'rgba(30,58,138,0.2)':'rgba(220,38,38,0.15)');
+    g.addColorStop(1,isUp?'rgba(37,99,235,0.02)':'rgba(220,38,38,0.02)');
+    ctx.beginPath();ctx.moveTo(xS(0),pad.top+h);
+    data.forEach((d,i)=>ctx.lineTo(xS(i),yS(d.valueUSD)));
+    ctx.lineTo(xS(data.length-1),pad.top+h);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+
     // Line
-    ctx.beginPath();
-    data.forEach((d, i) => {
-        const x = xScale(i);
-        const y = yScale(d.valueUSD);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = isUp ? '#1e3a8a' : '#dc2626';
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    // Dots at first and last
-    [0, data.length - 1].forEach(i => {
-        const x = xScale(i);
-        const y = yScale(data[i].valueUSD);
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = isUp ? '#1e3a8a' : '#dc2626';
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Value label
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 11px "Space Grotesk"';
-        ctx.textAlign = i === 0 ? 'left' : 'right';
-        ctx.fillText('$' + data[i].valueUSD.toFixed(2), x + (i === 0 ? 10 : -10), y - 10);
-    });
-    
+    ctx.beginPath();data.forEach((d,i)=>{const x=xS(i),y=yS(d.valueUSD);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle=isUp?'#1e3a8a':'#dc2626';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+
+    // Dots
+    [0,data.length-1].forEach(i=>{const x=xS(i),y=yS(data[i].valueUSD);ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=isUp?'#1e3a8a':'#dc2626';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#1e293b';ctx.font='bold 11px "Space Grotesk"';ctx.textAlign=i===0?'left':'right';ctx.fillText('$'+data[i].valueUSD.toFixed(0),x+(i===0?10:-10),y-10);});
+
+    // Stats
     renderEvolutionStats(data);
 }
 
 function renderEvolutionStats(data) {
-    const container = document.getElementById('evolutionStats');
-    
-    if (data.length < 2) {
-        container.innerHTML = '';
-        return;
-    }
-    
-    const first = data[0].valueUSD;
-    const last = data[data.length - 1].valueUSD;
-    const diff = last - first;
-    const pct = first > 0 ? ((diff / first) * 100) : 0;
-    const high = Math.max(...data.map(d => d.valueUSD));
-    const low = Math.min(...data.map(d => d.valueUSD));
-    const avg = data.reduce((s, d) => s + d.valueUSD, 0) / data.length;
-    
-    const cls = diff >= 0 ? 'change-positive' : 'change-negative';
-    
-    // Compute period-specific changes
-    const now = last;
-    function findValueDaysAgo(days) {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - days);
-        // Find closest entry to cutoff
-        let closest = null;
-        let minDiff = Infinity;
-        portfolioHistory.forEach(d => {
-            const dd = Math.abs(d.date - cutoff);
-            if (dd < minDiff) { minDiff = dd; closest = d; }
-        });
-        return closest ? closest.valueUSD : null;
-    }
-    
-    const periods = [
-        { label: '1 jour', days: 1 },
-        { label: '7 jours', days: 7 },
-        { label: '30 jours', days: 30 },
-        { label: '3 mois', days: 90 },
-        { label: '6 mois', days: 180 },
-        { label: '1 an', days: 365 },
-        { label: '2 ans', days: 730 },
-        { label: '3 ans', days: 1095 },
-    ];
-    
-    let html = '';
-    periods.forEach(p => {
-        const pastVal = findValueDaysAgo(p.days);
-        if (pastVal !== null && pastVal > 0) {
-            const ch = ((now - pastVal) / pastVal) * 100;
-            const chCls = ch >= 0 ? 'change-positive' : 'change-negative';
-            html += `<div class="evo-stat">
-                <div class="evo-stat-label">${p.label}</div>
-                <div class="evo-stat-value ${chCls}">${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%</div>
-            </div>`;
-        }
-    });
-    
-    // Add high/low/avg
-    html += `<div class="evo-stat">
-        <div class="evo-stat-label">Plus haut</div>
-        <div class="evo-stat-value">$${high.toFixed(0)}</div>
-    </div>`;
-    html += `<div class="evo-stat">
-        <div class="evo-stat-label">Plus bas</div>
-        <div class="evo-stat-value">$${low.toFixed(0)}</div>
-    </div>`;
-    html += `<div class="evo-stat">
-        <div class="evo-stat-label">Moyenne</div>
-        <div class="evo-stat-value">$${avg.toFixed(0)}</div>
-    </div>`;
-    
-    container.innerHTML = html;
+    const c = document.getElementById('evolutionStats');
+    if (data.length<2){c.innerHTML='';return;}
+    const last=data[data.length-1].valueUSD;
+    const high=Math.max(...data.map(d=>d.valueUSD)), low=Math.min(...data.map(d=>d.valueUSD)), avg=data.reduce((s,d)=>s+d.valueUSD,0)/data.length;
+
+    function findAgo(days){const cut=new Date();cut.setDate(cut.getDate()-days);let cl=null,md=Infinity;portfolioHistory.forEach(d=>{const dd=Math.abs(d.date-cut);if(dd<md){md=dd;cl=d;}});return cl?cl.valueUSD:null;}
+    const periods=[{l:'1j',d:1},{l:'7j',d:7},{l:'30j',d:30},{l:'3m',d:90},{l:'6m',d:180},{l:'1an',d:365},{l:'2ans',d:730},{l:'3ans',d:1095}];
+    let html='';
+    periods.forEach(p=>{const pv=findAgo(p.d);if(pv&&pv>0){const ch=((last-pv)/pv)*100;const cls=ch>=0?'change-positive':'change-negative';html+=`<div class="evo-stat"><div class="evo-stat-label">${p.l}</div><div class="evo-stat-value ${cls}">${ch>=0?'+':''}${ch.toFixed(2)}%</div></div>`;}});
+    html+=`<div class="evo-stat"><div class="evo-stat-label">Plus haut</div><div class="evo-stat-value">$${high.toFixed(0)}</div></div>`;
+    html+=`<div class="evo-stat"><div class="evo-stat-label">Plus bas</div><div class="evo-stat-value">$${low.toFixed(0)}</div></div>`;
+    html+=`<div class="evo-stat"><div class="evo-stat-label">Moyenne</div><div class="evo-stat-value">$${avg.toFixed(0)}</div></div>`;
+    c.innerHTML=html;
+}
+
+// ===== Data Loading =====
+async function loadAllSheets() {
+    setStatus('Chargement données...');
+
+    // SwissBorg
+    const sbCSV = await fetchCSV(SHEET_URLS_SWISSBORG, 'SwissBorg');
+    if (sbCSV) swissborgTx = parseCSV(sbCSV);
+
+    // Revolut Crypto
+    const rcCSV = await fetchCSV(SHEET_URLS_REVOLUT_CRYPTO, 'Revolut Crypto');
+    if (rcCSV) revolutCryptoTx = parseCSV(rcCSV);
+
+    // Revolut Robo
+    const rrCSV = await fetchCSV(SHEET_URLS_REVOLUT_ROBO, 'Revolut Robo');
+    if (rrCSV) revolutRoboTx = parseCSV(rrCSV);
+
+    console.log(`Loaded: ${swissborgTx.length} SB, ${revolutCryptoTx.length} RC, ${revolutRoboTx.length} RR`);
+
+    mergeHoldings();
+    populateAssetFilter();
+    renderHistory();
+    return swissborgTx.length > 0;
+}
+
+async function loadPrices() {
+    setStatus('Chargement prix...');
+    const assets = Object.entries(cryptoHoldings).filter(([s,q])=>q>0.0000001).map(([s])=>s);
+    prices = await fetchPrices(assets);
+    await fetchETFPrices();
+    renderHoldings();
+    renderSummary();
+}
+
+async function loadMarketData() {
+    setStatus('Marché...');
+    marketData = await fetchMarketData();
+    renderMarket();
+}
+
+async function refreshAll() {
+    const btn = document.querySelector('.btn-refresh');
+    btn.classList.add('spinning');
+    await loadAllSheets();
+    await loadPrices();
+    await loadMarketData();
+    setStatus('En direct', true);
+    updateLastRefresh();
+    btn.classList.remove('spinning');
 }
 
 // ===== Init =====
 async function init() {
     setStatus('Initialisation...');
-    
-    const success = await loadSheetData();
-    if (success) {
-        await loadPriceData();
-        
-        // Log current portfolio value (crypto + ETFs)
-        const allItems = getAllItems();
-        const totalValue = allItems.reduce((s, i) => s + i.value, 0);
-        const nbAssets = allItems.filter(i => i.value >= 10).length;
-        
-        if (totalValue > 0) {
-            logPortfolioValue(totalValue, nbAssets);
-        }
-        
-        // Load portfolio history
+    await fetchFearGreed();
+    const ok = await loadAllSheets();
+    if (ok) {
+        await loadPrices();
+        const items = getAllItems();
+        const total = items.reduce((s,i) => s+i.value, 0);
+        const nb = items.filter(i => i.value >= 10).length;
+        if (total > 0) logPortfolioValue(total, nb);
         portfolioHistory = await fetchPortfolioHistory();
         if (portfolioHistory.length > 0) {
-            document.getElementById('evolutionStatus').textContent = 
-                `${portfolioHistory.length} points · Depuis le ${portfolioHistory[0].date.toLocaleDateString('fr-FR')}`;
+            document.getElementById('evolutionStatus').textContent = `${portfolioHistory.length} points · Depuis le ${portfolioHistory[0].date.toLocaleDateString('fr-FR')}`;
         }
     }
-    
     setStatus('En direct', true);
     updateLastRefresh();
-    
-    // Auto-refresh every 60 seconds
-    setInterval(async () => {
-        await loadPriceData();
-        updateLastRefresh();
-    }, 60000);
+    setInterval(async () => { await loadPrices(); updateLastRefresh(); }, 60000);
 }
 
-// Start
 document.addEventListener('DOMContentLoaded', init);
