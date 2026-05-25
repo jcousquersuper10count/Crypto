@@ -53,7 +53,39 @@ const COINGECKO_MAP = {
     'QI': 'benqi', 'DUCK': 'duck-chain',
     'ai16z': 'ai16z', 'CETUS': 'cetus-protocol', 
     '$WIF': 'dogwifcoin', '$COLLAT': null, 'FLOYDAI': null,
-    'RECALL': 'recall', 'X': null
+    'RECALL': 'recall', 'X': null,
+    // Revolut crypto additions
+    'ATOM': 'cosmos', 'MEW': 'cat-in-a-dogs-world', 'DOT': 'polkadot',
+    'SEI': 'sei-network', 'CRO': 'crypto-com-chain', 'ROSE': 'oasis-network',
+    'LMWR': 'limewire-token', 'ZKJ': 'polyhedra-network'
+};
+
+// ===== Revolut Robo-Advisor ETF Data =====
+// ISINs for price lookup via public APIs
+const REVOLUT_ETFS = {
+    '2B72':  { name: 'Amundi MSCI Emerging Markets II ETF', isin: 'LU2573966905', qty: 158.449808 },
+    'WELK':  { name: 'Amundi MSCI World Climate Paris Aligned PAB', isin: 'IE000COYXKJ3', qty: 121.721795 },
+    'EBUY':  { name: 'Amundi MSCI World Ex-Europe ETF', isin: 'LU2572257124', qty: 51.987275 },
+    'AMEL':  { name: 'Amundi MSCI Emerging Markets III ETF', isin: 'LU2573967036', qty: 36.260348 },
+    'LYMS':  { name: 'Amundi MSCI EM Asia ETF', isin: 'LU1781541849', qty: 33.617063 },
+    'LEMA':  { name: 'Amundi MSCI EM Latin America ETF', isin: 'LU1681045024', qty: 30.428771 },
+    'XDWI':  { name: 'Xtrackers MSCI World IT ETF', isin: 'IE00BM67HT60', qty: 21.357784 },
+    'PRAJ':  { name: 'Amundi Prime Japan ETF', isin: 'LU2089238385', qty: 14.634074 },
+    '79U0':  { name: 'Amundi MSCI USA ETF', isin: 'LU1681042864', qty: 11.416671 },
+    'LYP5':  { name: 'Amundi MSCI World ETF', isin: 'LU2655993207', qty: 9.525122 },
+    'UBUD':  { name: 'UBS MSCI Japan SF ETF', isin: 'LU0950671825', qty: 9.145290 },
+    'LYP6':  { name: 'Amundi Stoxx Europe 600 ETF', isin: 'LU0908500753', qty: 3.681600 },
+    'LGQK':  { name: 'L&G Quality Equity Dividends ESG ETF', isin: 'IE00BYYHSQ67', qty: 0.595979 },
+};
+
+// Revolut Crypto current holdings (computed from transaction history)
+const REVOLUT_CRYPTO = {
+    'ATOM': 106.25943300,
+    'MEW': 71.65343845,
+    'VET': 26.73442965,
+    'ZKJ': 1.39294481,
+    'BTC': 0.03625918,
+    'DOT': 0.00327007,
 };
 
 // ===== State =====
@@ -63,6 +95,7 @@ let prices = {};
 let marketData = [];
 let portfolioHistory = [];
 let selectedPeriod = 7;
+let etfPrices = {};
 
 // ===== Parse CSV from Google Sheets =====
 function parseCSV(text) {
@@ -220,19 +253,37 @@ async function fetchMarketData() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ===== Rendering =====
-function renderHoldings() {
-    const tbody = document.getElementById('holdingsBody');
-    const sortBy = document.getElementById('sortBy').value;
-    
-    // Build display data — auto-hide values under $10
+function getAllItems() {
+    // Crypto holdings (Swissborg + Revolut merged)
     let items = Object.entries(holdings)
         .filter(([sym, qty]) => qty > 0.0000001)
         .map(([sym, qty]) => {
             const p = prices[sym] || {};
             const value = qty * (p.price || 0);
-            return { sym, qty, price: p.price || 0, value, change24h: p.change24h || 0, change7d: p.change7d || 0, change30d: p.change30d || 0, change1y: p.change1y || 0, image: p.image || '', name: p.name || sym };
-        })
-        .filter(i => i.value >= 10);
+            const source = REVOLUT_CRYPTO[sym] ? (holdings[sym] > REVOLUT_CRYPTO[sym] + 0.0001 ? 'Multi' : 'Revolut') : 'SwissBorg';
+            return { sym, qty, price: p.price || 0, value, change24h: p.change24h || 0, change7d: p.change7d || 0, change30d: p.change30d || 0, change1y: p.change1y || 0, image: p.image || '', name: p.name || sym, type: 'crypto', source };
+        });
+    
+    // ETF holdings (Revolut Robo-Advisor)
+    for (const [ticker, etf] of Object.entries(REVOLUT_ETFS)) {
+        const ep = etfPrices[ticker] || {};
+        const priceUSD = ep.currency === 'EUR' ? (ep.price || 0) * 1.09 : (ep.price || 0);
+        const value = etf.qty * priceUSD;
+        items.push({
+            sym: ticker, qty: etf.qty, price: priceUSD, value,
+            change24h: 0, change7d: 0, change30d: 0, change1y: 0,
+            image: '', name: etf.name, type: 'etf', source: 'Robo-Advisor'
+        });
+    }
+    
+    return items;
+}
+
+function renderHoldings() {
+    const tbody = document.getElementById('holdingsBody');
+    const sortBy = document.getElementById('sortBy').value;
+    
+    let items = getAllItems().filter(i => i.value >= 10);
     
     // Sort
     if (sortBy === 'value') items.sort((a, b) => b.value - a.value);
@@ -246,33 +297,41 @@ function renderHoldings() {
         return;
     }
     
-    function fmtChange(val) {
+    function fmtChange(val, isEtf) {
+        if (isEtf) return '<td class="change-na">—</td>';
         const cls = val >= 0 ? 'change-positive' : 'change-negative';
         return `<td class="${cls}">${val >= 0 ? '+' : ''}${val.toFixed(2)}%</td>`;
     }
     
+    function sourceTag(source) {
+        const colors = { 'SwissBorg': '#06d6a0', 'Revolut': '#0075eb', 'Multi': '#8b5cf6', 'Robo-Advisor': '#ea580c' };
+        const color = colors[source] || '#94a3b8';
+        return `<span style="font-size:0.6rem;font-family:var(--font-mono);background:${color}15;color:${color};padding:0.1rem 0.4rem;border-radius:3px;margin-left:0.3rem">${source}</span>`;
+    }
+    
     tbody.innerHTML = items.map(item => {
         const alloc = totalValue > 0 ? (item.value / totalValue * 100) : 0;
+        const isEtf = item.type === 'etf';
         
         return `<tr>
             <td>
                 <div class="asset-cell">
-                    <div class="asset-icon">
+                    <div class="asset-icon" style="${isEtf ? 'background:#ea580c15;color:#ea580c;border-color:#ea580c30' : ''}">
                         ${item.image ? `<img src="${item.image}" alt="${item.sym}" onerror="this.parentElement.textContent='${item.sym.slice(0,2)}'">` : item.sym.slice(0, 2)}
                     </div>
                     <div>
-                        <div class="asset-name">${item.name}</div>
-                        <div class="asset-symbol">${item.sym}</div>
+                        <div class="asset-name">${isEtf ? item.sym : item.name} ${sourceTag(item.source)}</div>
+                        <div class="asset-symbol">${isEtf ? item.name.substring(0, 35) : item.sym}</div>
                     </div>
                 </div>
             </td>
             <td class="qty-cell">${formatQty(item.qty)}</td>
-            <td class="price-cell">${formatUSD(item.price)}</td>
-            <td class="value-cell">${formatUSD(item.value)}</td>
-            ${fmtChange(item.change24h)}
-            ${fmtChange(item.change7d)}
-            ${fmtChange(item.change30d)}
-            ${fmtChange(item.change1y)}
+            <td class="price-cell">${item.price > 0 ? formatUSD(item.price) : '—'}</td>
+            <td class="value-cell">${item.value > 0 ? formatUSD(item.value) : '—'}</td>
+            ${fmtChange(item.change24h, isEtf)}
+            ${fmtChange(item.change7d, isEtf)}
+            ${fmtChange(item.change30d, isEtf)}
+            ${fmtChange(item.change1y, isEtf)}
             <td>
                 <div class="alloc-bar-wrap">
                     <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${Math.min(alloc, 100)}%"></div></div>
@@ -284,24 +343,21 @@ function renderHoldings() {
 }
 
 function renderSummary() {
-    const items = Object.entries(holdings)
-        .filter(([s, q]) => q > 0.0000001)
-        .map(([sym, qty]) => {
-            const p = prices[sym] || {};
-            return { sym, qty, value: qty * (p.price || 0), change24h: p.change24h || 0 };
-        });
+    const items = getAllItems();
     
     const totalValue = items.reduce((s, i) => s + i.value, 0);
-    const positiveCount = items.filter(i => i.value >= 0.01).length;
+    const positiveCount = items.filter(i => i.value >= 10).length;
     
     document.getElementById('totalValue').textContent = formatUSD(totalValue);
     document.getElementById('assetCount').textContent = positiveCount;
     
-    // Weighted average 24h change
-    if (totalValue > 0) {
-        const wavg = items.reduce((s, i) => s + (i.change24h * i.value), 0) / totalValue;
+    // Weighted average 24h change (crypto only, ETFs don't have this)
+    const cryptoItems = items.filter(i => i.type === 'crypto' && i.value >= 10);
+    const cryptoTotal = cryptoItems.reduce((s, i) => s + i.value, 0);
+    if (cryptoTotal > 0) {
+        const wavg = cryptoItems.reduce((s, i) => s + (i.change24h * i.value), 0) / cryptoTotal;
         const changeEl = document.getElementById('totalChange');
-        changeEl.textContent = `${wavg >= 0 ? '▲' : '▼'} ${wavg >= 0 ? '+' : ''}${wavg.toFixed(2)}% (24h)`;
+        changeEl.textContent = `${wavg >= 0 ? '▲' : '▼'} ${wavg >= 0 ? '+' : ''}${wavg.toFixed(2)}% (24h crypto)`;
         changeEl.className = `total-change ${wavg >= 0 ? 'change-positive' : 'change-negative'}`;
     }
     
@@ -320,8 +376,8 @@ function renderSummary() {
     pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${formatUSD(pnl)}`;
     pnlEl.className = `summary-card-value ${pnl >= 0 ? 'change-positive' : 'change-negative'}`;
     
-    // Best asset
-    const best = items.filter(i => i.value >= 1).sort((a, b) => b.change24h - a.change24h)[0];
+    // Best asset (crypto only)
+    const best = cryptoItems.filter(i => i.value >= 10).sort((a, b) => b.change24h - a.change24h)[0];
     if (best) {
         const bestEl = document.getElementById('bestAsset');
         bestEl.textContent = `${best.sym} ${best.change24h >= 0 ? '+' : ''}${best.change24h.toFixed(1)}%`;
@@ -432,9 +488,7 @@ function renderAnalytics() {
     canvas.height = 400;
     const ctx = canvas.getContext('2d');
     
-    const items = Object.entries(holdings)
-        .filter(([s, q]) => q > 0.0000001)
-        .map(([sym, qty]) => ({ sym, value: qty * ((prices[sym] || {}).price || 0) }))
+    const items = getAllItems()
         .filter(i => i.value >= 10)
         .sort((a, b) => b.value - a.value);
     
@@ -784,14 +838,67 @@ async function loadSheetData() {
 async function loadPriceData() {
     setStatus('Chargement prix...');
     
+    // Merge Revolut crypto into holdings
+    for (const [sym, qty] of Object.entries(REVOLUT_CRYPTO)) {
+        holdings[sym] = (holdings[sym] || 0) + qty;
+    }
+    
     const positiveAssets = Object.entries(holdings)
         .filter(([s, q]) => q > 0.0000001)
         .map(([s]) => s);
     
     prices = await fetchPrices(positiveAssets);
     
+    // Fetch ETF prices
+    await fetchETFPrices();
+    
     renderHoldings();
     renderSummary();
+}
+
+// Fetch ETF prices using a free proxy to query by ISIN
+async function fetchETFPrices() {
+    etfPrices = {};
+    
+    // Use Google Finance or fallback: estimate from last known cost basis
+    // For reliability, we'll use the Borsa Italiana / Xetra proxy approach
+    const tickers = Object.keys(REVOLUT_ETFS);
+    
+    // Try to get prices from a public source
+    for (const ticker of tickers) {
+        const etf = REVOLUT_ETFS[ticker];
+        try {
+            // Try Yahoo Finance via allorigins proxy
+            const yahooSymbol = etf.isin;
+            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.DE?interval=1d&range=5d`)}`;
+            const resp = await fetch(url);
+            if (resp.ok) {
+                const data = await resp.json();
+                const close = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+                if (close) {
+                    etfPrices[ticker] = { price: close, name: etf.name, currency: 'EUR' };
+                    continue;
+                }
+            }
+        } catch(e) {}
+        
+        // Fallback: try with .PA (Paris)
+        try {
+            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.PA?interval=1d&range=5d`)}`;
+            const resp = await fetch(url);
+            if (resp.ok) {
+                const data = await resp.json();
+                const close = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+                if (close) {
+                    etfPrices[ticker] = { price: close, name: etf.name, currency: 'EUR' };
+                    continue;
+                }
+            }
+        } catch(e) {}
+        
+        // If all fails, mark as unknown
+        etfPrices[ticker] = { price: 0, name: etf.name, currency: 'EUR' };
+    }
 }
 
 async function loadMarketData() {
@@ -1085,13 +1192,10 @@ async function init() {
     if (success) {
         await loadPriceData();
         
-        // Log current portfolio value
-        const totalValue = Object.entries(holdings)
-            .filter(([s, q]) => q > 0.0000001)
-            .reduce((sum, [sym, qty]) => sum + qty * ((prices[sym] || {}).price || 0), 0);
-        const nbAssets = Object.entries(holdings)
-            .filter(([s, q]) => q > 0.0000001 && q * ((prices[s]||{}).price||0) >= 10)
-            .length;
+        // Log current portfolio value (crypto + ETFs)
+        const allItems = getAllItems();
+        const totalValue = allItems.reduce((s, i) => s + i.value, 0);
+        const nbAssets = allItems.filter(i => i.value >= 10).length;
         
         if (totalValue > 0) {
             logPortfolioValue(totalValue, nbAssets);

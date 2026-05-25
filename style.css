@@ -380,6 +380,7 @@ a:hover { text-decoration: underline; }
 
 .change-positive { color: var(--green); font-weight: 500; }
 .change-negative { color: var(--red); font-weight: 500; }
+.change-na { color: var(--text-muted); font-style: italic; }
 
 .alloc-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
 
