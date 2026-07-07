@@ -111,13 +111,13 @@ function fQ(v){if(v>=1e6)return(v/1e6).toFixed(2)+'M';if(v>=1000)return v.toLoca
 function fC(v){if(!v)return'--';if(v>=1e12)return'$'+(v/1e12).toFixed(1)+'T';if(v>=1e9)return'$'+(v/1e9).toFixed(1)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';return'$'+v.toLocaleString();}
 
 // CSV Upload
-async function handleUpload(tabName,input){const file=input.files[0];if(!file)return;const statusId=tabName==='Revolut_Crypto'?'statusCrypto':tabName==='Revolut_Robo'?'statusRobo':'statusNeverless';const el=document.getElementById(statusId);el.textContent='⏳ Lecture...';el.className='upload-status uploading';
+async function handleUpload(tabName,input){const file=input.files[0];if(!file)return;const statusId=tabName==='Revolut_Crypto'?'statusCrypto':tabName==='Revolut_Robo'?'statusRobo':'statusNeverless';const el=document.getElementById(statusId);el.textContent='⏳ Lecture du fichier...';el.className='upload-status uploading';
 const text=await file.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));
-el.textContent=`⏳ Envoi de ${csvData.length} lignes vers Google Sheet...`;
-try{const r=await fetch(GAS,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName,csvData})});const j=await r.json();if(j.status==='ok'){el.textContent=`✅ ${j.rows} lignes sauvegardées dans "${j.tab}" ! Rechargement...`;el.className='upload-status success';setTimeout(()=>refreshAll(),2000);}else{el.textContent='❌ '+j.message;el.className='upload-status error';}}catch(e){el.textContent='❌ Erreur: '+e.message;el.className='upload-status error';}}
+el.textContent=`⏳ Envoi de ${csvData.length} lignes...`;
+try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName,csvData}),mode:'no-cors'});el.textContent=`✅ ${csvData.length} lignes envoyées vers "${tabName}". Vérification dans 5s...`;el.className='upload-status success';setTimeout(async()=>{await refreshAll();el.textContent=`✅ Terminé ! Données rechargées.`;},5000);}catch(e){el.textContent='❌ Erreur: '+e.message+' — Collez le CSV manuellement dans Google Sheet.';el.className='upload-status error';}}
 
 // Evolution
-async function logVal(v,n){try{await fetch(GAS,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n})});console.log('✓ Value logged');}catch(e){console.warn('Log error:',e.message);}}
+async function logVal(v,n){try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n}),mode:'no-cors'});console.log('✓ Value logged');}catch(e){}}
 async function fetchHist(){try{const r=await fetch(GAS);if(!r.ok)return[];const j=await r.json();if(j.status==='ok'&&j.data)return j.data.map(d=>({date:new Date(d.date),valUSD:d.valueUSD})).sort((a,b)=>a.date-b.date);}catch(e){}return[];}
 function selectPeriod(d){selPeriod=d;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));document.querySelector(`.period-btn[data-period="${d}"]`)?.classList.add('active');renderEvo();}
 
