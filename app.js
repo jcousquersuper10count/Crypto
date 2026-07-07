@@ -114,10 +114,10 @@ function fC(v){if(!v)return'--';if(v>=1e12)return'$'+(v/1e12).toFixed(1)+'T';if(
 async function handleUpload(tabName,input){const file=input.files[0];if(!file)return;const statusId=tabName==='Revolut_Crypto'?'statusCrypto':tabName==='Revolut_Robo'?'statusRobo':'statusNeverless';const el=document.getElementById(statusId);el.textContent='⏳ Lecture...';el.className='upload-status uploading';
 const text=await file.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));
 el.textContent=`⏳ Envoi de ${csvData.length} lignes vers Google Sheet...`;
-try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName,csvData}),mode:'no-cors'});el.textContent=`✅ ${csvData.length} lignes envoyées ! Rechargez la page.`;el.className='upload-status success';setTimeout(()=>refreshAll(),2000);}catch(e){el.textContent='❌ Erreur: '+e.message;el.className='upload-status error';}}
+try{const r=await fetch(GAS,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName,csvData})});const j=await r.json();if(j.status==='ok'){el.textContent=`✅ ${j.rows} lignes sauvegardées dans "${j.tab}" ! Rechargement...`;el.className='upload-status success';setTimeout(()=>refreshAll(),2000);}else{el.textContent='❌ '+j.message;el.className='upload-status error';}}catch(e){el.textContent='❌ Erreur: '+e.message;el.className='upload-status error';}}
 
 // Evolution
-async function logVal(v,n){try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n}),mode:'no-cors'});}catch(e){}}
+async function logVal(v,n){try{await fetch(GAS,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n})});console.log('✓ Value logged');}catch(e){console.warn('Log error:',e.message);}}
 async function fetchHist(){try{const r=await fetch(GAS);if(!r.ok)return[];const j=await r.json();if(j.status==='ok'&&j.data)return j.data.map(d=>({date:new Date(d.date),valUSD:d.valueUSD})).sort((a,b)=>a.date-b.date);}catch(e){}return[];}
 function selectPeriod(d){selPeriod=d;document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));document.querySelector(`.period-btn[data-period="${d}"]`)?.classList.add('active');renderEvo();}
 
