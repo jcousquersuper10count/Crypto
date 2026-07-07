@@ -3,7 +3,7 @@
 // ============================================================
 const SHEET_ID='18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8';
 const PUB_ID='2PACX-1vQHtSe6vE3WSfSsoW15kEaKv75UYpRGM0QJ26_MJlys7ML1NPid2b_Ys6jII04owAH9v4NfOelpVsAm';
-const SB_URLS=[`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&gid=0`,`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Feuille%201`];
+const SB_URLS=[`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Neverless`,`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&gid=0`,`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Feuille%201`];
 const RC_URLS=[`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Revolut_Crypto`];
 const RR_URLS=[`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Revolut_Robo`];
 const CG='https://api.coingecko.com/api/v3';
@@ -111,7 +111,7 @@ function fQ(v){if(v>=1e6)return(v/1e6).toFixed(2)+'M';if(v>=1000)return v.toLoca
 function fC(v){if(!v)return'--';if(v>=1e12)return'$'+(v/1e12).toFixed(1)+'T';if(v>=1e9)return'$'+(v/1e9).toFixed(1)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';return'$'+v.toLocaleString();}
 
 // CSV Upload
-async function handleUpload(tabName,input){const file=input.files[0];if(!file)return;const statusId=tabName==='Revolut_Crypto'?'statusCrypto':'statusRobo';const el=document.getElementById(statusId);el.textContent='⏳ Lecture...';el.className='upload-status uploading';
+async function handleUpload(tabName,input){const file=input.files[0];if(!file)return;const statusId=tabName==='Revolut_Crypto'?'statusCrypto':tabName==='Revolut_Robo'?'statusRobo':'statusNeverless';const el=document.getElementById(statusId);el.textContent='⏳ Lecture...';el.className='upload-status uploading';
 const text=await file.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));
 el.textContent=`⏳ Envoi de ${csvData.length} lignes vers Google Sheet...`;
 try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName,csvData}),mode:'no-cors'});el.textContent=`✅ ${csvData.length} lignes envoyées ! Rechargez la page.`;el.className='upload-status success';setTimeout(()=>refreshAll(),2000);}catch(e){el.textContent='❌ Erreur: '+e.message;el.className='upload-status error';}}

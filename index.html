@@ -97,8 +97,16 @@
     </section>
     <section class="tab-content" id="tab-upload">
         <h2>Importer des transactions CSV</h2>
-        <p class="upload-desc">Importez vos fichiers CSV Revolut. Ils seront sauvegardés dans votre Google Sheet automatiquement.</p>
+        <p class="upload-desc">Importez vos fichiers CSV. Ils seront sauvegardés dans votre Google Sheet automatiquement.</p>
         <div class="upload-grid">
+            <div class="upload-zone" id="dropNeverless">
+                <div class="upload-icon">💎</div>
+                <div class="upload-title">Neverless (SwissBorg)</div>
+                <div class="upload-hint">Type, Date, Amount received, Asset received, Amount sent, Asset sent...</div>
+                <input type="file" accept=".csv" id="fileNeverless" onchange="handleUpload('Neverless',this)" style="display:none">
+                <label for="fileNeverless" class="upload-btn">Choisir un fichier</label>
+                <div class="upload-status" id="statusNeverless"></div>
+            </div>
             <div class="upload-zone" id="dropCrypto">
                 <div class="upload-icon">🪙</div>
                 <div class="upload-title">Revolut Crypto</div>

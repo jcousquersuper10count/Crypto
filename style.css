@@ -844,7 +844,7 @@ a:hover { text-decoration: underline; }
 
 /* ===== Upload Zone ===== */
 .upload-desc { color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem; }
-.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
 .upload-zone {
     background: var(--bg-card); border: 2px dashed var(--border); border-radius: var(--radius);
     padding: 2rem; text-align: center; transition: all 0.2s;
