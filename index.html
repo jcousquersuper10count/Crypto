@@ -9,114 +9,152 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Password Gate -->
-<div id="gate" class="gate">
-<div class="gate-box">
-<div class="gate-logo">◈ VAULT</div>
-<p class="gate-sub">Entrez le mot de passe</p>
-<input type="password" id="gatePwd" placeholder="••••••••" autofocus>
-<button onclick="checkPwd()">Accéder</button>
-<p class="gate-err" id="gateErr"></p>
-</div>
-</div>
-
-<!-- App -->
+<div id="gate" class="gate"><div class="gate-box"><div class="gate-logo">◈ VAULT</div><p class="gate-sub">Entrez le mot de passe</p><input type="password" id="gatePwd" placeholder="••••••••" autofocus><button onclick="checkPwd()">Accéder</button><p class="gate-err" id="gateErr"></p></div></div>
 <div id="app" class="app" style="display:none">
 <aside class="sidebar" id="sidebar">
 <div class="sb-top">
 <div class="sb-logo" onclick="toggleSidebar()"><span class="sb-icon">◈</span><span class="sb-name">VAULT</span></div>
 <nav class="sb-nav">
 <a class="sb-link active" data-page="holdings" onclick="go('holdings')"><i class="sb-i">💰</i><span>Holdings</span></a>
+<a class="sb-link" data-page="performance" onclick="go('performance')"><i class="sb-i">📊</i><span>Performance</span></a>
+<a class="sb-link" data-page="risk" onclick="go('risk')"><i class="sb-i">🛡️</i><span>Risque</span></a>
+<a class="sb-link" data-page="strategy" onclick="go('strategy')"><i class="sb-i">🎯</i><span>Stratégie</span></a>
 <a class="sb-link" data-page="evolution" onclick="go('evolution')"><i class="sb-i">📈</i><span>Évolution</span></a>
-<a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i">📊</i><span>Marché</span></a>
+<a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i">🌍</i><span>Marché</span></a>
 <a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i">📜</i><span>Historique</span></a>
-<a class="sb-link" data-page="analytics" onclick="go('analytics')"><i class="sb-i">🧮</i><span>Analytiques</span></a>
-<a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i">📤</i><span>Import CSV</span></a>
+<a class="sb-link" data-page="fiscal" onclick="go('fiscal')"><i class="sb-i">🧾</i><span>Fiscal</span></a>
+<a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i">📤</i><span>Import</span></a>
 </nav>
 </div>
 <div class="sb-bottom">
-<div class="sb-toggles">
-<button class="sb-toggle" onclick="toggleCurrency()" id="btnCur" title="Devise">€</button>
-<button class="sb-toggle" onclick="toggleTheme()" id="btnTheme" title="Thème">🌙</button>
-</div>
-<div class="sb-collapse" onclick="toggleSidebar()" title="Replier">◀</div>
+<div class="sb-toggles"><button class="sb-toggle" onclick="toggleCurrency()" id="btnCur" title="Devise">€</button><button class="sb-toggle" onclick="toggleTheme()" id="btnTheme" title="Thème">🌙</button></div>
+<div class="sb-collapse" onclick="toggleSidebar()">◀</div>
 </div>
 </aside>
-
 <main class="main">
-<header class="topbar">
-<div class="topbar-status" id="status"><span class="dot"></span><span id="statusTxt">Chargement...</span></div>
-<div class="topbar-time" id="lastUpd">--</div>
-<button class="topbar-refresh" onclick="refreshAll()">↻</button>
-</header>
+<header class="topbar"><div class="topbar-status" id="statusPill"><span class="dot"></span><span id="statusTxt">Chargement...</span></div><div class="topbar-time" id="lastUpd">--</div><button class="topbar-refresh" onclick="refreshAll()">↻</button></header>
+
+<!-- Alerts Banner -->
+<div class="alerts-banner" id="alertsBanner" style="display:none"></div>
 
 <!-- Holdings -->
 <section class="page active" id="p-holdings">
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
+<div class="kpi accent"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
 <div class="kpi"><div class="kpi-label">Crypto / ETF</div><div class="kpi-val" id="kpiBreak">--</div></div>
 <div class="kpi"><div class="kpi-label">Investi</div><div class="kpi-val" id="kpiInv">--</div></div>
 <div class="kpi"><div class="kpi-label">P&L</div><div class="kpi-val" id="kpiPnl">--</div></div>
 <div class="kpi"><div class="kpi-label">Fear & Greed</div><div class="kpi-val" id="kpiFG">--</div></div>
 </div>
-<div class="table-wrap">
-<table class="htable" id="holdTable">
-<thead><tr>
+<div class="table-wrap"><table class="htable" id="holdTable"><thead><tr>
 <th data-col="name" onclick="sortCol('name')">Actif</th>
 <th data-col="qty" onclick="sortCol('qty')">Qté</th>
 <th data-col="price" onclick="sortCol('price')">Prix</th>
 <th data-col="value" onclick="sortCol('value')" class="sorted desc">Valeur</th>
+<th data-col="pru" onclick="sortCol('pru')">PRU</th>
+<th data-col="pnl" onclick="sortCol('pnl')">P&L %</th>
 <th data-col="ch24" onclick="sortCol('ch24')">24h</th>
 <th data-col="ch7d" onclick="sortCol('ch7d')">7j</th>
-<th data-col="ch30d" onclick="sortCol('ch30d')">30j</th>
-<th data-col="ch1y" onclick="sortCol('ch1y')">1an</th>
 <th>7j</th>
 <th data-col="alloc" onclick="sortCol('alloc')">Alloc</th>
-</tr></thead>
-<tbody id="holdBody"><tr><td colspan="10" class="muted center">Chargement...</td></tr></tbody>
-</table>
+</tr></thead><tbody id="holdBody"><tr><td colspan="10" class="muted center">Chargement...</td></tr></tbody></table></div>
+</section>
+
+<!-- Performance -->
+<section class="page" id="p-performance">
+<div class="page-head"><h2>Performance</h2></div>
+<div class="kpi-row small">
+<div class="kpi"><div class="kpi-label">P&L non-réalisé</div><div class="kpi-val" id="perfUnreal">--</div></div>
+<div class="kpi"><div class="kpi-label">P&L réalisé</div><div class="kpi-val" id="perfReal">--</div></div>
+<div class="kpi"><div class="kpi-label">Revenus passifs</div><div class="kpi-val" id="perfPassive">--</div></div>
+<div class="kpi"><div class="kpi-label">Frais totaux</div><div class="kpi-val" id="perfFees">--</div></div>
+</div>
+<h3 style="margin:1rem 0 0.5rem">P&L par position</h3>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>PRU</th><th>Prix actuel</th><th>Qté</th><th>Coût total</th><th>Valeur actuelle</th><th>P&L</th><th>P&L %</th></tr></thead><tbody id="perfBody"></tbody></table></div>
+<h3 style="margin:1.5rem 0 0.5rem">Benchmark</h3>
+<div class="bench-grid" id="benchGrid"></div>
+</section>
+
+<!-- Risk -->
+<section class="page" id="p-risk">
+<div class="page-head"><h2>Analyse de risque</h2></div>
+<div class="kpi-row small">
+<div class="kpi"><div class="kpi-label">Score de risque</div><div class="kpi-val" id="riskScore">--</div></div>
+<div class="kpi"><div class="kpi-label">Plus grosse position</div><div class="kpi-val" id="riskTop">--</div></div>
+<div class="kpi"><div class="kpi-label">Nb positions > 20%</div><div class="kpi-val" id="riskConc">--</div></div>
+<div class="kpi"><div class="kpi-label">Nb secteurs</div><div class="kpi-val" id="riskSectors">--</div></div>
+</div>
+<div class="ana-grid">
+<div class="ana-card"><h3>Répartition sectorielle</h3><canvas id="sectorChart" width="460" height="340"></canvas><div id="sectorLeg" class="donut-leg"></div></div>
+<div class="ana-card"><h3>Concentration</h3><canvas id="concChart" width="400" height="300"></canvas></div>
+</div>
+</section>
+
+<!-- Strategy -->
+<section class="page" id="p-strategy">
+<div class="page-head"><h2>Stratégie</h2></div>
+<div class="strat-grid">
+<div class="ana-card"><h3>Objectif financier</h3>
+<div class="obj-form">
+<label>Montant cible</label><input type="number" id="objTarget" placeholder="50000" onchange="saveStrat()">
+<label>Horizon (années)</label><input type="number" id="objYears" placeholder="5" onchange="saveStrat()">
+<label>Apport mensuel estimé</label><input type="number" id="objMonthly" placeholder="200" onchange="saveStrat()">
+</div>
+<div id="objResult" class="obj-result"></div>
+</div>
+<div class="ana-card"><h3>Allocation cible</h3>
+<div class="alloc-form">
+<label>Crypto %</label><input type="range" id="allocCrypto" min="0" max="100" value="30" oninput="updateAlloc()"><span id="allocCryptoVal">30%</span>
+<label>ETF %</label><input type="range" id="allocETF" min="0" max="100" value="70" oninput="updateAlloc()"><span id="allocETFVal">70%</span>
+</div>
+<div id="allocResult" class="alloc-result"></div>
+</div>
+<div class="ana-card wide"><h3>Alertes de prix</h3>
+<p class="muted" style="margin-bottom:0.8rem">Définissez des seuils. Les alertes s'affichent en haut du dashboard à chaque visite.</p>
+<div class="alert-form">
+<select id="alertAsset"><option value="">Choisir un actif...</option></select>
+<input type="number" id="alertBelow" placeholder="Alerte si prix <">
+<input type="number" id="alertAbove" placeholder="Alerte si prix >">
+<button onclick="addAlert()">Ajouter</button>
+</div>
+<div id="alertList" class="alert-list"></div>
+</div>
 </div>
 </section>
 
 <!-- Evolution -->
 <section class="page" id="p-evolution">
-<div class="page-head"><h2>Évolution du portefeuille</h2><span class="muted" id="evoStatus"></span></div>
+<div class="page-head"><h2>Évolution</h2><span class="muted" id="evoStatus"></span></div>
 <div class="period-bar" id="periodBar">
-<button class="pbtn active" onclick="setPeriod(7)">7j</button>
-<button class="pbtn" onclick="setPeriod(30)">30j</button>
-<button class="pbtn" onclick="setPeriod(90)">3m</button>
-<button class="pbtn" onclick="setPeriod(180)">6m</button>
-<button class="pbtn" onclick="setPeriod(365)">1an</button>
-<button class="pbtn" onclick="setPeriod(730)">2ans</button>
-<button class="pbtn" onclick="setPeriod(0)">Max</button>
+<button class="pbtn active" onclick="setPeriod(7)">7j</button><button class="pbtn" onclick="setPeriod(30)">30j</button><button class="pbtn" onclick="setPeriod(90)">3m</button><button class="pbtn" onclick="setPeriod(180)">6m</button><button class="pbtn" onclick="setPeriod(365)">1an</button><button class="pbtn" onclick="setPeriod(730)">2ans</button><button class="pbtn" onclick="setPeriod(0)">Max</button>
 </div>
 <div class="chart-box"><canvas id="evoChart" width="1000" height="360"></canvas></div>
 <div class="evo-stats" id="evoStats"></div>
-<p class="muted" style="margin-top:1rem;font-size:0.8rem">La valeur est enregistrée à chaque visite (max 1x/4h).</p>
 </section>
 
 <!-- Market -->
 <section class="page" id="p-market">
-<div class="page-head"><h2>Suivi du marché</h2><input type="text" id="mktSearch" placeholder="Rechercher..." oninput="filterMkt()"></div>
+<div class="page-head"><h2>Marché</h2><input type="text" id="mktSearch" placeholder="Rechercher..." oninput="filterMkt()"></div>
 <div class="mkt-grid" id="mktGrid"><p class="muted center">Chargement...</p></div>
 </section>
 
 <!-- History -->
 <section class="page" id="p-history">
-<div class="page-head"><h2>Historique</h2>
-<div class="hist-filters"><select id="hType" onchange="renderHist()"><option value="all">Toutes</option><option value="Trade">Trades</option><option value="Deposit">Dépôts</option></select><select id="hAsset" onchange="renderHist()"><option value="all">Tous</option></select></div>
-</div>
+<div class="page-head"><h2>Historique</h2><div class="hist-filters"><select id="hType" onchange="renderHist()"><option value="all">Toutes</option><option value="Trade">Trades</option><option value="Deposit">Dépôts</option></select><select id="hAsset" onchange="renderHist()"><option value="all">Tous</option></select></div></div>
 <div class="hist-list" id="histList"><p class="muted center">Chargement...</p></div>
 </section>
 
-<!-- Analytics -->
-<section class="page" id="p-analytics">
-<div class="page-head"><h2>Analytiques</h2></div>
-<div class="ana-grid">
-<div class="ana-card"><h3>Répartition</h3><canvas id="donutChart" width="460" height="380"></canvas><div id="donutLeg" class="donut-leg"></div></div>
-<div class="ana-card"><h3>Activité mensuelle</h3><canvas id="actChart" width="400" height="280"></canvas></div>
-<div class="ana-card wide"><h3>Statistiques</h3><div class="stat-grid" id="statGrid"></div></div>
+<!-- Fiscal -->
+<section class="page" id="p-fiscal">
+<div class="page-head"><h2>Estimation fiscale (France)</h2></div>
+<p class="muted" style="margin-bottom:1rem">Estimation basée sur vos transactions. Ne constitue pas un conseil fiscal.</p>
+<div class="kpi-row small">
+<div class="kpi"><div class="kpi-label">Plus-values réalisées</div><div class="kpi-val" id="taxGains">--</div></div>
+<div class="kpi"><div class="kpi-label">Flat tax 30%</div><div class="kpi-val" id="taxDue">--</div></div>
+<div class="kpi"><div class="kpi-label">Plus-values latentes</div><div class="kpi-val" id="taxUnreal">--</div></div>
+<div class="kpi"><div class="kpi-label">Nb cessions</div><div class="kpi-val" id="taxCount">--</div></div>
 </div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Date</th><th>Actif</th><th>Qté vendue</th><th>Prix vente</th><th>PRU</th><th>P&L</th><th>Source</th></tr></thead><tbody id="taxBody"></tbody></table></div>
 </section>
 
 <!-- Import -->
@@ -124,9 +162,9 @@
 <div class="page-head"><h2>Import CSV</h2></div>
 <p class="muted" style="margin-bottom:1.5rem">Importez vos fichiers. Ils s'enregistrent dans votre Google Sheet.</p>
 <div class="upload-row">
-<div class="upload-zone"><div class="uz-icon">💎</div><div class="uz-title">Neverless</div><div class="uz-hint">SwissBorg CSV export</div><input type="file" accept=".csv" id="fNev" onchange="doUpload('Neverless',this)" style="display:none"><label for="fNev" class="uz-btn">Choisir</label><div class="uz-status" id="sNev"></div></div>
-<div class="upload-zone"><div class="uz-icon">🪙</div><div class="uz-title">Revolut Crypto</div><div class="uz-hint">Symbol, Type, Quantity...</div><input type="file" accept=".csv" id="fRC" onchange="doUpload('Revolut_Crypto',this)" style="display:none"><label for="fRC" class="uz-btn">Choisir</label><div class="uz-status" id="sRC"></div></div>
-<div class="upload-zone"><div class="uz-icon">📊</div><div class="uz-title">Revolut Robo</div><div class="uz-hint">Date, Ticker, Type...</div><input type="file" accept=".csv" id="fRR" onchange="doUpload('Revolut_Robo',this)" style="display:none"><label for="fRR" class="uz-btn">Choisir</label><div class="uz-status" id="sRR"></div></div>
+<div class="upload-zone"><div class="uz-icon">💎</div><div class="uz-title">Neverless</div><input type="file" accept=".csv" id="fNev" onchange="doUpload('Neverless',this)" style="display:none"><label for="fNev" class="uz-btn">Choisir</label><div class="uz-status" id="sNev"></div></div>
+<div class="upload-zone"><div class="uz-icon">🪙</div><div class="uz-title">Revolut Crypto</div><input type="file" accept=".csv" id="fRC" onchange="doUpload('Revolut_Crypto',this)" style="display:none"><label for="fRC" class="uz-btn">Choisir</label><div class="uz-status" id="sRC"></div></div>
+<div class="upload-zone"><div class="uz-icon">📊</div><div class="uz-title">Revolut Robo</div><input type="file" accept=".csv" id="fRR" onchange="doUpload('Revolut_Robo',this)" style="display:none"><label for="fRR" class="uz-btn">Choisir</label><div class="uz-status" id="sRR"></div></div>
 </div>
 </section>
 </main>

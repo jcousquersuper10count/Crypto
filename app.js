@@ -199,3 +199,271 @@ async function init(){restorePrefs();setS('Initialisation...');await Promise.all
 const ok=await loadSheets();if(ok){await loadPrices();const it=allItems();const tot=it.reduce((s,i)=>s+i.usd,0);if(tot>0)logVal(tot,it.filter(i=>i.usd>=10).length);
 pHist=await fetchHist();if(pHist.length)document.getElementById('evoStatus').textContent=`${pHist.length} points · Depuis ${pHist[0].date.toLocaleDateString('fr-FR')}`;}
 setS('En direct',true);updTime();setInterval(async()=>{await loadPrices();updTime();},60000);}
+
+// ============================================================
+// PHASE 1-3: Performance, Risk, Strategy, Fiscal
+// ============================================================
+
+// Sector classification
+const SECTORS={
+Layer1:'BTC,ETH,SOL,SUI,ADA,AVAX,DOT,ATOM,TON,HBAR,ALGO,SEI,MNT,CORE,CKB,CFX,S,PI'.split(','),
+DeFi:'UNI,AAVE,COMP,PENDLE,CAKE,JUP,AERO,ENA,VIRTUAL'.split(','),
+Meme:'DOGE,PEPE,BONK,FLOKI,MEW,MOODENG,BABYDOGE,POPCAT,ELON,CAT,TURBO,MOG,DEGEN,GOAT,SATS'.split(','),
+Infra:'LINK,RENDER,AR,AIOZ,FET,TAO,PYTH,ANKR,API3,NMR,WLD'.split(','),
+Stable:'USDT,USDC,EURC'.split(','),
+ETF_World:'LYP5,WELK,EBUY,XDWI,XDWT,79U0,IS3Q,EXI2,LGQK'.split(','),
+ETF_EM:'2B72,AMEL,LYMS,LEMA,AMEM'.split(','),
+ETF_Regional:'PRAJ,UBUD,LYP6,EXW1,DBXJ'.split(','),
+ETF_Bond:'IS3K'.split(','),
+};
+function getSector(sym){for(const[sec,list]of Object.entries(SECTORS))if(list.includes(sym))return sec;return'Autre';}
+
+// PRU & P&L calculation from transactions
+function computePRU(){
+const pruData={}; // {sym: {totalCost, totalQty, sells:[], fees, passive}}
+const allTx=[];
+// SwissBorg transactions
+sbTx.forEach(tx=>{
+const d=tx.Date?new Date(tx.Date):null;
+const ra=pn(tx['Amount received']),rs=(tx['Asset received']||'').trim();
+const sa=pn(tx['Amount sent']),ss=(tx['Asset sent']||'').trim();
+const fa=pn(tx['Fee']),fs=(tx['Asset of the fee']||'').trim();
+const priceR=pn(tx['USD price of asset received']),priceS=pn(tx['USD price of asset sent']);
+if(tx.Type==='Trade'&&ra&&rs&&!['EUR','USD'].includes(rs)){
+if(!pruData[rs])pruData[rs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
+pruData[rs].totalCost+=ra*priceR;pruData[rs].totalQty+=ra;}
+if(tx.Type==='Trade'&&sa&&ss&&!['EUR','USD'].includes(ss)){
+if(!pruData[ss])pruData[ss]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
+const pru=pruData[ss].totalQty>0?pruData[ss].totalCost/pruData[ss].totalQty:0;
+pruData[ss].sells.push({date:d,qty:sa,sellPrice:priceS,pru,pnl:(priceS-pru)*sa,src:'SB'});
+pruData[ss].totalQty-=sa;pruData[ss].totalCost=Math.max(0,pru*pruData[ss].totalQty);}
+if(fa&&fs&&!['EUR','USD'].includes(fs)){if(!pruData[fs])pruData[fs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};pruData[fs].fees+=fa*(pn(tx['USD price of fee asset'])||0);}
+if(tx.Type==='Deposit'&&tx.Description&&(tx.Description.includes('interest')||tx.Description.includes('reward')||tx.Description.includes('staking'))&&ra&&rs&&!['EUR','USD'].includes(rs)){
+if(!pruData[rs])pruData[rs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
+pruData[rs].passive+=ra*priceR;}
+});
+// Revolut Crypto
+rcTx.forEach(tx=>{
+const sym=(tx.Symbol||'').trim(),tp=(tx.Type||'').trim(),q=pn(tx.Quantity);
+const val=pn((tx.Value||'').replace(/[^0-9.,]/g,''))*eurUsd; // EUR to USD
+const fee=pn((tx.Fees||'').replace(/[^0-9.,]/g,''))*eurUsd;
+if(!sym||!q)return;
+if(!pruData[sym])pruData[sym]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
+if(tp==='Achat'){pruData[sym].totalCost+=val;pruData[sym].totalQty+=q;}
+else if(tp==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:val-pru*q,src:'RC'});pruData[sym].totalQty-=q;pruData[sym].totalCost=Math.max(0,pru*pruData[sym].totalQty);}
+if(fee)pruData[sym].fees+=fee;
+if(tp.includes('compense')){pruData[sym].passive+=val;pruData[sym].totalQty+=q;}
+});
+return pruData;
+}
+
+// Render Performance page
+function renderPerf(){
+const pru=computePRU();
+let totalUnreal=0,totalReal=0,totalPassive=0,totalFees=0;
+const rows=[];
+for(const[sym,d]of Object.entries(pru)){
+const qty=cryptoH[sym]||0;if(qty<=0.001)continue;
+const curPrice=prices[sym]?.p||0;
+const avgCost=d.totalQty>0?d.totalCost/d.totalQty:0;
+const costBasis=avgCost*qty;const curVal=curPrice*qty;
+const unrealPnl=curVal-costBasis;const unrealPct=costBasis>0?((curVal/costBasis)-1)*100:0;
+totalUnreal+=unrealPnl;
+rows.push({sym,avgCost,curPrice,qty,costBasis,curVal,unrealPnl,unrealPct,name:prices[sym]?.name||sym});
+}
+for(const d of Object.values(pru)){totalReal+=d.sells.reduce((s,x)=>s+x.pnl,0);totalPassive+=d.passive;totalFees+=d.fees;}
+document.getElementById('perfUnreal').innerHTML=`<span class="${chClass(totalUnreal)}">${fv(totalUnreal)}</span>`;
+document.getElementById('perfReal').innerHTML=`<span class="${chClass(totalReal)}">${fv(totalReal)}</span>`;
+document.getElementById('perfPassive').textContent=fv(totalPassive);
+document.getElementById('perfFees').textContent=fv(totalFees);
+rows.sort((a,b)=>b.curVal-a.curVal);
+document.getElementById('perfBody').innerHTML=rows.filter(r=>r.curVal>=5).map(r=>`<tr>
+<td><div class="asset-cell"><div class="asset-img">${r.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${r.name}</div><div class="sym">${r.sym}</div></div></div></td>
+<td class="mono">${fv(r.avgCost)}</td><td class="mono">${fv(r.curPrice)}</td><td class="mono">${fq(r.qty)}</td>
+<td class="mono">${fv(r.costBasis)}</td><td class="mono">${fv(r.curVal)}</td>
+<td class="mono ${chClass(r.unrealPnl)}">${fv(r.unrealPnl)}</td>
+<td class="mono ${chClass(r.unrealPct)}">${chText(r.unrealPct)}</td>
+</tr>`).join('');
+// Benchmark
+renderBench();
+}
+
+async function renderBench(){
+const items=allItems();const totUSD=items.reduce((s,i)=>s+i.usd,0);
+// Fetch BTC and S&P500 30d performance
+let btc30=0,sp30=0;
+try{const r=await fetch(`${CG}/coins/markets?vs_currency=usd&ids=bitcoin&sparkline=false&price_change_percentage=30d`);
+if(r.ok){const d=await r.json();btc30=d[0]?.price_change_percentage_30d_in_currency||0;}}catch(e){}
+// Our portfolio 30d change (from evolution data)
+let port30=0;
+if(pHist.length>=2){const cut=new Date();cut.setDate(cut.getDate()-30);const past=pHist.filter(p=>p.date>=cut);if(past.length){port30=((totUSD-past[0].v)/past[0].v)*100;}}
+document.getElementById('benchGrid').innerHTML=`
+<div class="bench-card"><div class="bench-name">Votre portefeuille (30j)</div><div class="bench-val ${chClass(port30)}">${chText(port30)}</div></div>
+<div class="bench-card"><div class="bench-name">Bitcoin (30j)</div><div class="bench-val ${chClass(btc30)}">${chText(btc30)}</div></div>
+<div class="bench-card"><div class="bench-name">Écart vs BTC</div><div class="bench-val ${chClass(port30-btc30)}">${chText(port30-btc30)}</div></div>
+`;
+}
+
+// Risk analysis
+function renderRisk(){
+const items=allItems().filter(i=>i.usd>=10);
+const tot=items.reduce((s,i)=>s+i.usd,0);
+if(!tot)return;
+// Concentration
+items.sort((a,b)=>b.usd-a.usd);
+const topPct=items[0]?(items[0].usd/tot*100):0;
+const over20=items.filter(i=>i.usd/tot>0.2).length;
+// Sectors
+const sectorMap={};
+items.forEach(i=>{const sec=getSector(i.sym);sectorMap[sec]=(sectorMap[sec]||0)+i.usd;});
+const nbSectors=Object.keys(sectorMap).filter(s=>sectorMap[s]/tot>0.02).length;
+// Risk score (0-100, lower=safer)
+let score=0;
+if(topPct>50)score+=30;else if(topPct>30)score+=20;else if(topPct>20)score+=10;
+if(over20>2)score+=15;
+const memeRatio=(sectorMap.Meme||0)/tot;if(memeRatio>0.3)score+=25;else if(memeRatio>0.1)score+=10;
+const cryptoRatio=items.filter(i=>i.type==='crypto').reduce((s,i)=>s+i.usd,0)/tot;
+if(cryptoRatio>0.8)score+=15;else if(cryptoRatio>0.5)score+=5;
+if(nbSectors<3)score+=10;
+score=Math.min(100,score);
+const riskLabel=score>70?'Élevé':score>40?'Modéré':'Faible';
+const riskColor=score>70?'var(--red)':score>40?'var(--orange)':'var(--green)';
+document.getElementById('riskScore').innerHTML=`<span style="color:${riskColor}">${score}/100 ${riskLabel}</span>`;
+document.getElementById('riskTop').textContent=`${items[0]?.sym||'--'} (${topPct.toFixed(1)}%)`;
+document.getElementById('riskConc').textContent=over20;
+document.getElementById('riskSectors').textContent=nbSectors;
+// Sector donut
+const cv=document.getElementById('sectorChart');cv.width=460;cv.height=340;const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);
+const cols=['#4f6ef7','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#f97316','#14b8a6','#6366f1'];
+const cx=cv.width/2,cy=cv.height/2,R=120,iR=R*0.45;
+const secs=Object.entries(sectorMap).sort((a,b)=>b[1]-a[1]);
+let sa=-Math.PI/2;
+secs.forEach(([sec,val],j)=>{const sl=(val/tot)*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,R,sa,sa+sl);ctx.arc(cx,cy,iR,sa+sl,sa,true);ctx.closePath();ctx.fillStyle=cols[j%cols.length];ctx.fill();
+const p=val/tot;if(p>=0.05){const mid=sa+sl/2,lr=(R+iR)/2;ctx.save();ctx.fillStyle='#fff';ctx.font='bold 10px Inter';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sec.replace('ETF_',''),cx+Math.cos(mid)*lr,cy+Math.sin(mid)*lr-4);ctx.font='9px "JetBrains Mono"';ctx.fillText((p*100).toFixed(0)+'%',cx+Math.cos(mid)*lr,cy+Math.sin(mid)*lr+9);ctx.restore();}sa+=sl;});
+document.getElementById('sectorLeg').innerHTML=secs.map(([sec,val],j)=>`<span><i style="background:${cols[j%cols.length]}"></i>${sec.replace('ETF_','')} ${fv(val)} (${(val/tot*100).toFixed(1)}%)</span>`).join('');
+// Concentration bar chart
+const cv2=document.getElementById('concChart');const c2=cv2.getContext('2d');c2.clearRect(0,0,cv2.width,cv2.height);
+const top10=items.slice(0,10);const p=40,w=cv2.width-p*2,h=cv2.height-p*2;
+const bw=w/top10.length*0.8,gp=w/top10.length*0.2;
+const gridC=isDark()?'#252a3a':'#e0e3ec';c2.strokeStyle=gridC;c2.lineWidth=0.5;
+// 20% threshold line
+const y20=p+h-(20/100)*h;c2.setLineDash([4,4]);c2.strokeStyle='var(--red)';c2.beginPath();c2.moveTo(p,y20);c2.lineTo(cv2.width-p,y20);c2.stroke();c2.setLineDash([]);
+c2.fillStyle=isDark()?'#f87171':'#ef4444';c2.font='10px "JetBrains Mono"';c2.textAlign='right';c2.fillText('20% seuil',cv2.width-p,y20-4);
+const lblC=isDark()?'#5f6580':'#9298b0';
+top10.forEach((item,i)=>{const pct=item.usd/tot*100;const x=p+i*(bw+gp)+gp/2;const bh=(pct/100)*h;const y=p+h-bh;
+c2.fillStyle=pct>20?'#ef4444':'#4f6ef7';c2.beginPath();c2.roundRect(x,y,bw,bh,[3,3,0,0]);c2.fill();
+c2.fillStyle=lblC;c2.font='8px "JetBrains Mono"';c2.textAlign='center';
+c2.fillText(item.sym.slice(0,5),x+bw/2,p+h+12);
+c2.fillText(pct.toFixed(1)+'%',x+bw/2,y-4);});
+}
+
+// Strategy
+function saveStrat(){localStorage.setItem('vault_strat',JSON.stringify({target:document.getElementById('objTarget').value,years:document.getElementById('objYears').value,monthly:document.getElementById('objMonthly').value}));renderObj();}
+function loadStrat(){try{const s=JSON.parse(localStorage.getItem('vault_strat')||'{}');if(s.target)document.getElementById('objTarget').value=s.target;if(s.years)document.getElementById('objYears').value=s.years;if(s.monthly)document.getElementById('objMonthly').value=s.monthly;}catch(e){}}
+function renderObj(){
+const target=parseFloat(document.getElementById('objTarget').value)||0;
+const years=parseFloat(document.getElementById('objYears').value)||5;
+const monthly=parseFloat(document.getElementById('objMonthly').value)||0;
+const el=document.getElementById('objResult');
+if(!target){el.innerHTML='Renseignez un objectif.';return;}
+const tot=allItems().reduce((s,i)=>s+i.usd,0);
+const gap=target-tot;
+if(gap<=0){el.innerHTML=`<span class="green">Objectif atteint ! Vous êtes à ${fv(tot)} pour un objectif de ${fv(target)}.</span>`;return;}
+const monthsLeft=years*12;
+const neededMonthly=monthly>0?null:gap/monthsLeft;
+const projectedWithMonthly=tot+monthly*monthsLeft;
+const growthNeeded=Math.pow(target/tot,1/years)-1;
+el.innerHTML=`Valeur actuelle : <strong>${fv(tot)}</strong> → Objectif : <strong>${fv(target)}</strong> en ${years} ans<br>
+Écart : <strong>${fv(gap)}</strong><br>
+${monthly>0?`Avec ${fv(monthly*eurUsd)}/mois sans rendement : <strong>${fv(projectedWithMonthly)}</strong> (${projectedWithMonthly>=target?'<span class="green">suffisant</span>':'<span class="red">insuffisant</span>'})`:''}
+${!monthly?`Apport mensuel nécessaire (sans rendement) : <strong>${fv(neededMonthly)}</strong>/mois`:''}
+<br>Croissance annuelle requise (sans apport) : <strong>${(growthNeeded*100).toFixed(1)}%</strong>`;
+}
+function updateAlloc(){
+const c=parseInt(document.getElementById('allocCrypto').value);
+document.getElementById('allocCryptoVal').textContent=c+'%';
+document.getElementById('allocETFVal').textContent=(100-c)+'%';
+document.getElementById('allocETF').value=100-c;
+const items=allItems();const tot=items.reduce((s,i)=>s+i.usd,0);
+const cryptoAct=items.filter(i=>i.type==='crypto').reduce((s,i)=>s+i.usd,0);
+const etfAct=items.filter(i=>i.type==='etf').reduce((s,i)=>s+i.usd,0);
+const cryptoPct=tot>0?(cryptoAct/tot*100):0;
+const etfPct=tot>0?(etfAct/tot*100):0;
+const el=document.getElementById('allocResult');
+const cryptoDiff=c-cryptoPct;const etfDiff=(100-c)-etfPct;
+el.innerHTML=`<strong>Actuel :</strong> Crypto ${cryptoPct.toFixed(1)}% / ETF ${etfPct.toFixed(1)}%<br>
+<strong>Cible :</strong> Crypto ${c}% / ETF ${100-c}%<br><br>
+${Math.abs(cryptoDiff)>5?`<span class="${chClass(cryptoDiff)}">${cryptoDiff>0?'Renforcer':'Réduire'} crypto de ${fv(Math.abs(cryptoDiff/100*tot))}</span><br>`:'Crypto bien équilibré.<br>'}
+${Math.abs(etfDiff)>5?`<span class="${chClass(etfDiff)}">${etfDiff>0?'Renforcer':'Réduire'} ETF de ${fv(Math.abs(etfDiff/100*tot))}</span>`:'ETF bien équilibré.'}`;
+}
+
+// Price Alerts
+function loadAlerts(){try{return JSON.parse(localStorage.getItem('vault_alerts')||'[]');}catch(e){return[];}}
+function saveAlerts(a){localStorage.setItem('vault_alerts',JSON.stringify(a));}
+function renderAlerts(){
+const alerts=loadAlerts();
+// Populate select
+const sel=document.getElementById('alertAsset');
+const existing=new Set([...sel.options].map(o=>o.value));
+Object.keys(cryptoH).filter(s=>cryptoH[s]>1e-7&&!existing.has(s)).sort().forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+// List
+document.getElementById('alertList').innerHTML=alerts.map((a,i)=>`<div class="alert-row"><span>${a.sym}: ${a.below?'< $'+a.below:''}${a.below&&a.above?' / ':''}${a.above?'> $'+a.above:''}</span><span class="alert-del" onclick="delAlert(${i})">✕</span></div>`).join('');
+// Check alerts on current prices
+const triggered=[];
+alerts.forEach(a=>{const p=prices[a.sym]?.p;if(!p)return;if(a.below&&p<a.below)triggered.push({sym:a.sym,msg:`${a.sym} est à $${p.toFixed(4)} (sous le seuil de $${a.below})`,type:'below'});if(a.above&&p>a.above)triggered.push({sym:a.sym,msg:`${a.sym} est à $${p.toFixed(4)} (au-dessus de $${a.above})`,type:'above'});});
+const banner=document.getElementById('alertsBanner');
+if(triggered.length){banner.style.display='block';banner.innerHTML=triggered.map(t=>`<div class="alert-item"><span class="alert-icon">⚠️</span>${t.msg}</div>`).join('');}else{banner.style.display='none';}
+}
+function addAlert(){const sym=document.getElementById('alertAsset').value;const below=parseFloat(document.getElementById('alertBelow').value)||0;const above=parseFloat(document.getElementById('alertAbove').value)||0;if(!sym||((!below)&&(!above)))return;const alerts=loadAlerts();alerts.push({sym,below:below||null,above:above||null});saveAlerts(alerts);document.getElementById('alertBelow').value='';document.getElementById('alertAbove').value='';renderAlerts();}
+function delAlert(i){const a=loadAlerts();a.splice(i,1);saveAlerts(a);renderAlerts();}
+
+// Fiscal
+function renderFiscal(){
+const pru=computePRU();
+let totalGains=0;const rows=[];
+for(const[sym,d]of Object.entries(pru)){
+d.sells.forEach(s=>{totalGains+=s.pnl;rows.push({...s,sym});});}
+rows.sort((a,b)=>(b.date||0)-(a.date||0));
+const taxDue=Math.max(0,totalGains*0.3);
+const items=allItems().filter(i=>i.usd>=10);
+const totalUnreal=items.reduce((s,i)=>{const d=pru[i.sym];if(!d||!d.totalQty)return s;return s+(i.usd-(d.totalCost/d.totalQty)*i.qty);},0);
+document.getElementById('taxGains').innerHTML=`<span class="${chClass(totalGains)}">${fv(totalGains)}</span>`;
+document.getElementById('taxDue').textContent=fv(taxDue);
+document.getElementById('taxUnreal').innerHTML=`<span class="${chClass(totalUnreal)}">${fv(totalUnreal)}</span>`;
+document.getElementById('taxCount').textContent=rows.length;
+document.getElementById('taxBody').innerHTML=rows.slice(0,100).map(r=>{
+const ds=r.date?r.date.toLocaleDateString('fr-FR'):'--';
+return`<tr><td>${ds}</td><td>${r.sym}</td><td class="mono">${fq(r.qty)}</td><td class="mono">${fv(r.sellPrice)}</td><td class="mono">${fv(r.pru)}</td><td class="mono ${chClass(r.pnl)}">${fv(r.pnl)}</td><td>${r.src}</td></tr>`;}).join('');
+}
+
+// Enhanced Holdings with PRU column
+const origRenderH=renderH;
+renderH=function(){
+const tb=document.getElementById('holdBody');const pruData=computePRU();
+let it=allItems().filter(i=>i.usd>=10);
+it.forEach(i=>{const d=pruData[i.sym];i.pru=d&&d.totalQty>0?d.totalCost/d.totalQty:0;i.pnlPct=i.pru>0?((prices[i.sym]?.p||0)/i.pru-1)*100:0;});
+it.sort((a,b)=>{let va,vb;switch(sort.col){case'name':return sort.dir==='asc'?a.sym.localeCompare(b.sym):b.sym.localeCompare(a.sym);case'pru':va=a.pru;vb=b.pru;break;case'pnl':va=a.pnlPct;vb=b.pnlPct;break;case'qty':va=a.qty;vb=b.qty;break;case'price':va=a.type==='etf'?(a.priceEUR||0)*eurUsd:(prices[a.sym]?.p||0);vb=b.type==='etf'?(b.priceEUR||0)*eurUsd:(prices[b.sym]?.p||0);break;case'value':va=a.usd;vb=b.usd;break;case'ch24':va=a.ch24;vb=b.ch24;break;case'ch7d':va=a.ch7d;vb=b.ch7d;break;default:va=a.usd;vb=b.usd;}return sort.dir==='asc'?(va||0)-(vb||0):(vb||0)-(va||0);});
+const tot=it.reduce((s,i)=>s+i.usd,0);
+if(!it.length){tb.innerHTML='<tr><td colspan="10" class="muted center">Aucune position ≥ 10$</td></tr>';return;}
+const sc={SwissBorg:'#22c55e',Revolut:'#3b82f6',Multi:'#8b5cf6',Robo:'#f97316'};
+tb.innerHTML=it.map(i=>{const al=tot>0?(i.usd/tot*100):0;const e=i.type==='etf';const pr=e?`€${(i.priceEUR||0).toFixed(2)}`:fv(prices[i.sym]?.p||0);
+const fc=(v,isE)=>isE?'<td class="muted">—</td>':`<td class="${chClass(v)}">${chText(v)}</td>`;
+const c=sc[i.src]||'#888';
+return`<tr>
+<td><div class="asset-cell"><div class="asset-img">${i.img?`<img src="${i.img}" onerror="this.parentElement.textContent='${i.sym.slice(0,2)}'">`:i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${e?i.sym:i.name}<span class="src-tag" style="background:${c}20;color:${c}">${i.src}</span></div><div class="sym">${e?i.name.substring(0,28):i.sym}</div></div></div></td>
+<td class="mono">${fq(i.qty)}</td><td class="mono">${pr}</td><td class="mono" style="font-weight:600">${fv(i.usd)}</td>
+<td class="mono">${i.pru>0?fv(i.pru):'—'}</td>
+${e?'<td class="muted">—</td>':`<td class="${chClass(i.pnlPct)}">${i.pru>0?chText(i.pnlPct):'—'}</td>`}
+${fc(i.ch24,e)}${fc(i.ch7d,e)}
+<td class="spark-cell">${sparkSVG(i.spark)}</td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+</tr>`;}).join('');
+};
+
+// Override go() to render new pages
+const origGo=go;
+go=function(p){origGo(p);if(p==='performance')renderPerf();if(p==='risk')renderRisk();if(p==='strategy'){loadStrat();renderObj();updateAlloc();renderAlerts();}if(p==='fiscal')renderFiscal();};
+
+// Patch init to check alerts after load
+const origInit=init;
+init=async function(){await origInit();renderAlerts();};
