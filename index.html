@@ -1,134 +1,135 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark" data-currency="eur">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VAULT — Portfolio Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
-    <header class="header">
-        <div class="header-left">
-            <div class="logo"><span class="logo-icon">◈</span><span class="logo-text">VAULT</span></div>
-            <span class="logo-sub">Portfolio Tracker</span>
-        </div>
-        <div class="header-right">
-            <div class="status-pill" id="statusPill"><span class="status-dot"></span><span class="status-text">Chargement...</span></div>
-            <button class="btn-refresh" onclick="refreshAll()" title="Rafraîchir">⟳</button>
-            <div class="last-update" id="lastUpdate">--</div>
-        </div>
-    </header>
-    <section class="summary-section">
-        <div class="total-value-card">
-            <div class="total-label">Valeur totale du portefeuille</div>
-            <div class="total-value" id="totalValue">--</div>
-            <div class="total-change" id="totalChange">--</div>
-            <div class="total-breakdown" id="breakdown"></div>
-        </div>
-        <div class="summary-grid">
-            <div class="summary-card"><div class="summary-card-label">Actifs ≥ 10$</div><div class="summary-card-value" id="assetCount">--</div></div>
-            <div class="summary-card"><div class="summary-card-label">Investi</div><div class="summary-card-value" id="totalInvested">--</div></div>
-            <div class="summary-card"><div class="summary-card-label">P&L Total</div><div class="summary-card-value" id="totalPnl">--</div></div>
-            <div class="summary-card"><div class="summary-card-label">Meilleur 24h</div><div class="summary-card-value" id="bestAsset">--</div></div>
-            <div class="summary-card"><div class="summary-card-label">Fear & Greed</div><div class="summary-card-value" id="fearGreed">--</div></div>
-        </div>
-    </section>
-    <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="holdings" onclick="switchTab('holdings')">💰 Holdings</button>
-        <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">📉 Évolution</button>
-        <button class="tab-btn" data-tab="market" onclick="switchTab('market')">📊 Marché</button>
-        <button class="tab-btn" data-tab="history" onclick="switchTab('history')">📜 Historique</button>
-        <button class="tab-btn" data-tab="analytics" onclick="switchTab('analytics')">📈 Analytiques</button>
-        <button class="tab-btn" data-tab="upload" onclick="switchTab('upload')">📤 Import CSV</button>
-    </nav>
-    <section class="tab-content active" id="tab-holdings">
-        <div class="holdings-header"><h2>Vos positions</h2></div>
-        <div class="holdings-table-wrap"><table class="holdings-table"><thead><tr>
-            <th data-col="name" onclick="sortTable('name')" class="sortable">Actif ⇅</th>
-            <th data-col="qty" onclick="sortTable('qty')" class="sortable">Qté ⇅</th>
-            <th data-col="price" onclick="sortTable('price')" class="sortable">Prix ⇅</th>
-            <th data-col="value" onclick="sortTable('value')" class="sortable sort-desc">Valeur ⇅</th>
-            <th data-col="change24h" onclick="sortTable('change24h')" class="sortable">24h ⇅</th>
-            <th data-col="change7d" onclick="sortTable('change7d')" class="sortable">7j ⇅</th>
-            <th data-col="change30d" onclick="sortTable('change30d')" class="sortable">30j ⇅</th>
-            <th data-col="change1y" onclick="sortTable('change1y')" class="sortable">1an ⇅</th>
-            <th data-col="alloc" onclick="sortTable('alloc')" class="sortable">Alloc ⇅</th>
-        </tr></thead><tbody id="holdingsBody"><tr><td colspan="9" class="loading-cell">Chargement...</td></tr></tbody></table></div>
-    </section>
-    <section class="tab-content" id="tab-evolution">
-        <div class="evolution-header"><h2>Évolution du portefeuille</h2><div class="evolution-status" id="evolutionStatus"></div></div>
-        <div class="period-selector">
-            <button class="period-btn active" data-period="7" onclick="selectPeriod(7)">7j</button>
-            <button class="period-btn" data-period="30" onclick="selectPeriod(30)">30j</button>
-            <button class="period-btn" data-period="90" onclick="selectPeriod(90)">3m</button>
-            <button class="period-btn" data-period="180" onclick="selectPeriod(180)">6m</button>
-            <button class="period-btn" data-period="365" onclick="selectPeriod(365)">1an</button>
-            <button class="period-btn" data-period="730" onclick="selectPeriod(730)">2ans</button>
-            <button class="period-btn" data-period="1095" onclick="selectPeriod(1095)">3ans</button>
-            <button class="period-btn" data-period="0" onclick="selectPeriod(0)">Max</button>
-        </div>
-        <div class="evolution-chart-wrap"><canvas id="evolutionChart" width="1100" height="400"></canvas></div>
-        <div class="evolution-stats" id="evolutionStats"></div>
-        <div class="evolution-note"><p>💡 La valeur est enregistrée dans Google Sheet à chaque visite (max 1x/4h). Plus vous visitez, plus le graphique se remplit.</p></div>
-    </section>
-    <section class="tab-content" id="tab-market">
-        <div class="market-header"><h2>Suivi du marché</h2><div class="market-search"><input type="text" id="marketSearch" placeholder="Rechercher..." oninput="filterMarket()"></div></div>
-        <div class="market-grid" id="marketGrid"><div class="loading-cell">Chargement...</div></div>
-    </section>
-    <section class="tab-content" id="tab-history">
-        <div class="history-header"><h2>Dernières transactions</h2>
-            <div class="history-filters">
-                <select id="historyType" onchange="renderHistory()"><option value="all">Toutes</option><option value="Trade">Trades</option><option value="Deposit">Dépôts</option></select>
-                <select id="historyAsset" onchange="renderHistory()"><option value="all">Tous les actifs</option></select>
-            </div>
-        </div>
-        <div class="history-list" id="historyList"><div class="loading-cell">Chargement...</div></div>
-    </section>
-    <section class="tab-content" id="tab-analytics">
-        <h2>Analytiques</h2>
-        <div class="analytics-grid">
-            <div class="chart-card"><h3>Répartition</h3><canvas id="allocationChart" width="500" height="400"></canvas></div>
-            <div class="chart-card"><h3>Activité</h3><canvas id="activityChart" width="400" height="300"></canvas></div>
-            <div class="chart-card full-width"><h3>Statistiques</h3><div class="stats-grid" id="statsGrid"></div></div>
-        </div>
-    </section>
-    <section class="tab-content" id="tab-upload">
-        <h2>Importer des transactions CSV</h2>
-        <p class="upload-desc">Importez vos fichiers CSV. Ils seront sauvegardés dans votre Google Sheet automatiquement.</p>
-        <div class="upload-grid">
-            <div class="upload-zone" id="dropNeverless">
-                <div class="upload-icon">💎</div>
-                <div class="upload-title">Neverless (SwissBorg)</div>
-                <div class="upload-hint">Type, Date, Amount received, Asset received, Amount sent, Asset sent...</div>
-                <input type="file" accept=".csv" id="fileNeverless" onchange="handleUpload('Neverless',this)" style="display:none">
-                <label for="fileNeverless" class="upload-btn">Choisir un fichier</label>
-                <div class="upload-status" id="statusNeverless"></div>
-            </div>
-            <div class="upload-zone" id="dropCrypto">
-                <div class="upload-icon">🪙</div>
-                <div class="upload-title">Revolut Crypto</div>
-                <div class="upload-hint">Symbol, Type, Quantity, Price, Value, Fees, Date</div>
-                <input type="file" accept=".csv" id="fileCrypto" onchange="handleUpload('Revolut_Crypto',this)" style="display:none">
-                <label for="fileCrypto" class="upload-btn">Choisir un fichier</label>
-                <div class="upload-status" id="statusCrypto"></div>
-            </div>
-            <div class="upload-zone" id="dropRobo">
-                <div class="upload-icon">📊</div>
-                <div class="upload-title">Revolut Robo-Advisor</div>
-                <div class="upload-hint">Date, Ticker, Type, Quantity, Price per share...</div>
-                <input type="file" accept=".csv" id="fileRobo" onchange="handleUpload('Revolut_Robo',this)" style="display:none">
-                <label for="fileRobo" class="upload-btn">Choisir un fichier</label>
-                <div class="upload-status" id="statusRobo"></div>
-            </div>
-        </div>
-    </section>
-    <footer class="footer">
-        <p>Données: <a href="https://www.coingecko.com/">CoinGecko</a> · <a href="https://alternative.me/crypto/fear-and-greed-index/">Fear & Greed</a></p>
-        <p>Sources: SwissBorg · Revolut Crypto · Revolut Robo-Advisor</p>
-    </footer>
+<!-- Password Gate -->
+<div id="gate" class="gate">
+<div class="gate-box">
+<div class="gate-logo">◈ VAULT</div>
+<p class="gate-sub">Entrez le mot de passe</p>
+<input type="password" id="gatePwd" placeholder="••••••••" autofocus>
+<button onclick="checkPwd()">Accéder</button>
+<p class="gate-err" id="gateErr"></p>
+</div>
+</div>
+
+<!-- App -->
+<div id="app" class="app" style="display:none">
+<aside class="sidebar" id="sidebar">
+<div class="sb-top">
+<div class="sb-logo" onclick="toggleSidebar()"><span class="sb-icon">◈</span><span class="sb-name">VAULT</span></div>
+<nav class="sb-nav">
+<a class="sb-link active" data-page="holdings" onclick="go('holdings')"><i class="sb-i">💰</i><span>Holdings</span></a>
+<a class="sb-link" data-page="evolution" onclick="go('evolution')"><i class="sb-i">📈</i><span>Évolution</span></a>
+<a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i">📊</i><span>Marché</span></a>
+<a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i">📜</i><span>Historique</span></a>
+<a class="sb-link" data-page="analytics" onclick="go('analytics')"><i class="sb-i">🧮</i><span>Analytiques</span></a>
+<a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i">📤</i><span>Import CSV</span></a>
+</nav>
+</div>
+<div class="sb-bottom">
+<div class="sb-toggles">
+<button class="sb-toggle" onclick="toggleCurrency()" id="btnCur" title="Devise">€</button>
+<button class="sb-toggle" onclick="toggleTheme()" id="btnTheme" title="Thème">🌙</button>
+</div>
+<div class="sb-collapse" onclick="toggleSidebar()" title="Replier">◀</div>
+</div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+<div class="topbar-status" id="status"><span class="dot"></span><span id="statusTxt">Chargement...</span></div>
+<div class="topbar-time" id="lastUpd">--</div>
+<button class="topbar-refresh" onclick="refreshAll()">↻</button>
+</header>
+
+<!-- Holdings -->
+<section class="page active" id="p-holdings">
+<div class="kpi-row">
+<div class="kpi"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
+<div class="kpi"><div class="kpi-label">Crypto / ETF</div><div class="kpi-val" id="kpiBreak">--</div></div>
+<div class="kpi"><div class="kpi-label">Investi</div><div class="kpi-val" id="kpiInv">--</div></div>
+<div class="kpi"><div class="kpi-label">P&L</div><div class="kpi-val" id="kpiPnl">--</div></div>
+<div class="kpi"><div class="kpi-label">Fear & Greed</div><div class="kpi-val" id="kpiFG">--</div></div>
+</div>
+<div class="table-wrap">
+<table class="htable" id="holdTable">
+<thead><tr>
+<th data-col="name" onclick="sortCol('name')">Actif</th>
+<th data-col="qty" onclick="sortCol('qty')">Qté</th>
+<th data-col="price" onclick="sortCol('price')">Prix</th>
+<th data-col="value" onclick="sortCol('value')" class="sorted desc">Valeur</th>
+<th data-col="ch24" onclick="sortCol('ch24')">24h</th>
+<th data-col="ch7d" onclick="sortCol('ch7d')">7j</th>
+<th data-col="ch30d" onclick="sortCol('ch30d')">30j</th>
+<th data-col="ch1y" onclick="sortCol('ch1y')">1an</th>
+<th>7j</th>
+<th data-col="alloc" onclick="sortCol('alloc')">Alloc</th>
+</tr></thead>
+<tbody id="holdBody"><tr><td colspan="10" class="muted center">Chargement...</td></tr></tbody>
+</table>
+</div>
+</section>
+
+<!-- Evolution -->
+<section class="page" id="p-evolution">
+<div class="page-head"><h2>Évolution du portefeuille</h2><span class="muted" id="evoStatus"></span></div>
+<div class="period-bar" id="periodBar">
+<button class="pbtn active" onclick="setPeriod(7)">7j</button>
+<button class="pbtn" onclick="setPeriod(30)">30j</button>
+<button class="pbtn" onclick="setPeriod(90)">3m</button>
+<button class="pbtn" onclick="setPeriod(180)">6m</button>
+<button class="pbtn" onclick="setPeriod(365)">1an</button>
+<button class="pbtn" onclick="setPeriod(730)">2ans</button>
+<button class="pbtn" onclick="setPeriod(0)">Max</button>
+</div>
+<div class="chart-box"><canvas id="evoChart" width="1000" height="360"></canvas></div>
+<div class="evo-stats" id="evoStats"></div>
+<p class="muted" style="margin-top:1rem;font-size:0.8rem">La valeur est enregistrée à chaque visite (max 1x/4h).</p>
+</section>
+
+<!-- Market -->
+<section class="page" id="p-market">
+<div class="page-head"><h2>Suivi du marché</h2><input type="text" id="mktSearch" placeholder="Rechercher..." oninput="filterMkt()"></div>
+<div class="mkt-grid" id="mktGrid"><p class="muted center">Chargement...</p></div>
+</section>
+
+<!-- History -->
+<section class="page" id="p-history">
+<div class="page-head"><h2>Historique</h2>
+<div class="hist-filters"><select id="hType" onchange="renderHist()"><option value="all">Toutes</option><option value="Trade">Trades</option><option value="Deposit">Dépôts</option></select><select id="hAsset" onchange="renderHist()"><option value="all">Tous</option></select></div>
+</div>
+<div class="hist-list" id="histList"><p class="muted center">Chargement...</p></div>
+</section>
+
+<!-- Analytics -->
+<section class="page" id="p-analytics">
+<div class="page-head"><h2>Analytiques</h2></div>
+<div class="ana-grid">
+<div class="ana-card"><h3>Répartition</h3><canvas id="donutChart" width="460" height="380"></canvas><div id="donutLeg" class="donut-leg"></div></div>
+<div class="ana-card"><h3>Activité mensuelle</h3><canvas id="actChart" width="400" height="280"></canvas></div>
+<div class="ana-card wide"><h3>Statistiques</h3><div class="stat-grid" id="statGrid"></div></div>
+</div>
+</section>
+
+<!-- Import -->
+<section class="page" id="p-import">
+<div class="page-head"><h2>Import CSV</h2></div>
+<p class="muted" style="margin-bottom:1.5rem">Importez vos fichiers. Ils s'enregistrent dans votre Google Sheet.</p>
+<div class="upload-row">
+<div class="upload-zone"><div class="uz-icon">💎</div><div class="uz-title">Neverless</div><div class="uz-hint">SwissBorg CSV export</div><input type="file" accept=".csv" id="fNev" onchange="doUpload('Neverless',this)" style="display:none"><label for="fNev" class="uz-btn">Choisir</label><div class="uz-status" id="sNev"></div></div>
+<div class="upload-zone"><div class="uz-icon">🪙</div><div class="uz-title">Revolut Crypto</div><div class="uz-hint">Symbol, Type, Quantity...</div><input type="file" accept=".csv" id="fRC" onchange="doUpload('Revolut_Crypto',this)" style="display:none"><label for="fRC" class="uz-btn">Choisir</label><div class="uz-status" id="sRC"></div></div>
+<div class="upload-zone"><div class="uz-icon">📊</div><div class="uz-title">Revolut Robo</div><div class="uz-hint">Date, Ticker, Type...</div><input type="file" accept=".csv" id="fRR" onchange="doUpload('Revolut_Robo',this)" style="display:none"><label for="fRR" class="uz-btn">Choisir</label><div class="uz-status" id="sRR"></div></div>
+</div>
+</section>
+</main>
 </div>
 <script src="app.js"></script>
 </body>
