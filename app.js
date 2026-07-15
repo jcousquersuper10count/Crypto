@@ -9,7 +9,7 @@ rc:[`https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Rev
 rr:[`https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Revolut_Robo`]};
 const CGM={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche-2',LINK:'chainlink',UNI:'uniswap',AAVE:'aave',RENDER:'render-token',FET:'artificial-superintelligence-alliance',ARB:'arbitrum',OP:'optimism',SUI:'sui',TAO:'bittensor',PEPE:'pepe',BONK:'bonk',FLOKI:'floki',JUP:'jupiter-exchange-solana',PYTH:'pyth-network',USDC:'usd-coin',USDT:'tether',GRASS:'grass',ENA:'ethena',TON:'the-open-network',VIRTUAL:'virtuals-protocol',PENDLE:'pendle',LTC:'litecoin',ATOM:'cosmos',MEW:'cat-in-a-dogs-world',DOT:'polkadot',VET:'vechain',PI:'pi-network',HBAR:'hedera-hashgraph',ALGO:'algorand',MNT:'mantle',WLD:'worldcoin-wld',JASMY:'jasmycoin',CORE:'coredaoorg',AIOZ:'aioz-network',CRO:'crypto-com-chain',ZKJ:'polyhedra-network',SEI:'sei-network',DEGEN:'degen-base',ANKR:'ankr',NMR:'numeraire',TURBO:'turbo',CKB:'nervos-network',RSR:'reserve-rights-token',POPCAT:'popcat',MOODENG:'moo-deng',ACT:'act-i-the-ai-prophecy',CAT:'simon-s-cat',SATS:'1000sats',STEEM:'steem',API3:'api3',MOG:'mog-coin',BABYDOGE:'baby-doge-coin',AR:'arweave',AERO:'aerodrome-finance',CAKE:'pancakeswap-token',BCH:'bitcoin-cash',XAU:'pax-gold',COMP:'compound-governance-token',POL:'polygon-ecosystem-token',LUNA:'terra-luna-2',NOT:'notcoin',S:'sonic-svm',W:'wormhole',CFX:'conflux-token',SUPER:'superfarm',L3:'layer3',ELON:'dogelon-mars',RECALL:'recall',GOAT:'goatseus-maximus',CTXC:'cortex',SAMO:'samoyedcoin'};
 const ETFY={WELK:'WELK.DE',XDWI:'XDWI.DE',EBUY:'EBUY.DE',AMEL:'AMEL.DE',LYMS:'LYMS.DE',LEMA:'LEMA.DE',PRAJ:'PRAJ.DE',LGQK:'LGQK.DE',LYP5:'LYP5.DE',LYP6:'LYP6.F','79U0':'MUSA.PA',EXW1:'EXW1.DE',EXI2:'EXI2.DE',IS3Q:'IS3Q.DE',IS3K:'IS3K.DE'};
-const ETFN={'2B72':'Amundi MSCI EM II',WELK:'Amundi MSCI World Climate',EBUY:'Amundi World Ex-EU',AMEL:'Amundi MSCI EM III',LYMS:'Amundi EM Asia',LEMA:'Amundi EM LatAm',XDWI:'Xtrackers World IT',PRAJ:'Amundi Prime Japan','79U0':'Amundi MSCI USA',LYP5:'Amundi MSCI World',UBUD:'UBS MSCI Japan',LYP6:'Amundi Stoxx EU600',LGQK:'L&G Quality Div'};
+const ETFN={'2B72':'Amundi MSCI EM II',WELK:'Amundi MSCI World Climate',EBUY:'Amundi World Ex-EU',AMEL:'Amundi MSCI EM III',LYMS:'Amundi EM Asia',LEMA:'Amundi EM LatAm',XDWI:'Xtrackers World IT',PRAJ:'Amundi Prime Japan','79U0':'Amundi MSCI USA',LYP5:'Amundi MSCI World',UBUD:'UBS MSCI Japan',LYP6:'Amundi Stoxx EU600',LGQK:'L&G Quality Div',EFRW:'Franklin FTSE Developed World',LYTR:'Amundi US Treasury Bond',LKOR:'Amundi EUR Corp Bond'};
 
 // State
 let sbTx=[],rcTx=[],rrTx=[],cryptoH={},etfH={},prices={},etfP={},mktData=[],pHist=[],fgData=null;
@@ -39,7 +39,7 @@ async function getCSV(urls,lbl){for(const u of urls){try{const r=await fetch(u);
 
 // Holdings
 function compSB(tx){const b={},F=new Set(['EUR','USD']);tx.forEach(t=>{const ra=pn(t['Amount received']),rs=t['Asset received']||'';const sa=pn(t['Amount sent']),ss=t['Asset sent']||'';const fa=pn(t['Fee']),fs=t['Asset of the fee']||'';if(ra&&rs&&!F.has(rs))b[rs]=(b[rs]||0)+ra;if(sa&&ss&&!F.has(ss))b[ss]=(b[ss]||0)-sa;if(fa&&fs&&!F.has(fs))b[fs]=(b[fs]||0)-fa;});return b;}
-function compRC(tx){const b={};tx.forEach(t=>{const s=(t.Symbol||'').trim(),tp=(t.Type||'').trim(),q=pn(t.Quantity);if(!s||!q)return;if(tp==='Achat'||tp.includes('compense'))b[s]=(b[s]||0)+q;else if(tp==='Vente'||tp==='Envoi')b[s]=(b[s]||0)-q;});return b;}
+function compRC(tx){const b={};tx.forEach(t=>{const s=(t.Symbol||'').trim(),tp=(t.Type||'').trim().replace(/\u00a0/g,' '),q=pn(t.Quantity);if(!s||!q)return;if(tp==='Achat'||tp.includes('compense')||tp.includes('Apprendre')||tp.includes('staking'))b[s]=(b[s]||0)+q;else if(tp==='Vente'||tp==='Envoi')b[s]=(b[s]||0)-q;});return b;}
 function compRR(tx){const b={};tx.forEach(t=>{const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),q=pn(t.Quantity);if(!tk||!q)return;if(tp.includes('BUY'))b[tk]=(b[tk]||0)+q;else if(tp.includes('SELL'))b[tk]=(b[tk]||0)-q;});return b;}
 function merge(){cryptoH={};[compSB(sbTx),compRC(rcTx)].forEach(b=>{for(const[s,q]of Object.entries(b))cryptoH[s]=(cryptoH[s]||0)+q;});for(const s of Object.keys(cryptoH))if(Math.abs(cryptoH[s])<1e-7)delete cryptoH[s];etfH={};for(const[t,q]of Object.entries(compRR(rrTx)))if(q>1e-4)etfH[t]=q;}
 function getSrc(s){const a=(compSB(sbTx)[s]||0)>1e-7,b=(compRC(rcTx)[s]||0)>1e-7;return a&&b?'Multi':b?'Revolut':'SwissBorg';}
@@ -125,7 +125,7 @@ function filterMkt(){const q=document.getElementById('mktSearch').value.toLowerC
 function renderHist(){const list=document.getElementById('histList');const tf=document.getElementById('hType').value,af=document.getElementById('hAsset').value;
 let all=[];
 sbTx.forEach(t=>{const d=t.Date?new Date(t.Date):null;all.push({date:d,type:t.Type||'',src:'SB',rq:pn(t['Amount received']),ra:t['Asset received']||'',sq:pn(t['Amount sent']),sa:t['Asset sent']||'',desc:t.Description||''});});
-rcTx.forEach(t=>{let d=null;try{const mo={janv:'Jan','févr':'Feb',mars:'Mar',avr:'Apr',mai:'May',juin:'Jun',juil:'Jul','août':'Aug',sept:'Sep',oct:'Oct',nov:'Nov','déc':'Dec'};let s=(t.Date||'');for(const[f,e]of Object.entries(mo))s=s.replace(f+'.',e).replace(f,e);d=new Date(s);if(isNaN(d))d=null;}catch(e){}const tp=(t.Type||'').trim(),sym=(t.Symbol||'').trim(),q=pn(t.Quantity);if(tp==='Achat')all.push({date:d,type:'Trade',src:'RC',rq:q,ra:sym,sq:0,sa:'',desc:'Achat'});else if(tp==='Vente')all.push({date:d,type:'Trade',src:'RC',rq:0,ra:'',sq:q,sa:sym,desc:'Vente'});else if(tp.includes('compense'))all.push({date:d,type:'Deposit',src:'RC',rq:q,ra:sym,sq:0,sa:'',desc:tp});else if(tp==='Envoi')all.push({date:d,type:'Trade',src:'RC',rq:0,ra:'',sq:q,sa:sym,desc:'Envoi'});});
+rcTx.forEach(t=>{let d=null;try{const mo={janv:'Jan','févr':'Feb',mars:'Mar',avr:'Apr',mai:'May',juin:'Jun',juil:'Jul','août':'Aug',sept:'Sep',oct:'Oct',nov:'Nov','déc':'Dec'};let s=(t.Date||'');for(const[f,e]of Object.entries(mo))s=s.replace(f+'.',e).replace(f,e);d=new Date(s);if(isNaN(d))d=null;}catch(e){}const tp=(t.Type||'').trim().replace(/\u00a0/g,' '),sym=(t.Symbol||'').trim(),q=pn(t.Quantity);if(tp==='Achat')all.push({date:d,type:'Trade',src:'RC',rq:q,ra:sym,sq:0,sa:'',desc:'Achat'});else if(tp==='Vente')all.push({date:d,type:'Trade',src:'RC',rq:0,ra:'',sq:q,sa:sym,desc:'Vente'});else if(tp.includes('compense')||tp.includes('Apprendre'))all.push({date:d,type:'Deposit',src:'RC',rq:q,ra:sym,sq:0,sa:'',desc:tp});else if(tp==='Envoi')all.push({date:d,type:'Trade',src:'RC',rq:0,ra:'',sq:q,sa:sym,desc:'Envoi'});});
 rrTx.forEach(t=>{const d=t.Date?new Date(t.Date):null;const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),q=pn(t.Quantity);if(!tk)return;if(tp.includes('BUY'))all.push({date:d,type:'Trade',src:'RR',rq:q,ra:tk,sq:0,sa:'',desc:'Achat ETF'});else if(tp.includes('SELL'))all.push({date:d,type:'Trade',src:'RR',rq:0,ra:'',sq:q,sa:tk,desc:'Vente ETF'});else if(tp.includes('DIVIDEND'))all.push({date:d,type:'Deposit',src:'RR',rq:0,ra:tk,sq:0,sa:'',desc:'Dividende'});});
 let f=all.filter(t=>t.date).sort((a,b)=>b.date-a.date);
 if(tf!=='all')f=f.filter(t=>t.type===tf);if(af!=='all')f=f.filter(t=>t.ra===af||t.sa===af);f=f.slice(0,200);
@@ -249,10 +249,12 @@ const val=pn((tx.Value||'').replace(/[^0-9.,]/g,''))*eurUsd; // EUR to USD
 const fee=pn((tx.Fees||'').replace(/[^0-9.,]/g,''))*eurUsd;
 if(!sym||!q)return;
 if(!pruData[sym])pruData[sym]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
-if(tp==='Achat'){pruData[sym].totalCost+=val;pruData[sym].totalQty+=q;}
-else if(tp==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:val-pru*q,src:'RC'});pruData[sym].totalQty-=q;pruData[sym].totalCost=Math.max(0,pru*pruData[sym].totalQty);}
+// Normalize type
+const tpClean=tp.replace(/\u00a0/g,' ');
+if(tpClean==='Achat'){pruData[sym].totalCost+=val;pruData[sym].totalQty+=q;}
+else if(tpClean==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:val-pru*q,src:'RC'});pruData[sym].totalQty-=q;pruData[sym].totalCost=Math.max(0,pru*pruData[sym].totalQty);}
 if(fee)pruData[sym].fees+=fee;
-if(tp.includes('compense')){pruData[sym].passive+=val;pruData[sym].totalQty+=q;}
+if(tpClean.includes('compense')||tpClean.includes('Apprendre')){pruData[sym].passive+=val;pruData[sym].totalQty+=q;}
 });
 return pruData;
 }
