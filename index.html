@@ -16,6 +16,9 @@
 <div class="sb-logo" onclick="toggleSidebar()"><span class="sb-icon">◈</span><span class="sb-name">VAULT</span></div>
 <nav class="sb-nav">
 <a class="sb-link active" data-page="holdings" onclick="go('holdings')"><i class="sb-i">💰</i><span>Holdings</span></a>
+<a class="sb-link" data-page="neverless" onclick="go('neverless')"><i class="sb-i">💎</i><span>Neverless</span></a>
+<a class="sb-link" data-page="revcrypto" onclick="go('revcrypto')"><i class="sb-i">🪙</i><span>Rev. Crypto</span></a>
+<a class="sb-link" data-page="revrobo" onclick="go('revrobo')"><i class="sb-i">📊</i><span>Rev. Robo</span></a>
 <a class="sb-link" data-page="performance" onclick="go('performance')"><i class="sb-i">📊</i><span>Performance</span></a>
 <a class="sb-link" data-page="risk" onclick="go('risk')"><i class="sb-i">🛡️</i><span>Risque</span></a>
 <a class="sb-link" data-page="strategy" onclick="go('strategy')"><i class="sb-i">🎯</i><span>Stratégie</span></a>
@@ -58,6 +61,24 @@
 <th>7j</th>
 <th data-col="alloc" onclick="sortCol('alloc')">Alloc</th>
 </tr></thead><tbody id="holdBody"><tr><td colspan="10" class="muted center">Chargement...</td></tr></tbody></table></div>
+</section>
+
+<!-- Neverless -->
+<section class="page" id="p-neverless">
+<div class="page-head"><h2>💎 Neverless (SwissBorg)</h2><div class="source-total" id="nevTotal">--</div></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>24h</th><th>7j</th><th>Alloc</th></tr></thead><tbody id="nevBody"></tbody></table></div>
+</section>
+
+<!-- Revolut Crypto -->
+<section class="page" id="p-revcrypto">
+<div class="page-head"><h2>🪙 Revolut Crypto</h2><div class="source-total" id="rcTotal">--</div></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>24h</th><th>7j</th><th>Alloc</th></tr></thead><tbody id="rcBody"></tbody></table></div>
+</section>
+
+<!-- Revolut Robo -->
+<section class="page" id="p-revrobo">
+<div class="page-head"><h2>📊 Revolut Robo-Advisor</h2><div class="source-total" id="rrTotal">--</div></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix (€)</th><th>Valeur (€)</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
 </section>
 
 <!-- Performance -->

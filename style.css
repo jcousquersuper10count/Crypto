@@ -207,3 +207,4 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);-webkit
 .bench-card .bench-val{font-size:1.3rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
 
 @media(max-width:900px){.strat-grid{grid-template-columns:1fr;}.kpi-row.small{grid-template-columns:repeat(2,1fr);}.bench-grid{grid-template-columns:1fr;}}
+.source-total{font-family:'JetBrains Mono',monospace;color:var(--accent);}

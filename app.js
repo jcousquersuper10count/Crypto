@@ -198,7 +198,7 @@ async function refreshAll(){const b=document.querySelector('.topbar-refresh');b.
 async function init(){restorePrefs();setS('Initialisation...');await Promise.all([fetchFG(),fetchEurUsd()]);
 const ok=await loadSheets();if(ok){await loadPrices();const it=allItems();const tot=it.reduce((s,i)=>s+i.usd,0);if(tot>0)logVal(tot,it.filter(i=>i.usd>=10).length);
 pHist=await fetchHist();if(pHist.length)document.getElementById('evoStatus').textContent=`${pHist.length} points · Depuis ${pHist[0].date.toLocaleDateString('fr-FR')}`;}
-setS('En direct',true);updTime();setInterval(async()=>{await loadPrices();updTime();},60000);}
+setS('En direct',true);updTime();}
 
 // ============================================================
 // PHASE 1-3: Performance, Risk, Strategy, Fiscal
@@ -464,7 +464,57 @@ ${fc(i.ch24,e)}${fc(i.ch7d,e)}
 
 // Override go() to render new pages
 const origGo=go;
-go=function(p){origGo(p);if(p==='performance')renderPerf();if(p==='risk')renderRisk();if(p==='strategy'){loadStrat();renderObj();updateAlloc();renderAlerts();}if(p==='fiscal')renderFiscal();};
+go=function(p){origGo(p);if(p==='performance')renderPerf();if(p==='risk')renderRisk();if(p==='strategy'){loadStrat();renderObj();updateAlloc();renderAlerts();}if(p==='fiscal')renderFiscal();if(p==='neverless')renderSource('nev');if(p==='revcrypto')renderSource('rc');if(p==='revrobo')renderSourceETF();};
+
+// Source-specific views
+function renderSource(src){
+const sbH=compSB(sbTx);const rcH=compRC(rcTx);
+const holdings=src==='nev'?sbH:rcH;
+const bodyId=src==='nev'?'nevBody':'rcBody';
+const totalId=src==='nev'?'nevTotal':'rcTotal';
+let items=[];
+for(const[sym,qty]of Object.entries(holdings)){
+if(qty<=0.0001)continue;
+const p=prices[sym]||{};const valUSD=qty*(p.p||0);
+items.push({sym,qty,priceUSD:p.p||0,valUSD,ch24:p.ch24||0,ch7d:p.ch7d||0,name:p.name||sym,img:p.img||''});
+}
+items.sort((a,b)=>b.valUSD-a.valUSD);
+const tot=items.reduce((s,i)=>s+i.valUSD,0);
+document.getElementById(totalId).innerHTML=`<span style="font-size:1.3rem;font-weight:700">${fv(tot)}</span>`;
+const tb=document.getElementById(bodyId);
+if(!items.length){tb.innerHTML='<tr><td colspan="7" class="muted center">Aucune position</td></tr>';return;}
+tb.innerHTML=items.filter(i=>i.valUSD>=0.5).map(i=>{
+const al=tot>0?(i.valUSD/tot*100):0;
+return`<tr>
+<td><div class="asset-cell"><div class="asset-img">${i.img?`<img src="${i.img}" onerror="this.parentElement.textContent='${i.sym.slice(0,2)}'">`:i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${i.name}</div><div class="sym">${i.sym}</div></div></div></td>
+<td class="mono">${fq(i.qty)}</td><td class="mono">${fv(i.priceUSD)}</td><td class="mono" style="font-weight:600">${fv(i.valUSD)}</td>
+<td class="${chClass(i.ch24)}">${chText(i.ch24)}</td><td class="${chClass(i.ch7d)}">${chText(i.ch7d)}</td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+</tr>`;}).join('');
+}
+
+function renderSourceETF(){
+const holdings=compRR(rrTx);
+let items=[];
+for(const[tk,qty]of Object.entries(holdings)){
+if(qty<=0.0001)continue;
+const e=etfP[tk]||{};
+const priceEUR=e.eur||0;
+const valEUR=qty*priceEUR;
+items.push({sym:tk,qty,priceEUR,valEUR,name:e.name||ETFN[tk]||tk});
+}
+items.sort((a,b)=>b.valEUR-a.valEUR);
+const tot=items.reduce((s,i)=>s+i.valEUR,0);
+document.getElementById('rrTotal').innerHTML=`<span style="font-size:1.3rem;font-weight:700">€${tot.toFixed(2)}</span>`;
+const tb=document.getElementById('rrBody');
+tb.innerHTML=items.map(i=>{
+const al=tot>0?(i.valEUR/tot*100):0;
+return`<tr>
+<td><div class="asset-cell"><div class="asset-img" style="background:rgba(249,115,22,0.1);color:#f97316;border-color:rgba(249,115,22,0.2)">${i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${i.sym}</div><div class="sym">${i.name}</div></div></div></td>
+<td class="mono">${fq(i.qty)}</td><td class="mono">€${i.priceEUR.toFixed(2)}</td><td class="mono" style="font-weight:600">€${i.valEUR.toFixed(2)}</td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+</tr>`;}).join('');}
+
 
 // Patch init to check alerts after load
 const origInit=init;
