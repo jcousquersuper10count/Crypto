@@ -65,3 +65,14 @@ Trouvez l'ID CoinGecko sur https://www.coingecko.com/ (dans l'URL de la crypto).
 - Les transactions sont rechargées à chaque visite ou rafraîchissement manuel
 - Aucune donnée sensible n'est exposée (pas de clé API côté client)
 - Vos clés privées ou mots de passe ne sont jamais nécessaires
+
+## Si l'import CSV ne met rien à jour
+
+L'import passe par le script Google Apps Script (constante `GAS` dans `app.js`). Il doit être déployé en application web accessible à **Tout le monde** :
+
+1. Ouvre la Google Sheet → **Extensions** → **Apps Script**.
+2. **Déployer** → **Gérer les déploiements** → crayon (modifier) sur le déploiement actif.
+3. *Exécuter en tant que* : **Moi** ; *Qui a accès* : **Tout le monde** → **Déployer** (autorise si Google le demande).
+4. Si l'URL du déploiement change, remplace la valeur de `GAS` dans `app.js`.
+
+Test : l'URL `…/exec` ouverte dans une fenêtre privée doit afficher du JSON, pas la page de connexion Google.

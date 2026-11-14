@@ -35,7 +35,7 @@ function go(p){document.querySelectorAll('.sb-link').forEach(l=>l.classList.togg
 function parseCSV(t){const ls=t.split('\n');if(ls.length<2)return[];const h=csvL(ls[0]);return ls.slice(1).filter(l=>l.trim()).map(l=>{const v=csvL(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;});}
 function csvL(l){const r=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){r.push(c);c='';}else c+=ch;}r.push(c);return r;}
 function pn(s){if(!s)return 0;s=s.replace(/["\u00a0€$ ]/g,'');if(/[eE][+-]/.test(s))return parseFloat(s.replace(',','.'))||0;if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');return parseFloat(s)||0;}
-async function getCSV(urls,lbl){for(const u of urls){try{const r=await fetch(u);if(!r.ok)continue;const t=await r.text();if(t.length>30&&!t.includes('<!DOCTYPE'))return t;}catch(e){}}return null;}
+async function getCSV(urls,lbl){for(const u of urls){try{const r=await fetch(u+(u.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store'});if(!r.ok)continue;const t=await r.text();if(t.length>30&&!t.includes('<!DOCTYPE'))return t;}catch(e){}}return null;}
 
 // Holdings
 function compSB(tx){const b={},F=new Set(['EUR','USD']);tx.forEach(t=>{const ra=pn(t['Amount received']),rs=t['Asset received']||'';const sa=pn(t['Amount sent']),ss=t['Asset sent']||'';const fa=pn(t['Fee']),fs=t['Asset of the fee']||'';if(ra&&rs&&!F.has(rs))b[rs]=(b[rs]||0)+ra;if(sa&&ss&&!F.has(ss))b[ss]=(b[ss]||0)-sa;if(fa&&fs&&!F.has(fs))b[fs]=(b[fs]||0)-fa;});return b;}
@@ -154,9 +154,14 @@ const lblC=isDark()?'#5f6580':'#9298b0';ms.forEach((m,i)=>{const x=p+i*(bw+gp)+g
 document.getElementById('statGrid').innerHTML=[{v:sbTx.filter(t=>t.Type==='Trade').length+rcTx.filter(t=>['Achat','Vente'].includes((t.Type||'').trim())).length,l:'Trades crypto'},{v:rrTx.filter(t=>(t.Type||'').includes('BUY')||(t.Type||'').includes('SELL')).length,l:'Trades ETF'},{v:Object.keys(cryptoH).filter(s=>cryptoH[s]>1e-7).length,l:'Cryptos'},{v:Object.keys(etfH).length,l:'ETFs'},{v:sbTx.length+rcTx.length+rrTx.length,l:'Opérations'}].map(s=>`<div class="stat-item"><div class="sv">${s.v.toLocaleString()}</div><div class="sl">${s.l}</div></div>`).join('');}
 
 // Upload
-async function doUpload(tab,input){const f=input.files[0];if(!f)return;const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];const el=document.getElementById(sid);el.textContent='⏳ Envoi...';el.style.color='var(--orange)';
-const text=await f.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));
-try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName:tab,csvData}),mode:'no-cors'});el.textContent=`✅ ${csvData.length} lignes envoyées`;el.style.color='var(--green)';setTimeout(()=>refreshAll(),3000);}catch(e){el.textContent='❌ '+e.message;el.style.color='var(--red)';}}
+async function gasReachable(){try{const r=await fetch(GAS+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();return !!j&&typeof j==='object';}catch(e){return false;}}
+function txSig(tab){const a={Neverless:sbTx,Revolut_Crypto:rcTx,Revolut_Robo:rrTx}[tab]||[];return a.length+'|'+JSON.stringify(a[a.length-1]||{});}
+async function doUpload(tab,input){const f=input.files[0];if(!f)return;const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];const el=document.getElementById(sid);const say=(t,c)=>{el.textContent=t;el.style.color=c;};say('⏳ Vérification du script Google…','var(--orange)');
+if(!await gasReachable()){say('❌ Non envoyé : le script Google demande une connexion. Redéploie-le avec l\'accès « Tout le monde » (voir README).','var(--red)');input.value='';return;}
+say('⏳ Envoi…','var(--orange)');const text=await f.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));const before=txSig(tab);
+try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName:tab,csvData}),mode:'no-cors'});}catch(e){say('❌ '+e.message,'var(--red)');input.value='';return;}
+say(`⏳ ${csvData.length} lignes envoyées, vérification dans la Google Sheet…`,'var(--orange)');let changed=false;for(let i=0;i<4&&!changed;i++){await sleep(3000);await loadSheets();changed=txSig(tab)!==before;}
+if(changed){say(`✅ ${csvData.length} lignes enregistrées`,'var(--green)');await refreshAll();}else say('⚠️ Envoyé, mais rien n\'a changé dans la Google Sheet. Si le fichier est identique à l\'ancien, c\'est normal ; sinon le script Google n\'a pas écrit les lignes.','var(--orange)');input.value='';}
 
 // Evolution
 async function logVal(v,n){try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n}),mode:'no-cors'});}catch(e){}}
