@@ -1,6 +1,6 @@
 // VAULT v4
 const SID='18VynzaZPeJTbdn4Hwxeslre1A8_H7_zdBQu9OWd7E_8',PID='2PACX-1vQHtSe6vE3WSfSsoW15kEaKv75UYpRGM0QJ26_MJlys7ML1NPid2b_Ys6jII04owAH9v4NfOelpVsAm';
-const GAS='https://script.google.com/macros/s/AKfycbwJbGQ9SqkQQ5nVhGU_vW5oDWbtb0uEJpaQVf0TtUy0gRRLBdSrJmymlRBhls7O4rot/exec';
+const GAS='https://script.google.com/macros/s/AKfycbzGLDquYM-0UENOKExiSd8Yb25Tyn7elzayP0RLHcdGsb7XP1LeOxvGqvk6a6GnZd-2/exec';
 const CG='https://api.coingecko.com/api/v3';
 const PWD_HASH='cbca90cb9b376770bdd907ce7f989ff150c621a69ccd1283015b0d21183ee86c';
 const SHEET_URLS={
