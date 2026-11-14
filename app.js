@@ -34,6 +34,8 @@ function go(p){document.querySelectorAll('.sb-link').forEach(l=>l.classList.togg
 // CSV
 function parseCSV(t){const ls=t.split('\n');if(ls.length<2)return[];const h=csvL(ls[0]);return ls.slice(1).filter(l=>l.trim()).map(l=>{const v=csvL(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;});}
 function csvL(l){const r=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){r.push(c);c='';}else c+=ch;}r.push(c);return r;}
+const FR_MON={janv:1,'févr':2,fevr:2,mars:3,avr:4,mai:5,juin:6,juil:7,'août':8,aout:8,sept:9,oct:10,nov:11,'déc':12,dec:12};
+function frDate(s){const m=/^(\d{1,2})\s+([a-zéèûô]+)\.?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/i.exec((s||'').trim());if(!m)return s;const mo=FR_MON[m[2].toLowerCase()];if(!mo)return s;const z=n=>String(n).padStart(2,'0');return `${m[3]}-${z(mo)}-${z(m[1])}T${z(m[4])}:${m[5]}:${m[6]||'00'}`;}
 function pn(s){if(!s)return 0;s=s.replace(/["\u00a0€$ ]/g,'');if(/[eE][+-]/.test(s))return parseFloat(s.replace(',','.'))||0;if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');return parseFloat(s)||0;}
 async function getCSV(urls,lbl){for(const u of urls){try{const r=await fetch(u+(u.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store'});if(!r.ok)continue;const t=await r.text();if(t.length>30&&!t.includes('<!DOCTYPE'))return t;}catch(e){}}return null;}
 
@@ -195,7 +197,7 @@ function setS(t,live){document.getElementById('statusTxt').textContent=t;documen
 function updTime(){document.getElementById('lastUpd').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
 
 // Loading
-async function loadSheets(){setS('Données...');const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb)sbTx=parseCSV(sb);const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc);const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);merge();popFilter();renderHist();return sbTx.length>0;}
+async function loadSheets(){setS('Données...');const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb)sbTx=parseCSV(sb);const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc).map(t=>(t.Date=frDate(t.Date),t));const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);merge();popFilter();renderHist();return sbTx.length>0;}
 async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);setS('ETF...');await fetchETF();renderH();renderSum();setS('En direct',true);}
 async function loadMkt(){setS('Marché...');mktData=await fetchMkt();renderMkt();setS('En direct',true);}
 async function refreshAll(){const b=document.querySelector('.topbar-refresh');b.classList.add('spin');await loadSheets();await loadPrices();if(mktData.length)await loadMkt();setS('En direct',true);updTime();b.classList.remove('spin');}
