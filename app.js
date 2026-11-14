@@ -198,7 +198,7 @@ function updTime(){document.getElementById('lastUpd').textContent=new Date().toL
 
 // Loading
 async function loadSheets(){setS('Données...');const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb)sbTx=parseCSV(sb);const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc).map(t=>(t.Date=frDate(t.Date),t));const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);merge();popFilter();renderHist();return sbTx.length>0;}
-async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);setS('ETF...');await fetchETF();renderH();renderSum();setS('En direct',true);}
+async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);setS('ETF...');await fetchETF();renderH();renderSum();const ap=document.querySelector('.page.active');if(ap&&ap.id==='p-neverless')renderSource('nev');else if(ap&&ap.id==='p-revcrypto')renderSource('rc');else if(ap&&ap.id==='p-revrobo')renderSourceETF();setS('En direct',true);}
 async function loadMkt(){setS('Marché...');mktData=await fetchMkt();renderMkt();setS('En direct',true);}
 async function refreshAll(){const b=document.querySelector('.topbar-refresh');b.classList.add('spin');await loadSheets();await loadPrices();if(mktData.length)await loadMkt();setS('En direct',true);updTime();b.classList.remove('spin');}
 
