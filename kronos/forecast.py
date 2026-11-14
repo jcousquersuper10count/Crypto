@@ -15,21 +15,10 @@ SMA_N = 50
 COST = 0.0025
 HORIZONS = [  # key, label, days, source, steps
     ("1j", "1 jour", 1, "daily", 1), ("5j", "5 jours", 5, "daily", 5), ("1s", "1 semaine", 7, "daily", 7),
-    ("1m", "1 mois", 30, "daily", 30), ("3m", "3 mois", 91, "weekly", 13), ("6m", "6 mois", 182, "weekly", 26),
-    ("9m", "9 mois", 273, "weekly", 39), ("1a", "1 an", 365, "weekly", 52),
+    ("1m", "1 mois", 30, "daily", 30), ("3m", "3 mois", 91, "history", 91), ("6m", "6 mois", 182, "history", 182),
+    ("9m", "9 mois", 273, "history", 273), ("1a", "1 an", 365, "history", 365),
 ]
 QS = [0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95]
-
-
-def weekly(df):
-    w = df.set_index("date").resample("W-SUN").agg({"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"})
-    w = w.dropna()
-    last_day = df["date"].iloc[-1]
-    if last_day.weekday() != 6:  # current week unfinished
-        w = w.iloc[:-1]
-    w = w.reset_index()
-    w["date"] = w["date"] - pd.Timedelta(days=6)  # label = week start (Monday)
-    return w
 
 
 def rsi(c, n=14):
@@ -78,21 +67,30 @@ def trend_block(df):
     }
 
 
-def quantiles(rel_paths, k=1.0):
-    """rel_paths: (samples,) relative to last close. Widen log-distance from the median by k."""
-    lg = np.log(np.maximum(rel_paths, 1e-9))
-    q = np.quantile(lg, QS)
-    med = q[3]
-    q = med + (q - med) * k
-    pup = float(((med + (lg - med) * k) > 0).mean())  # probability read from the widened spread
-    return {f"p{int(p * 100)}": float(np.exp(v)) for p, v in zip(QS, q)}, pup
+def spread(close, h, recent=730):
+    """How far this coin has moved over h days: past h-day log returns, centred on their median.
+    Short horizons use the last two years. When the history holds fewer than 4 independent
+    h-day stretches, the widest horizon that does is scaled by sqrt(time)."""
+    c_all = np.log(close.to_numpy())
+    for h0 in [h] + [x for x in (182, 91, 30) if x < h]:
+        if len(c_all) / h0 >= 4:
+            break
+    c = c_all[-(recent + h0):] if h0 <= 30 else c_all
+    r = c[h0:] - c[:-h0]
+    r = (r - np.median(r)) * np.sqrt(h / h0)
+    return r
+
+
+def dist(center, e):
+    """center: log median; e: demeaned past log returns -> quantiles (relative to today) and P(rise)."""
+    q = center + np.quantile(e, QS)
+    return {f"p{int(p * 100)}": float(np.exp(v)) for p, v in zip(QS, q)}, float(np.mean(center + e > 0))
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(HERE, "..", "data", "signals.json"))
     ap.add_argument("--samples", type=int, default=48)
-    ap.add_argument("--wsamples", type=int, default=32)
     ap.add_argument("--lookback", type=int, default=400)
     a = ap.parse_args()
 
@@ -112,39 +110,28 @@ def main():
         win = df.iloc[-lb:].reset_index(drop=True)
         fut = pd.date_range(last_date + pd.Timedelta(days=1), periods=30, freq="D")
         dp = sample_paths(tok, m, ctx, [win], [fut], 30, n_samples=a.samples, seed=1)[0] / last  # (S, 30)
-        # weekly paths
-        w = weekly(df)
-        wwin = w.iloc[-min(len(w), ctx):].reset_index(drop=True)
-        wfut = pd.date_range(wwin["date"].iloc[-1] + pd.Timedelta(days=7), periods=52, freq="7D")
-        # expressed relative to today's price (the last complete week may end a few days earlier)
-        wp = sample_paths(tok, m, ctx, [wwin], [wfut], 52, n_samples=a.wsamples, seed=2)[0] / last
+        # Kronos gives the central path (median of its scenarios) up to 30 days. Its own spread was far too
+        # narrow in the backtest, so the band comes from how far this coin has actually moved over the same
+        # duration. Beyond 30 days no view on direction: the centre stays at the 1-month median.
+        med = np.median(np.log(np.maximum(dp, 1e-9)), axis=0)  # (30,)
         cal = calib.get(sym, {})
         hz = []
         for key, label, days, src, steps in HORIZONS:
-            if src == "daily":
-                rel = dp[:, steps - 1]
-                k = cal.get(key, {}).get("k", 1.0)
-            else:
-                rel = wp[:, steps - 1]
-                k = cal.get("1m", {}).get("k", 1.0)  # untested: at least as wide as the tested 1-month band
-            q, pup = quantiles(rel, k)
-            hz.append({"key": key, "label": label, "days": days, "source": src, "k": k, "pup": pup, **q,
+            center = med[steps - 1] if src == "daily" else med[-1]
+            q, pup = dist(center, spread(df["close"], days))
+            hz.append({"key": key, "label": label, "days": days, "source": src, "pup": pup, **q,
                        "track": cal.get(key) if src == "daily" else None})
-        # fan for the chart: daily quantiles for 30 days, weekly beyond
         fan = []
-        for d in range(1, 31):
-            q, _ = quantiles(dp[:, d - 1], cal.get("1s" if d <= 7 else "1m", {}).get("k", 1.0))
+        for d in list(range(1, 31)) + list(range(35, 366, 7)):
+            q, _ = dist(med[d - 1] if d <= 30 else med[-1], spread(df["close"], d))
             fan.append([d, q["p10"], q["p25"], q["p50"], q["p75"], q["p90"]])
-        for s in range(5, 53):
-            q, _ = quantiles(wp[:, s - 1], cal.get("1m", {}).get("k", 1.0))
-            fan.append([s * 7, q["p10"], q["p25"], q["p50"], q["p75"], q["p90"]])
         hist = df.iloc[-730:]
         out["coins"][sym] = {
             "name": COINS[sym]["name"], "source": COINS[sym]["src"], "last_date": last_date.strftime("%Y-%m-%d"),
             "last": last, "history": [[d.strftime("%Y-%m-%d"), round(float(v), 8)] for d, v in zip(hist["date"], hist["close"])],
             "sma": [round(float(v), 8) if v == v else None for v in df["close"].rolling(SMA_N).mean().iloc[-730:]],
             "trend": trend_block(df), "horizons": hz, "fan": fan,
-            "weeks_of_history": int(len(w)),
+            "days_of_history": int(len(df)),
         }
         print(sym, "ok", f"{time.time() - t0:.0f}s", flush=True)
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)

@@ -120,7 +120,7 @@
 <div id="sgRoot">
 <div class="sg-cards" id="sgCards"></div>
 <div class="sg-detail">
-<div class="sg-panel"><h3 id="sgChartTitle">—</h3><div class="sub">Prix, moyenne 50 jours et cône de prévision de Kronos (50 % et 80 % des scénarios).</div>
+<div class="sg-panel"><h3 id="sgChartTitle">—</h3><div class="sub">Prix, moyenne 50 jours, scénario central de Kronos et amplitude habituelle des variations (50 % et 80 % des cas).</div>
 <div class="sg-tabs" role="tablist" id="sgTabs"></div>
 <canvas id="sgChart" aria-label="Historique des prix et prévision"></canvas>
 <div class="sg-legend"><span><i style="background:var(--fg)"></i>Prix</span><span><i style="background:var(--orange)"></i>Moyenne 50 j</span><span><i style="background:var(--accent)"></i>Scénario central</span><span><i class="band" style="background:var(--accent);opacity:.35"></i>50 % des cas</span><span><i class="band" style="background:var(--accent);opacity:.18"></i>80 % des cas</span></div>
@@ -132,8 +132,8 @@
 <div class="sg-panel"><h3>Signaux passés</h3><div class="sub">Chaque croisement de la moyenne 50 jours, et la variation du prix jusqu'au signal suivant. En vert : le signal avait vu juste (hausse après un achat, baisse après une vente).</div><ul class="sg-events" id="sgEvents"></ul></div>
 <div class="sg-panel sg-note"><h3>Comment lire cette page</h3>
 <p><b>Le signal</b> vient de la tendance : prix au-dessus de sa moyenne des 50 derniers jours = achat ou conservation, en dessous = vente ou attente. Sur l'historique de tes quatre cryptos, suivre cette règle a nettement limité les pertes par rapport à tout garder, mais elle rate souvent les retournements et fait des allers-retours quand le marché hésite.</p>
-<p><b>Kronos</b> donne pour chaque horizon un scénario central, une fourchette et une probabilité de hausse. Testé à environ 40 dates passées par crypto, il a deviné le sens du prix moins souvent que la « référence » (parier toujours sur le sens le plus fréquent) : sa fiabilité est affichée ligne par ligne. Ses fourchettes ont été élargies pour contenir réellement 8 cas sur 10. Il sert d'avis secondaire, pas de déclencheur.</p>
-<p><b>De 3 mois à 1 an</b>, Kronos travaille en semaines et ces horizons n'ont pas pu être testés.</p>
+<p><b>Kronos</b> donne pour chaque horizon un scénario central, une fourchette et une probabilité de hausse. Testé à environ 40 dates passées par crypto, il a deviné le sens du prix moins souvent que la « référence » (parier toujours sur le sens le plus fréquent) : sa fiabilité est affichée ligne par ligne. Il sert d'avis secondaire, pas de déclencheur.</p>
+<p><b>Les fourchettes</b> ne viennent pas de Kronos, dont les écarts étaient bien trop étroits : elles reprennent l'amplitude réelle des variations passées de chaque crypto sur la même durée. <b>Au-delà d'un mois</b>, aucune méthode testée ne prévoit le sens : le scénario central reste celui à 1 mois et seule l'amplitude s'élargit.</p>
 <div class="sg-warn">Outil d'aide à la réflexion, pas un conseil en investissement. Aucune règle ne protège d'un krach soudain ; ne place pas plus que ce que tu acceptes de perdre.</div></div>
 </div>
 </div>

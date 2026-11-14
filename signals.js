@@ -20,13 +20,15 @@
 
   /* ---------- logic ---------- */
   function verdict(c) {
+    // The signal is the trend rule only: it is the one with a measured record. Kronos is shown beside it.
     const t = c.trend, h = c.horizons.find(x => x.key === '1m');
     const k = h.pup >= 0.55 ? 'up' : h.pup <= 0.45 ? 'down' : 'flat';
-    const kTxt = k === 'up' ? 'Kronos haussier à 1 mois' : k === 'down' ? 'Kronos baissier à 1 mois' : 'Kronos neutre à 1 mois';
-    if (t.above && k !== 'down') return { c: 'buy', label: 'Achat', head: 'Tendance haussière', kTxt, agree: k === 'up' };
-    if (t.above) return { c: 'hold', label: 'Conserver', head: 'Tendance haussière, Kronos en désaccord', kTxt, agree: false };
-    if (k === 'up') return { c: 'wait', label: 'Attendre', head: 'Tendance baissière, Kronos en désaccord', kTxt, agree: false };
-    return { c: 'sell', label: 'Vente', head: 'Tendance baissière', kTxt, agree: k === 'down' };
+    const kWord = k === 'up' ? 'haussier' : k === 'down' ? 'baissier' : 'neutre';
+    const agree = (t.above && k === 'up') || (!t.above && k === 'down');
+    const kTxt = `${kWord} à 1 mois` + (k === 'flat' ? '' : agree ? ', d\'accord' : ', en désaccord');
+    return t.above
+      ? { c: 'buy', label: 'Achat', head: 'Tendance haussière : acheter ou garder', kTxt }
+      : { c: 'sell', label: 'Vente', head: 'Tendance baissière : vendre ou attendre', kTxt };
   }
   function reliability(h) {
     if (!h.track) return ['', 'Non testé'];
@@ -87,7 +89,7 @@
       <dl class="sg-kv">
         <dt>Dernier signal</dt><dd>${t.above ? 'achat' : 'vente'} le ${fdate(t.since)}</dd>
         <dt>Prix à ce moment</dt><dd>${eur(t.price_at_switch)} (${pct(c.last / t.price_at_switch - 1)})</dd>
-        <dt>Avis de Kronos</dt><dd>${esc(v.kTxt.replace('Kronos ', ''))}</dd>
+        <dt>Avis de Kronos</dt><dd>${esc(v.kTxt)}</dd>
         <dt>RSI 14 j</dt><dd>${Math.round(t.rsi)}</dd>
       </dl>
       <div class="sg-sep"></div>
@@ -118,7 +120,7 @@
     });
     // events
     $('sgEvents').innerHTML = t.events.slice().reverse().map(e => `<li><span>${fdate(e.date)}</span><span class="${e.type === 'achat' ? 't-buy' : 't-sell'}">${e.type}</span><span class="mono">${eur(e.price)}</span><span class="mv ${e.type === 'achat' ? cls(e.move_after) : cls(-e.move_after)}">${pct(e.move_after, 0)}${e.open ? ' (en cours)' : ''}</span></li>`).join('');
-    $('sgSource').textContent = `Prix : ${c.source}, convertis en euros. Dernière clôture le ${fdate(c.last_date)}.` + (c.weeks_of_history < 104 ? ` Historique court (${c.weeks_of_history} semaines) : les horizons longs sont très incertains.` : '');
+    $('sgSource').textContent = `Prix : ${c.source}, convertis en euros. Dernière clôture le ${fdate(c.last_date)}.` + (c.days_of_history < 730 ? ` Historique court (${c.days_of_history} jours) : les fourchettes longues reposent sur peu de données.` : '');
     drawChart();
   }
 
