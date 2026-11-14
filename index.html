@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="signals.css">
 </head>
 <body>
 <div id="gate" class="gate"><div class="gate-box"><div class="gate-logo">◈ VAULT</div><p class="gate-sub">Entrez le mot de passe</p><input type="password" id="gatePwd" placeholder="••••••••" autofocus><button onclick="checkPwd()">Accéder</button><p class="gate-err" id="gateErr"></p></div></div>
@@ -21,6 +22,7 @@
 <a class="sb-link" data-page="revrobo" onclick="go('revrobo')"><i class="sb-i">📊</i><span>Rev. Robo</span></a>
 <a class="sb-link" data-page="performance" onclick="go('performance')"><i class="sb-i">📊</i><span>Performance</span></a>
 <a class="sb-link" data-page="risk" onclick="go('risk')"><i class="sb-i">🛡️</i><span>Risque</span></a>
+<a class="sb-link" data-page="signals" onclick="go('signals')"><i class="sb-i">🔮</i><span>Signaux</span></a>
 <a class="sb-link" data-page="strategy" onclick="go('strategy')"><i class="sb-i">🎯</i><span>Stratégie</span></a>
 <a class="sb-link" data-page="evolution" onclick="go('evolution')"><i class="sb-i">📈</i><span>Évolution</span></a>
 <a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i">🌍</i><span>Marché</span></a>
@@ -112,6 +114,31 @@
 </section>
 
 <!-- Strategy -->
+<!-- Signaux (Kronos + tendance) -->
+<section class="page" id="p-signals">
+<div class="page-head"><div><h2>Signaux d'achat et de vente</h2><div class="sg-meta" id="sgMeta">Chargement…</div></div><button class="sb-toggle" type="button" onclick="reloadSignals()">Recharger</button></div>
+<div id="sgRoot">
+<div class="sg-cards" id="sgCards"></div>
+<div class="sg-detail">
+<div class="sg-panel"><h3 id="sgChartTitle">—</h3><div class="sub">Prix, moyenne 50 jours et cône de prévision de Kronos (50 % et 80 % des scénarios).</div>
+<div class="sg-tabs" role="tablist" id="sgTabs"></div>
+<canvas id="sgChart" aria-label="Historique des prix et prévision"></canvas>
+<div class="sg-legend"><span><i style="background:var(--fg)"></i>Prix</span><span><i style="background:var(--orange)"></i>Moyenne 50 j</span><span><i style="background:var(--accent)"></i>Scénario central</span><span><i class="band" style="background:var(--accent);opacity:.35"></i>50 % des cas</span><span><i class="band" style="background:var(--accent);opacity:.18"></i>80 % des cas</span></div>
+<p class="sg-meta" id="sgSource" style="margin-top:.5rem"></p></div>
+<div class="sg-panel sg-verdict" id="sgVerdict"></div>
+</div>
+<div class="table-wrap" style="margin-bottom:1rem"><table class="htable sg-tbl"><thead><tr><th>Horizon</th><th class="num">Scénario central</th><th class="num">Fourchette 80 %</th><th class="num">Proba. de hausse</th><th>Fiabilité mesurée</th></tr></thead><tbody id="sgTbody"></tbody></table></div>
+<div class="sg-detail">
+<div class="sg-panel"><h3>Signaux passés</h3><div class="sub">Chaque croisement de la moyenne 50 jours, et la variation du prix jusqu'au signal suivant. En vert : le signal avait vu juste (hausse après un achat, baisse après une vente).</div><ul class="sg-events" id="sgEvents"></ul></div>
+<div class="sg-panel sg-note"><h3>Comment lire cette page</h3>
+<p><b>Le signal</b> vient de la tendance : prix au-dessus de sa moyenne des 50 derniers jours = achat ou conservation, en dessous = vente ou attente. Sur l'historique de tes quatre cryptos, suivre cette règle a nettement limité les pertes par rapport à tout garder, mais elle rate souvent les retournements et fait des allers-retours quand le marché hésite.</p>
+<p><b>Kronos</b> donne pour chaque horizon un scénario central, une fourchette et une probabilité de hausse. Testé à environ 40 dates passées par crypto, il a deviné le sens du prix moins souvent que la « référence » (parier toujours sur le sens le plus fréquent) : sa fiabilité est affichée ligne par ligne. Ses fourchettes ont été élargies pour contenir réellement 8 cas sur 10. Il sert d'avis secondaire, pas de déclencheur.</p>
+<p><b>De 3 mois à 1 an</b>, Kronos travaille en semaines et ces horizons n'ont pas pu être testés.</p>
+<div class="sg-warn">Outil d'aide à la réflexion, pas un conseil en investissement. Aucune règle ne protège d'un krach soudain ; ne place pas plus que ce que tu acceptes de perdre.</div></div>
+</div>
+</div>
+</section>
+
 <section class="page" id="p-strategy">
 <div class="page-head"><h2>Stratégie</h2></div>
 <div class="strat-grid">
@@ -191,5 +218,6 @@
 </main>
 </div>
 <script src="app.js"></script>
+<script src="signals.js"></script>
 </body>
 </html>
