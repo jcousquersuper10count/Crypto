@@ -145,7 +145,7 @@
     const mL = 6, mR = 62, mT = 10, mB = 24;
     const X = t => mL + (t - xMin) / (xMax - xMin) * (W - mL - mR);
     const Y = p => mT + (hi - p) / (hi - lo) * (H - mT - mB);
-    g.font = "11px 'JetBrains Mono', monospace"; g.fillStyle = css('--fg3'); g.textBaseline = 'middle';
+    g.font = "11px 'Geist Mono', monospace"; g.fillStyle = css('--fg3'); g.textBaseline = 'middle';
     nice(lo, hi, 5).forEach(v => { const y = Y(v); g.strokeStyle = css('--border'); g.lineWidth = 1; g.beginPath(); g.moveTo(mL, y); g.lineTo(W - mR, y); g.stroke(); g.textAlign = 'left'; g.fillText(short(v), W - mR + 6, y); });
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     const span = xMax - xMin;
