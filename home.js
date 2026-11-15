@@ -38,6 +38,47 @@
     return m ? new Date(m) : null;
   }
 
+  function chips(now) {
+    const out = [];
+    const fg = ($('kpiFG') ? $('kpiFG').textContent : '').trim().match(/^(\d+)\s*(.*)$/);
+    if (fg) { const fr = { 'Extreme Fear': 'peur extrême', 'Fear': 'peur', 'Neutral': 'neutre', 'Greed': 'avidité', 'Extreme Greed': 'avidité extrême' }[fg[2].trim()] || fg[2].trim().toLowerCase(); out.push(`Humeur du marché crypto : <b>${esc(fg[1])}/100</b> ${esc(fr)}`); }
+    if (SIG) out.push(`Signaux du <b>${new Date(SIG.generated).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</b>`);
+    try { const d = Object.values(etfP).map(e => e.date).filter(Boolean).sort().pop(); if (d) out.push(`Cours ETF du <b>${new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</b>`); } catch (e) {}
+    $('hmChips').innerHTML = out.map((c, i) => `<span class="hm-chip" style="--i:${i}"><i></i><span>${c}</span></span>`).join('');
+  }
+  // Value of the current positions over the last 7 days (crypto: hourly prices; ETFs: daily closes)
+  function curve(items, tot) {
+    const N = 56, s = new Array(N).fill(0); let covered = 0;
+    const at = (arr, t) => { const x = t * (arr.length - 1), a = Math.floor(x), b = Math.min(arr.length - 1, a + 1); return arr[a] + (arr[b] - arr[a]) * (x - a); };
+    items.forEach(i => {
+      let sp = i.spark && i.spark.length > 1 ? i.spark : null, k = 1;
+      if (sp && i.type === 'etf') { sp = sp.slice(-6); k = eurUsd; }
+      const lastP = sp ? sp[sp.length - 1] * k : 0;
+      if (sp && lastP > 0) { covered += i.usd; for (let j = 0; j < N; j++) s[j] += i.usd * (at(sp, j / (N - 1)) * k) / lastP; }
+      else for (let j = 0; j < N; j++) s[j] += i.usd;
+    });
+    const el = $('hmCurve');
+    if (!(tot > 0) || covered / tot < 0.5) { el.innerHTML = ''; return; }
+    const lo = Math.min(...s), hi = Math.max(...s), W = 400, H = 110, pad = 8;
+    const X = j => j / (N - 1) * W, Y = v => pad + (hi - v) / ((hi - lo) || 1) * (H - 2 * pad);
+    const pts = s.map((v, j) => `${X(j).toFixed(1)},${Y(v).toFixed(1)}`);
+    const ch = s[N - 1] / s[0] - 1, col = ch >= 0 ? 'var(--green)' : 'var(--red)';
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Valeur de tes positions sur 7 jours"><defs><linearGradient id="hmG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+      <path class="ar" d="M0,${H} L${pts.join(' L')} L${W},${H} Z" fill="url(#hmG)"/><path class="ln" pathLength="1" d="M${pts.join(' L')}" stroke="${col}" vector-effect="non-scaling-stroke"/></svg>
+      <div class="hm-curve-cap"><span>il y a 7 jours · ${fv(s[0])}</span><span class="${chClass(ch)}">${chText(ch * 100)} sur 7 jours, à positions constantes</span></div>`;
+  }
+  function ring(items, tot) {
+    const g = [['Crypto', 'var(--accent)', 0], ['ETF', 'hsl(calc(var(--h) - 75) 75% 66%)', 0], ['Espèces', 'var(--fg3)', 0]];
+    items.forEach(i => { g[i.type === 'crypto' ? 0 : i.sym === 'Espèces' ? 2 : 1][2] += i.usd; });
+    const parts = g.filter(x => x[2] > 0.5); let off = 0;
+    const R = 40, svg = `<svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="${R}"/>` + parts.map(p => { const v = p[2] / tot * 100, c = `<circle cx="50" cy="50" r="${R}" pathLength="100" stroke="${p[1]}" stroke-dasharray="0 100" stroke-dashoffset="${-off}" data-v="${Math.max(0, v - 0.8).toFixed(2)}"/>`; off += v; return c; }).join('') + '</svg>';
+    const key = parts.map(p => Math.round(p[2])).join('|');
+    if ($('hmRing').dataset.k !== key) {
+      $('hmRing').dataset.k = key; $('hmRing').innerHTML = svg;
+      requestAnimationFrame(() => requestAnimationFrame(() => $('hmRing').querySelectorAll('circle[data-v]').forEach(c => c.setAttribute('stroke-dasharray', c.dataset.v + ' 100'))));
+    }
+    $('hmRingLeg').innerHTML = parts.map(p => `<div><i style="background:${p[1]}"></i><span>${p[0]}</span><b>${fv(p[2])}</b><small>${(p[2] / tot * 100).toFixed(0)} %</small></div>`).join('');
+  }
   function render() {
     if (!$('p-home')) return;
     const now = new Date();
@@ -55,6 +96,10 @@
     const ci = items.filter(i => i.type === 'crypto' && i.usd >= MIN_HELD), ct = ci.reduce((s, i) => s + i.usd, 0);
     if (ct > 0) { const w = ci.reduce((s, i) => s + i.ch24 * i.usd, 0) / ct; $('hmChg').innerHTML = `<span class="${chClass(w)}">${chText(w)} sur 24 h (crypto)</span><span class="muted">${stale}</span>`; }
     $('hmPnl').innerHTML = $('kpiPnl').innerHTML; $('hmInv').innerHTML = $('kpiInv').innerHTML;
+    const numOf = el => parseFloat(el.textContent.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    const pv = numOf($('kpiPnl')), iv = numOf($('kpiInv'));
+    $('hmPnlPct').innerHTML = iv > 0 && isFinite(pv) ? `<span class="${chClass(pv)}">${chText(pv / iv * 100)}</span> sur le total investi` : '';
+    chips(now); curve(items, tot); ring(items, tot);
 
     // positions
     const top = items.filter(i => i.usd >= MIN_HELD).sort((a, b) => b.usd - a.usd).slice(0, 6);
@@ -75,11 +120,11 @@
         const fresh = t.days <= 3 ? '<span class="new">Nouveau</span>' : '';
         const flip = fv(eurToUsd(t.sma));
         const val = has ? `${fv(h.usd)}<small>${(h.usd / tot * 100).toFixed(0)} % du total</small>` : '';
-        if (has && !t.above) todo.push({ w: h.usd, b: 'sell', l: 'Vendre', t: `Alléger ou vendre ${sym}${fresh}`, v: val, go: 'signals', sym,
+        if (has && !t.above) todo.push({ w: h.usd, b: 'sell', l: 'Vendre', t: `Alléger ou vendre ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
           d: `Sous sa moyenne 50 jours depuis <b>${t.days} j</b> (${pct(t.distance)}). Le signal repasse à l'achat si ${sym} clôture au-dessus de <b>${flip}</b>.` });
-        else if (has && t.above) watch.push({ b: 'keep', l: 'Garder', t: `Garder ${sym}${fresh}`, v: val, go: 'signals', sym,
+        else if (has && t.above) watch.push({ b: 'keep', l: 'Garder', t: `Garder ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
           d: `Au-dessus de sa moyenne 50 jours depuis ${t.days} j (${pct(t.distance)}). À vendre s'il clôture sous <b>${flip}</b>.` });
-        else if (!has && t.above) todo.push({ w: 0, b: 'buy', l: 'Achat', t: `Achat possible : ${sym}${fresh}`, go: 'signals', sym,
+        else if (!has && t.above) todo.push({ w: 0, b: 'buy', l: 'Achat', t: `Achat possible : ${sym}${fresh}`, go: 'signals', sym, dist: t.distance,
           d: `Repassé au-dessus de sa moyenne 50 jours depuis ${t.days} j (${pct(t.distance)}). Tu n'en détiens pas. Sortie prévue sous <b>${flip}</b>.` });
         else quiet.push(`<b>${esc(sym)}</b> : pas d'achat, tendance baissière (achat au-dessus de ${flip}).`);
       }
@@ -104,7 +149,8 @@
     } catch (e) {}
 
     todo.sort((a, b) => b.w - a.w);
-    let ci2 = 0; const card = a => `<button type="button" class="hm-act" style="--i:${3 + ci2++}" data-go="${a.go}" data-sym="${a.sym || ''}"><span class="hm-badge ${a.b}">${a.l}</span><span class="hm-act-t">${a.t}</span>${a.v ? `<span class="hm-act-v">${a.v}</span>` : ''}<span class="hm-act-d">${a.d}</span></button>`;
+    let ci2 = 0; const gauge = a => { if (a.dist == null) return ''; const x = 50 + Math.max(-30, Math.min(30, a.dist * 100)) / 30 * 50; return `<span class="hm-gauge" aria-hidden="true"><i class="mid"></i><i class="dot" style="left:${x.toFixed(1)}%;background:var(${a.dist >= 0 ? '--green' : '--red'})"></i></span><span class="hm-gauge-cap"><span>−30 %</span><span>moyenne 50 jours</span><span>+30 %</span></span>`; };
+    const card = a => `<button type="button" class="hm-act" style="--i:${3 + ci2++}" data-go="${a.go}" data-sym="${a.sym || ''}"><span class="hm-badge ${a.b}">${a.l}</span><span class="hm-act-t">${a.t}</span>${a.v ? `<span class="hm-act-v">${a.v}</span>` : ''}<span class="hm-act-d">${a.d}</span>${gauge(a)}</button>`;
     $('hmActions').innerHTML = todo.length ? todo.map(card).join('') : `<div class="hm-empty">${SIG ? 'Aucune action à envisager aujourd\'hui : les signaux ne demandent ni achat ni vente.' : 'Chargement des signaux…'}</div>`;
     $('hmWatch').innerHTML = watch.map(card).join(''); $('hmWatchH').hidden = !watch.length;
     $('hmQuiet').innerHTML = quiet.map(q => `<li>${q}</li>`).join(''); $('hmQuietH').hidden = !quiet.length;
@@ -130,6 +176,7 @@
   const prevGo = window.go;
   window.go = function (p) {
     prevGo(p);
+    document.documentElement.dataset.page = p;
     const grp = SEG.some(s => s[0] === p);
     if (grp) { paintSeg(p); document.querySelectorAll('.sb-link[data-page]').forEach(l => l.classList.toggle('active', l.dataset.page === 'holdings')); }
     const more = document.querySelector('.sb-more'); if (more && more.querySelector(`[data-page="${p}"]`)) more.open = true;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark" data-currency="eur">
+<html lang="fr" data-theme="dark" data-currency="eur" data-page="home">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -46,13 +46,17 @@
 <!-- Holdings -->
 <!-- Aujourd'hui -->
 <section class="page active" id="p-home">
-<div class="hm-hero"><div class="hm-glow" aria-hidden="true"></div>
-<div><div class="hm-date" id="hmDate"></div><h1 class="hm-title" id="hmTitle">Chargement de ton portefeuille…</h1><p class="hm-sub" id="hmSub"></p></div>
-<div class="hm-figs">
-<div class="hm-fig lead"><span class="hm-lbl">Valeur totale</span><span class="hm-val" id="hmTotal">--</span><span class="hm-chg" id="hmChg"></span></div>
-<div class="hm-fig"><span class="hm-lbl">Gain / perte</span><span class="hm-val sm" id="hmPnl">--</span></div>
-<div class="hm-fig"><span class="hm-lbl">Investi</span><span class="hm-val sm" id="hmInv">--</span></div>
+<div class="hm-hero"><div class="hm-glow" aria-hidden="true"></div><div class="hm-dots" aria-hidden="true"></div>
+<div class="hm-hero-l"><div class="hm-date" id="hmDate"></div><h1 class="hm-title" id="hmTitle">Chargement de ton portefeuille…</h1><p class="hm-sub" id="hmSub"></p><div class="hm-chips" id="hmChips"></div></div>
+<div class="hm-hero-r">
+<span class="hm-lbl">Valeur totale</span><span class="hm-val" id="hmTotal">--</span><span class="hm-chg" id="hmChg"></span>
+<div class="hm-curve" id="hmCurve"></div>
 </div>
+</div>
+<div class="hm-tiles">
+<div class="hm-tile"><span class="hm-lbl">Gain / perte</span><span class="hm-val sm" id="hmPnl">--</span><span class="hm-tsub" id="hmPnlPct"></span></div>
+<div class="hm-tile"><span class="hm-lbl">Investi</span><span class="hm-val sm" id="hmInv">--</span><span class="hm-tsub">versements cumulés</span></div>
+<div class="hm-tile wide"><div class="hm-ring" id="hmRing"></div><div class="hm-ringleg" id="hmRingLeg"></div></div>
 </div>
 <div class="hm-grid">
 <div class="hm-col">
