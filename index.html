@@ -113,7 +113,8 @@
 <section class="page" id="p-revrobo">
 <div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Revolut Robo-Advisor</h2><div class="source-total" id="rrTotal">--</div></div>
-<div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix (€)</th><th>Valeur (€)</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>PRU</th><th>P&L %</th><th>1 j</th><th>7 j</th><th>30 j</th><th>60 séances</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
+<p class="muted" id="rrNote" style="margin-top:0.7rem"></p>
 </section>
 
 <!-- Performance -->
@@ -155,8 +156,9 @@
 <div class="sg-detail">
 <div class="sg-panel"><h3 id="sgChartTitle">—</h3><div class="sub">Prix, moyenne 50 jours, scénario central de Kronos et amplitude habituelle des variations (50 % et 80 % des cas).</div>
 <div class="sg-tabs" role="tablist" id="sgTabs"></div>
-<canvas id="sgChart" aria-label="Historique des prix et prévision"></canvas>
-<div class="sg-legend"><span><i style="background:var(--fg)"></i>Prix</span><span><i style="background:var(--orange)"></i>Moyenne 50 j</span><span><i style="background:var(--accent)"></i>Scénario central</span><span><i class="band" style="background:var(--accent);opacity:.35"></i>50 % des cas</span><span><i class="band" style="background:var(--accent);opacity:.18"></i>80 % des cas</span></div>
+<div class="sg-chartwrap"><canvas id="sgChart" aria-label="Historique des prix et prévision"></canvas><div class="sg-tip" id="sgTip" hidden></div></div>
+<p class="sg-meta" id="sgTrades"></p>
+<div class="sg-legend"><span><i style="background:var(--fg)"></i>Prix</span><span><i style="background:var(--orange)"></i>Moyenne 50 j</span><span><i style="background:var(--accent)"></i>Scénario central</span><span><i class="dotl" style="background:var(--green)"></i>Tes achats</span><span><i class="dotl" style="background:var(--red)"></i>Tes ventes</span><span><i class="band" style="background:var(--accent);opacity:.35"></i>50 % des cas</span><span><i class="band" style="background:var(--accent);opacity:.18"></i>80 % des cas</span></div>
 <p class="sg-meta" id="sgSource" style="margin-top:.5rem"></p></div>
 <div class="sg-panel sg-verdict" id="sgVerdict"></div>
 </div>

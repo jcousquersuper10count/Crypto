@@ -124,6 +124,37 @@
     drawChart();
   }
 
+  /* ---------- the user's trades (Neverless + Revolut Crypto), summed per day ---------- */
+  let MARKS = [];
+  function trades(sym) {
+    const out = {}, num = v => parseFloat(String(v || '').replace(/\s/g, '').replace(',', '.')) || 0;
+    const add = (date, k, q) => { const d = new Date(date); if (isNaN(d) || !(q > 0)) return; const key = d.toISOString().slice(0, 10); (out[key] = out[key] || { buy: 0, sell: 0 })[k] += q; };
+    try {
+      (typeof sbTx !== 'undefined' ? sbTx : []).forEach(t => {
+        if (t.Type !== 'Trade') return;
+        if (t['Asset received'] === sym) add(t.Date, 'buy', num(t['Amount received']));
+        if (t['Asset sent'] === sym) add(t.Date, 'sell', num(t['Amount sent']));
+      });
+      (typeof rcTx !== 'undefined' ? rcTx : []).forEach(t => {
+        if ((t.Symbol || '').trim() !== sym) return;
+        const tp = (t.Type || '').trim();
+        if (tp === 'Achat') add(t.Date, 'buy', num(t.Quantity)); else if (tp === 'Vente') add(t.Date, 'sell', num(t.Quantity));
+      });
+    } catch (e) {}
+    return out;
+  }
+  function tipAt(ev) {
+    const cv = $('sgChart'), tip = $('sgTip'); if (!cv || !tip) return;
+    const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = null, bd = 14;
+    MARKS.forEach(m => { const d = Math.hypot(m.x - mx, m.y - my); if (d < bd) { bd = d; best = m; } });
+    if (!best) { tip.hidden = true; return; }
+    tip.innerHTML = `<b class="${best.k === 'buy' ? 'green' : 'red'}">${best.k === 'buy' ? 'Achat' : 'Vente'}</b> · ${fdate(best.date)}<br>${best.q.toLocaleString('fr-FR', { maximumFractionDigits: 4 })} ${esc(S.coin)} · cours du jour ${eur(best.price)}`;
+    tip.style.left = Math.min(Math.max(best.x, 90), cv.clientWidth - 90) + 'px'; tip.style.top = best.y + 'px'; tip.hidden = false;
+  }
+  document.addEventListener('pointermove', ev => { if (ev.target && ev.target.id === 'sgChart') tipAt(ev); else { const t = $('sgTip'); if (t && !t.hidden) t.hidden = true; } });
+  document.addEventListener('pointerdown', ev => { if (ev.target && ev.target.id === 'sgChart') tipAt(ev); });
+
   /* ---------- chart ---------- */
   function drawChart() {
     const c = S.data.coins[S.coin], h = c.horizons.find(x => x.key === S.hz);
@@ -171,6 +202,27 @@
     // price
     g.strokeStyle = css('--fg'); g.lineWidth = 1.6; g.lineJoin = 'round'; g.beginPath();
     hist.forEach((p, i) => { const x = X(tOf(p[0])), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+    // the user's own buys and sells, one dot per day, placed on that day's close
+    MARKS = [];
+    const byDay = trades(S.coin), first = hist[0][0];
+    let nb = 0, ns = 0;
+    hist.forEach(p => {
+      const d = byDay[p[0]]; if (!d) return;
+      [['buy', d.buy], ['sell', d.sell]].forEach(([k, q]) => {
+        if (!(q > 0)) return;
+        const x = X(tOf(p[0])), y = Y(p[1]);
+        k === 'buy' ? nb++ : ns++;
+        MARKS.push({ x, y, k, q, date: p[0], price: p[1] });
+      });
+    });
+    // many trading days (daily purchases): smaller dots so the curve stays readable
+    const mr = MARKS.length > 120 ? 2.2 : MARKS.length > 40 ? 3.2 : 5;
+    MARKS.forEach(m => {
+      g.beginPath(); g.arc(m.x, m.y, mr, 0, 7); g.fillStyle = css(m.k === 'buy' ? '--green' : '--red'); g.fill();
+      if (mr >= 5) { g.lineWidth = 2; g.strokeStyle = css('--bg2'); g.stroke(); }
+    });
+    const tr = $('sgTrades');
+    if (tr) tr.textContent = nb + ns ? `Sur la période affichée (depuis le ${fdate(first)}) : ${nb} jour${nb > 1 ? 's' : ''} d'achat, ${ns} jour${ns > 1 ? 's' : ''} de vente. Survole un point pour le détail.` : `Aucun achat ni vente de ${S.coin} sur la période affichée (depuis le ${fdate(first)}).`;
     // median
     g.strokeStyle = accent; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(x0, Y(c.last));
     fan.forEach(f => g.lineTo(X(f[0]), Y(c.last * f[3]))); g.stroke(); g.setLineDash([]);

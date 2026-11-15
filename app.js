@@ -51,8 +51,13 @@ async function fetchEurUsd(){try{const r=await fetch(`${CG}/simple/price?ids=tet
 async function fetchPrices(a){const ids=[],m={};a.forEach(s=>{const id=CGM[s];if(id){ids.push(id);m[id]=s;}});if(!ids.length)return{};const pd={};for(let i=0;i<ids.length;i+=50){try{const r=await fetch(`${CG}/coins/markets?vs_currency=usd&ids=${ids.slice(i,i+50).join(',')}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d,30d,1y`);if(r.ok)(await r.json()).forEach(c=>{const s=m[c.id];if(s)pd[s]={p:c.current_price||0,ch24:c.price_change_percentage_24h||0,ch7d:c.price_change_percentage_7d_in_currency||0,ch30d:c.price_change_percentage_30d_in_currency||0,ch1y:c.price_change_percentage_1y_in_currency||0,mc:c.market_cap||0,img:c.image||'',name:c.name||s,rank:c.market_cap_rank||999,ath:c.ath||0,athD:c.ath_date||'',spark:c.sparkline_in_7d?.price||[]};});if(i+50<ids.length)await sleep(1500);}catch(e){}}return pd;}
 // Dernier prix connu par ETF, ajusté des divisions d'actions (STOCK SPLIT)
 function lastETFPrices(){const lp={},b={};rrTx.forEach(t=>{const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),q=pn(t.Quantity),p=pn((t['Price per share']||'').replace('EUR',''));if(!tk)return;if(tp.includes('SPLIT')&&q&&b[tk]>0){const r=(b[tk]+q)/b[tk];if(lp[tk])lp[tk]/=r;b[tk]+=q;return;}if(p>0)lp[tk]=p;if(tp.includes('BUY'))b[tk]=(b[tk]||0)+q;else if(tp.includes('SELL'))b[tk]=(b[tk]||0)-q;});return lp;}
-async function fetchETF(){const lp=lastETFPrices();const out={};
-await Promise.all(Object.keys(etfH).map(async tk=>{out[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};const y=ETFY[tk];if(!y)return;try{const ctrl=new AbortController();const tm=setTimeout(()=>ctrl.abort(),6000);const r=await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${y}?interval=1d&range=5d`)}`,{signal:ctrl.signal});clearTimeout(tm);if(r.ok){const d=await r.json();const p=d?.chart?.result?.[0]?.meta?.regularMarketPrice;if(p)out[tk]={eur:p,name:ETFN[tk]||tk,live:true};}}catch(e){}}));etfP=out;}
+async function fetchETF(){const lp=lastETFPrices();const out={};let j=null;try{const r=await fetch('data/etf.json?t='+Date.now());if(r.ok)j=await r.json();}catch(e){}
+for(const tk of Object.keys(etfH)){out[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};const q=j&&j.etfs&&j.etfs[tk];
+// cotation refusée si elle s'écarte trop du dernier prix payé (mauvais symbole, division non prise en compte)
+if(q&&q.price>0&&(!lp[tk]||Math.abs(q.price/lp[tk]-1)<0.4))out[tk]={eur:q.price,name:q.name||ETFN[tk]||tk,ch24:(q.ch1d||0)*100,ch7d:q.ch7d==null?null:q.ch7d*100,ch30d:q.ch30d==null?null:q.ch30d*100,ch1y:q.ch1y==null?null:q.ch1y*100,spark:q.spark||[],date:q.date,live:true};}
+etfP=out;}
+// Prix de revient moyen par ETF, en euros (achats, ventes, divisions d'actions)
+function etfPRU(){const q={},c={};rrTx.forEach(t=>{const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),n=pn(t.Quantity),p=pn((t['Price per share']||'').replace('EUR',''));if(!tk||!n)return;if(tp.includes('SPLIT'))q[tk]=(q[tk]||0)+n;else if(tp.includes('BUY')){q[tk]=(q[tk]||0)+n;c[tk]=(c[tk]||0)+n*p;}else if(tp.includes('SELL')&&q[tk]>0){const f=Math.min(1,n/q[tk]);c[tk]=(c[tk]||0)*(1-f);q[tk]-=n;}});const o={};for(const k in q)if(q[k]>1e-6&&c[k]>0)o[k]=c[k]/q[k];return o;}
 async function fetchMkt(){try{const r=await fetch(`${CG}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d,1y`);if(!r.ok)return[];const d=await r.json();const has=new Set(d.map(c=>c.id));const ex=[...new Set(Object.keys(cryptoH).filter(s=>cryptoH[s]>1e-7).map(s=>CGM[s]).filter(id=>id&&!has.has(id)))];if(!has.has('grass'))ex.push('grass');if(ex.length){await sleep(1200);try{const r2=await fetch(`${CG}/coins/markets?vs_currency=usd&ids=${ex.join(',')}&sparkline=false&price_change_percentage=24h,7d,30d,1y`);if(r2.ok)d.push(...await r2.json());}catch(e){}}return d;}catch(e){return[];}}
 async function fetchFG(){try{const r=await fetch('https://api.alternative.me/fng/?limit=1');if(r.ok){const d=await r.json();if(d.data?.[0])fgData={v:parseInt(d.data[0].value),l:d.data[0].value_classification};}}catch(e){}}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -70,7 +75,7 @@ function sparkSVG(data,w=80,h=28){if(!data||data.length<2)return'';const mn=Math
 
 // All items
 function allItems(){const it=[];for(const[s,q]of Object.entries(cryptoH)){if(q<=1e-7)continue;const p=prices[s]||{};it.push({sym:s,qty:q,usd:q*(p.p||0),ch24:p.ch24||0,ch7d:p.ch7d||0,ch30d:p.ch30d||0,ch1y:p.ch1y||0,img:p.img||'',name:p.name||s,type:'crypto',src:getSrc(s),spark:p.spark||[]});}
-for(const[tk,q]of Object.entries(etfH)){const e=etfP[tk]||{};it.push({sym:tk,qty:q,usd:q*(e.eur||0)*eurUsd,eur:q*(e.eur||0),priceEUR:e.eur||0,ch24:0,ch7d:0,ch30d:0,ch1y:0,img:'',name:e.name||ETFN[tk]||tk,type:'etf',src:'Robo',spark:[]});}
+for(const[tk,q]of Object.entries(etfH)){const e=etfP[tk]||{};it.push({sym:tk,qty:q,usd:q*(e.eur||0)*eurUsd,eur:q*(e.eur||0),priceEUR:e.eur||0,ch24:e.ch24||0,ch7d:e.ch7d||0,ch30d:e.ch30d||0,ch1y:e.ch1y||0,live:!!e.live,img:'',name:e.name||ETFN[tk]||tk,type:'etf',src:'Robo',spark:e.spark||[]});}
 return it;}
 
 // Render Holdings
@@ -454,19 +459,20 @@ renderH=function(){
 const tb=document.getElementById('holdBody');const pruData=computePRU();
 let it=allItems().filter(i=>i.usd>=10);
 it.forEach(i=>{const d=pruData[i.sym];i.pru=d&&d.totalQty>0?d.totalCost/d.totalQty:0;i.pnlPct=i.pru>0?((prices[i.sym]?.p||0)/i.pru-1)*100:0;});
+const ep=etfPRU();it.forEach(i=>{if(i.type!=='etf')return;const c=ep[i.sym];i.pru=c?c*eurUsd:0;i.pnlPct=c?((i.priceEUR||0)/c-1)*100:0;});
 it.sort((a,b)=>{let va,vb;switch(sort.col){case'name':return sort.dir==='asc'?a.sym.localeCompare(b.sym):b.sym.localeCompare(a.sym);case'pru':va=a.pru;vb=b.pru;break;case'pnl':va=a.pnlPct;vb=b.pnlPct;break;case'qty':va=a.qty;vb=b.qty;break;case'price':va=a.type==='etf'?(a.priceEUR||0)*eurUsd:(prices[a.sym]?.p||0);vb=b.type==='etf'?(b.priceEUR||0)*eurUsd:(prices[b.sym]?.p||0);break;case'value':va=a.usd;vb=b.usd;break;case'ch24':va=a.ch24;vb=b.ch24;break;case'ch7d':va=a.ch7d;vb=b.ch7d;break;default:va=a.usd;vb=b.usd;}return sort.dir==='asc'?(va||0)-(vb||0):(vb||0)-(va||0);});
 const tot=it.reduce((s,i)=>s+i.usd,0);
 if(!it.length){tb.innerHTML='<tr><td colspan="10" class="muted center">Aucune position ≥ 10$</td></tr>';return;}
 const sc={SwissBorg:'#22c55e',Revolut:'#3b82f6',Multi:'#8b5cf6',Robo:'#f97316'};
-tb.innerHTML=it.map(i=>{const al=tot>0?(i.usd/tot*100):0;const e=i.type==='etf';const pr=e?`€${(i.priceEUR||0).toFixed(2)}`:fv(prices[i.sym]?.p||0);
+tb.innerHTML=it.map(i=>{const al=tot>0?(i.usd/tot*100):0;const e=i.type==='etf';const pr=e?fv((i.priceEUR||0)*eurUsd):fv(prices[i.sym]?.p||0);
 const fc=(v,isE)=>isE?'<td class="muted">—</td>':`<td class="${chClass(v)}">${chText(v)}</td>`;
 const c=sc[i.src]||'#888';
 return`<tr>
 <td><div class="asset-cell"><div class="asset-img">${i.img?`<img src="${i.img}" onerror="this.parentElement.textContent='${i.sym.slice(0,2)}'">`:i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${e?i.sym:i.name}<span class="src-tag" style="background:${c}20;color:${c}">${i.src}</span></div><div class="sym">${e?i.name.substring(0,28):i.sym}</div></div></div></td>
 <td class="mono">${fq(i.qty)}</td><td class="mono">${pr}</td><td class="mono" style="font-weight:600">${fv(i.usd)}</td>
 <td class="mono">${i.pru>0?fv(i.pru):'—'}</td>
-${e?'<td class="muted">—</td>':`<td class="${chClass(i.pnlPct)}">${i.pru>0?chText(i.pnlPct):'—'}</td>`}
-${fc(i.ch24,e)}${fc(i.ch7d,e)}
+<td class="${i.pru>0?chClass(i.pnlPct):'muted'}">${i.pru>0?chText(i.pnlPct):'—'}</td>
+${fc(i.ch24,e&&!i.live)}${fc(i.ch7d,e&&!i.live)}
 <td class="spark-cell">${sparkSVG(i.spark)}</td>
 <td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
 </tr>`;}).join('');
@@ -504,28 +510,24 @@ return`<tr>
 }
 
 function renderSourceETF(){
-const holdings=compRR(rrTx);
-let items=[];
-for(const[tk,qty]of Object.entries(holdings)){
-if(qty<=0.0001)continue;
-const e=etfP[tk]||{};
-const priceEUR=e.eur||0;
-const valEUR=qty*priceEUR;
-items.push({sym:tk,qty,priceEUR,valEUR,name:e.name||ETFN[tk]||tk});
-}
+const holdings=compRR(rrTx),ep=etfPRU();let items=[];
+for(const[tk,qty]of Object.entries(holdings)){if(qty<=0.0001)continue;const e=etfP[tk]||{};const priceEUR=e.eur||0;
+items.push({sym:tk,qty,priceEUR,valEUR:qty*priceEUR,name:e.name||ETFN[tk]||tk,pru:ep[tk]||0,e});}
 items.sort((a,b)=>b.valEUR-a.valEUR);
-const tot=items.reduce((s,i)=>s+i.valEUR,0);
-document.getElementById('rrTotal').innerHTML=`<span style="font-size:1.3rem;font-weight:700">€${tot.toFixed(2)}</span>`;
+const tot=items.reduce((s,i)=>s+i.valEUR,0),cost=items.reduce((s,i)=>s+i.pru*i.qty,0);
+const eur=v=>v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
+const g=cost>0?(tot/cost-1)*100:0;
+document.getElementById('rrTotal').innerHTML=`<span style="font-size:1.3rem;font-weight:700">${eur(tot)}</span>${cost>0?` <span class="${chClass(g)}" style="font-size:0.85rem">${chText(g)} depuis l'achat</span>`:''}`;
+const ch=v=>v==null?'<td class="muted">—</td>':`<td class="${chClass(v)}">${chText(v)}</td>`;
 const tb=document.getElementById('rrBody');
-tb.innerHTML=items.map(i=>{
-const al=tot>0?(i.valEUR/tot*100):0;
+if(!items.length){tb.innerHTML='<tr><td colspan="11" class="muted center">Aucune position</td></tr>';return;}
+tb.innerHTML=items.map(i=>{const al=tot>0?(i.valEUR/tot*100):0;const pnl=i.pru>0?(i.priceEUR/i.pru-1)*100:null;const L=i.e.live;
 return`<tr>
-<td><div class="asset-cell"><div class="asset-img" style="background:rgba(249,115,22,0.1);color:#f97316;border-color:rgba(249,115,22,0.2)">${i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${i.sym}</div><div class="sym">${i.name}</div></div></div></td>
-<td class="mono">${fq(i.qty)}</td><td class="mono">€${i.priceEUR.toFixed(2)}</td><td class="mono" style="font-weight:600">€${i.valEUR.toFixed(2)}</td>
+<td><div class="asset-cell"><div class="asset-img">${i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${i.sym}</div><div class="sym">${String(i.name).substring(0,44)}</div></div></div></td>
+<td class="mono">${fq(i.qty)}</td><td class="mono">${eur(i.priceEUR)}</td><td class="mono" style="font-weight:600">${eur(i.valEUR)}</td>
+<td class="mono">${i.pru>0?eur(i.pru):'—'}</td>${ch(pnl)}${ch(L?i.e.ch24:null)}${ch(L?i.e.ch7d:null)}${ch(L?i.e.ch30d:null)}
+<td class="spark-cell">${sparkSVG(i.e.spark||[])}</td>
 <td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
-</tr>`;}).join('');}
-
-
-// Patch init to check alerts after load
-const origInit=init;
-init=async function(){await origInit();renderAlerts();};
+</tr>`;}).join('');
+const d=items.map(i=>i.e.date).filter(Boolean).sort().pop();const n=document.getElementById('rrNote');if(n)n.textContent=d?`Cours de clôture du ${new Date(d+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}, mis à jour chaque matin. Courbe : 60 dernières séances.`:'Cours du jour indisponibles : dernier prix payé affiché.';
+}
