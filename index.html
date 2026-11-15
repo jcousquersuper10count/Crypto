@@ -46,32 +46,28 @@
 <!-- Holdings -->
 <!-- Aujourd'hui -->
 <section class="page active" id="p-home">
-<div class="hm-hero"><div class="hm-glow" aria-hidden="true"></div><div class="hm-dots" aria-hidden="true"></div>
-<div class="hm-hero-l"><div class="hm-date" id="hmDate"></div><h1 class="hm-title" id="hmTitle">Chargement de ton portefeuille…</h1><p class="hm-sub" id="hmSub"></p><div class="hm-chips" id="hmChips"></div></div>
-<div class="hm-hero-r">
-<span class="hm-lbl">Valeur totale</span><span class="hm-val" id="hmTotal">--</span><span class="hm-chg" id="hmChg"></span>
-<div class="hm-curve" id="hmCurve"></div>
+<div class="hm-hero">
+<div class="hm-hero-l"><div class="hm-date" id="hmDate"></div><h1 class="hm-title" id="hmTitle">Chargement de ton portefeuille…</h1><p class="hm-sub" id="hmSub"></p></div>
+<div class="hm-hero-r"><span class="hm-lbl">Valeur totale</span><span class="hm-val" id="hmTotal">--</span><span class="hm-chg" id="hmChg"></span><div class="hm-curve" id="hmCurve"></div></div>
+<p class="hm-data" id="hmData"></p>
 </div>
+<div class="hm-grid">
+<div class="hm-col">
+<h3 class="hm-h">Décision du jour</h3>
+<div class="hm-actions" id="hmActions"><div class="sk" style="height:260px"></div></div>
+<h3 class="hm-h" id="hmWatchH" hidden>À surveiller</h3>
+<ul class="hm-watch" id="hmWatch"></ul>
 </div>
+<div class="hm-col">
 <div class="hm-tiles">
 <div class="hm-tile"><span class="hm-lbl">Gain / perte</span><span class="hm-val sm" id="hmPnl">--</span><span class="hm-tsub" id="hmPnlPct"></span></div>
 <div class="hm-tile"><span class="hm-lbl">Investi</span><span class="hm-val sm" id="hmInv">--</span><span class="hm-tsub">versements cumulés</span></div>
 <div class="hm-tile wide"><div class="hm-ring" id="hmRing"></div><div class="hm-ringleg" id="hmRingLeg"></div></div>
 </div>
-<div class="hm-grid">
-<div class="hm-col">
-<h3 class="hm-h">À faire</h3>
-<div class="hm-actions" id="hmActions"><div class="sk" style="height:92px"></div><div class="sk" style="height:92px"></div><div class="sk" style="height:92px"></div></div>
-<h3 class="hm-h" id="hmWatchH" hidden>À surveiller</h3>
-<div class="hm-actions" id="hmWatch"></div>
-<h3 class="hm-h" id="hmQuietH" hidden>Rien à faire</h3>
-<ul class="hm-quiet" id="hmQuiet"></ul>
-</div>
-<div class="hm-col">
-<h3 class="hm-h">Tes plus grosses positions</h3>
+<h3 class="hm-h">Plus grosses positions</h3>
 <div class="hm-pos" id="hmPos"><div class="sk flat" style="height:300px"></div></div>
-<button class="hm-link" type="button" onclick="go('holdings')">Voir toutes les positions</button>
-<p class="hm-note">Les actions proposées appliquent une règle de tendance (prix face à sa moyenne 50 jours), testée sur le passé de tes cryptos. Elle limite les grosses pertes mais se trompe régulièrement : ce n'est ni une garantie de gain ni un conseil en investissement.</p>
+<button class="hm-link" type="button" onclick="go('holdings')">Tout le portefeuille</button>
+<p class="hm-note">Les décisions appliquent une règle de tendance (prix face à sa moyenne 50 jours), testée sur le passé de tes cryptos. Elle limite les grosses pertes mais se trompe régulièrement : ce n'est ni une garantie de gain ni un conseil en investissement.</p>
 </div>
 </div>
 </section>
@@ -82,8 +78,8 @@
 <div class="kpi accent"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
 <div class="kpi"><div class="kpi-label">Crypto / ETF</div><div class="kpi-val" id="kpiBreak">--</div></div>
 <div class="kpi"><div class="kpi-label">Investi</div><div class="kpi-val" id="kpiInv">--</div></div>
-<div class="kpi"><div class="kpi-label">P&L</div><div class="kpi-val" id="kpiPnl">--</div></div>
-<div class="kpi"><div class="kpi-label">Fear & Greed</div><div class="kpi-val" id="kpiFG">--</div></div>
+<div class="kpi"><div class="kpi-label">Gain / perte</div><div class="kpi-val" id="kpiPnl">--</div></div>
+<div class="kpi"><div class="kpi-label">Humeur du marché</div><div class="kpi-val" id="kpiFG">--</div></div>
 </div>
 <div class="table-wrap"><table class="htable" id="holdTable"><thead><tr>
 <th data-col="name" onclick="sortCol('name')">Actif</th>
@@ -91,7 +87,7 @@
 <th data-col="price" onclick="sortCol('price')">Prix</th>
 <th data-col="value" onclick="sortCol('value')" class="sorted desc">Valeur</th>
 <th data-col="pru" onclick="sortCol('pru')">PRU</th>
-<th data-col="pnl" onclick="sortCol('pnl')">P&L %</th>
+<th data-col="pnl" onclick="sortCol('pnl')">Gain %</th>
 <th data-col="ch24" onclick="sortCol('ch24')">24h</th>
 <th data-col="ch7d" onclick="sortCol('ch7d')">7j</th>
 <th>7j</th>
@@ -117,7 +113,7 @@
 <section class="page" id="p-revrobo">
 <div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Revolut Robo-Advisor</h2><div class="source-total" id="rrTotal">--</div></div>
-<div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>PRU</th><th>P&L %</th><th>1 j</th><th>7 j</th><th>30 j</th><th>60 séances</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>PRU</th><th>Gain %</th><th>1 j</th><th>7 j</th><th>30 j</th><th>60 séances</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
 <p class="muted" id="rrNote" style="margin-top:0.7rem"></p>
 </section>
 
@@ -125,14 +121,14 @@
 <section class="page" id="p-performance">
 <div class="page-head"><h2>Performance</h2></div>
 <div class="kpi-row small">
-<div class="kpi"><div class="kpi-label">P&L non-réalisé</div><div class="kpi-val" id="perfUnreal">--</div></div>
-<div class="kpi"><div class="kpi-label">P&L réalisé</div><div class="kpi-val" id="perfReal">--</div></div>
+<div class="kpi"><div class="kpi-label">Gain latent</div><div class="kpi-val" id="perfUnreal">--</div></div>
+<div class="kpi"><div class="kpi-label">Gain réalisé</div><div class="kpi-val" id="perfReal">--</div></div>
 <div class="kpi"><div class="kpi-label">Revenus passifs</div><div class="kpi-val" id="perfPassive">--</div></div>
 <div class="kpi"><div class="kpi-label">Frais totaux</div><div class="kpi-val" id="perfFees">--</div></div>
 </div>
-<h3 style="margin:1rem 0 0.5rem">P&L par position</h3>
-<div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>PRU</th><th>Prix actuel</th><th>Qté</th><th>Coût total</th><th>Valeur actuelle</th><th>P&L</th><th>P&L %</th></tr></thead><tbody id="perfBody"></tbody></table></div>
-<h3 style="margin:1.5rem 0 0.5rem">Benchmark</h3>
+<h3 style="margin:1rem 0 0.5rem">Gain par position</h3>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>PRU</th><th>Prix actuel</th><th>Qté</th><th>Coût total</th><th>Valeur actuelle</th><th>Gain</th><th>Gain %</th></tr></thead><tbody id="perfBody"></tbody></table></div>
+<h3 style="margin:1.5rem 0 0.5rem">Comparaison</h3>
 <div class="bench-grid" id="benchGrid"></div>
 </section>
 
@@ -241,7 +237,7 @@
 <div class="kpi"><div class="kpi-label">Plus-values latentes</div><div class="kpi-val" id="taxUnreal">--</div></div>
 <div class="kpi"><div class="kpi-label">Nb cessions</div><div class="kpi-val" id="taxCount">--</div></div>
 </div>
-<div class="table-wrap"><table class="htable"><thead><tr><th>Date</th><th>Actif</th><th>Qté vendue</th><th>Prix vente</th><th>PRU</th><th>P&L</th><th>Source</th></tr></thead><tbody id="taxBody"></tbody></table></div>
+<div class="table-wrap"><table class="htable"><thead><tr><th>Date</th><th>Actif</th><th>Qté vendue</th><th>Prix vente</th><th>PRU</th><th>Gain</th><th>Source</th></tr></thead><tbody id="taxBody"></tbody></table></div>
 </section>
 
 <!-- Import -->

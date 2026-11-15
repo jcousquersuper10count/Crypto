@@ -50,6 +50,10 @@ jobs:
           KRONOS_MODEL: small
         run: python kronos/forecast.py --out data/signals.json
 
+      - name: Crypto quotes
+        continue-on-error: true
+        run: python kronos/fetch_prices.py --out data/prices.json
+
       - name: ETF quotes
         continue-on-error: true
         run: python kronos/fetch_etf.py --out data/etf.json

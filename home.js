@@ -38,13 +38,14 @@
     return m ? new Date(m) : null;
   }
 
-  function chips(now) {
-    const out = [];
-    const fg = ($('kpiFG') ? $('kpiFG').textContent : '').trim().match(/^(\d+)\s*(.*)$/);
-    if (fg) { const fr = { 'Extreme Fear': 'peur extrême', 'Fear': 'peur', 'Neutral': 'neutre', 'Greed': 'avidité', 'Extreme Greed': 'avidité extrême' }[fg[2].trim()] || fg[2].trim().toLowerCase(); out.push(`Humeur du marché crypto : <b>${esc(fg[1])}/100</b> ${esc(fr)}`); }
-    if (SIG) out.push(`Signaux du <b>${new Date(SIG.generated).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</b>`);
-    try { const d = Object.values(etfP).map(e => e.date).filter(Boolean).sort().pop(); if (d) out.push(`Cours ETF du <b>${new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</b>`); } catch (e) {}
-    $('hmChips').innerHTML = out.map((c, i) => `<span class="hm-chip" style="--i:${i}"><i></i><span>${c}</span></span>`).join('');
+  // One line saying how fresh each data source is
+  function dataLine() {
+    const parts = [];
+    const tm = d => d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    parts.push(window.pricesStale ? `Prix crypto du ${tm(new Date(window.pricesStale))}` : `Prix crypto en direct (${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})`);
+    try { const d = Object.values(etfP).map(e => e.date).filter(Boolean).sort().pop(); if (d) parts.push(`ETF : clôture du ${new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`); } catch (e) {}
+    if (SIG) parts.push(`Signaux du ${new Date(SIG.generated).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`);
+    $('hmData').textContent = parts.join(' · ');
   }
   // Value of the current positions over the last 7 days (crypto: hourly prices; ETFs: daily closes)
   function curve(items, tot) {
@@ -68,7 +69,7 @@
       <div class="hm-curve-cap"><span>il y a 7 jours · ${fv(s[0])}</span><span class="${chClass(ch)}">${chText(ch * 100)} sur 7 jours, à positions constantes</span></div>`;
   }
   function ring(items, tot) {
-    const g = [['Crypto', 'var(--accent)', 0], ['ETF', 'hsl(calc(var(--h) - 75) 75% 66%)', 0], ['Espèces', 'var(--fg3)', 0]];
+    const g = [['Crypto', 'var(--accent)', 0], ['ETF', 'var(--etf)', 0], ['Espèces', 'var(--fg3)', 0]];
     items.forEach(i => { g[i.type === 'crypto' ? 0 : i.sym === 'Espèces' ? 2 : 1][2] += i.usd; });
     const parts = g.filter(x => x[2] > 0.5); let off = 0;
     const R = 40, svg = `<svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="${R}"/>` + parts.map(p => { const v = p[2] / tot * 100, c = `<circle cx="50" cy="50" r="${R}" pathLength="100" stroke="${p[1]}" stroke-dasharray="0 100" stroke-dashoffset="${-off}" data-v="${Math.max(0, v - 0.8).toFixed(2)}"/>`; off += v; return c; }).join('') + '</svg>';
@@ -92,14 +93,17 @@
 
     // figures
     countTo($('hmTotal'), tot);
-    const stale = window.pricesStale ? 'Certains prix datent du ' + new Date(window.pricesStale).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '' : '';
-    const ci = items.filter(i => i.type === 'crypto' && i.usd >= MIN_HELD), ct = ci.reduce((s, i) => s + i.usd, 0);
-    if (ct > 0) { const w = ci.reduce((s, i) => s + i.ch24 * i.usd, 0) / ct; $('hmChg').innerHTML = `<span class="${chClass(w)}">${chText(w)} sur 24 h (crypto)</span><span class="muted">${stale}</span>`; }
+    { // a quote counts in "since yesterday" only if it moved since yesterday (no ETF trading on weekends)
+      const ystd = new Date(now.getTime() - 864e5).toISOString().slice(0, 10);
+      const w = items.filter(i => i.usd >= MIN_HELD && (i.type === 'crypto' || ((etfP[i.sym] || {}).date || '') >= ystd)), wt = w.reduce((s, i) => s + i.usd, 0);
+      const d = wt > 0 ? w.reduce((s, i) => s + i.usd * (i.ch24 || 0) / 100 / (1 + (i.ch24 || 0) / 100), 0) : 0;
+      const etfOff = items.some(i => i.type === 'etf' && i.sym !== 'Espèces') && !w.some(i => i.type === 'etf');
+      $('hmChg').innerHTML = `<span class="${chClass(d)}">${d >= 0 ? '+' : '−'}${fv(Math.abs(d))} (${chText(d / (tot - d) * 100)})</span> <span class="muted">depuis hier${etfOff ? ', bourse fermée pour les ETF' : ''}</span>`; }
     $('hmPnl').innerHTML = $('kpiPnl').innerHTML; $('hmInv').innerHTML = $('kpiInv').innerHTML;
     const numOf = el => parseFloat(el.textContent.replace(/[^\d,.-]/g, '').replace(',', '.'));
     const pv = numOf($('kpiPnl')), iv = numOf($('kpiInv'));
     $('hmPnlPct').innerHTML = iv > 0 && isFinite(pv) ? `<span class="${chClass(pv)}">${chText(pv / iv * 100)}</span> sur le total investi` : '';
-    chips(now); curve(items, tot); ring(items, tot);
+    dataLine(); curve(items, tot); ring(items, tot);
 
     // positions
     const top = items.filter(i => i.usd >= MIN_HELD).sort((a, b) => b.usd - a.usd).slice(0, 6);
@@ -120,13 +124,13 @@
         const fresh = t.days <= 3 ? '<span class="new">Nouveau</span>' : '';
         const flip = fv(eurToUsd(t.sma));
         const val = has ? `${fv(h.usd)}<small>${(h.usd / tot * 100).toFixed(0)} % du total</small>` : '';
-        if (has && !t.above) todo.push({ w: h.usd, b: 'sell', l: 'Vendre', t: `Alléger ou vendre ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
+        if (has && !t.above) todo.push({ flipTxt: `achat au-dessus de ${flip}`, w: h.usd, b: 'sell', l: 'Vendre', t: `Alléger ou vendre ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
           d: `Sous sa moyenne 50 jours depuis <b>${t.days} j</b> (${pct(t.distance)}). Le signal repasse à l'achat si ${sym} clôture au-dessus de <b>${flip}</b>.` });
-        else if (has && t.above) watch.push({ b: 'keep', l: 'Garder', t: `Garder ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
+        else if (has && t.above) watch.push({ flipTxt: `vente sous ${flip}`, w: h.usd, b: 'keep', l: 'Garder', t: `Garder ${sym}${fresh}`, v: val, go: 'signals', sym, dist: t.distance,
           d: `Au-dessus de sa moyenne 50 jours depuis ${t.days} j (${pct(t.distance)}). À vendre s'il clôture sous <b>${flip}</b>.` });
-        else if (!has && t.above) todo.push({ w: 0, b: 'buy', l: 'Achat', t: `Achat possible : ${sym}${fresh}`, go: 'signals', sym, dist: t.distance,
+        else if (!has && t.above) todo.push({ flipTxt: `sortie sous ${flip}`, w: 0, b: 'buy', l: 'Achat', t: `Achat possible : ${sym}${fresh}`, go: 'signals', sym, dist: t.distance,
           d: `Repassé au-dessus de sa moyenne 50 jours depuis ${t.days} j (${pct(t.distance)}). Tu n'en détiens pas. Sortie prévue sous <b>${flip}</b>.` });
-        else quiet.push(`<b>${esc(sym)}</b> : pas d'achat, tendance baissière (achat au-dessus de ${flip}).`);
+        else quiet.push(`<b>${esc(sym)}</b> : pas détenu, tendance baissière.`);
       }
     } else if (sigTried) watch.push({ b: 'warn', l: 'Données', t: 'Signaux indisponibles', d: 'Le fichier des signaux n\'a pas pu être chargé.', go: 'signals' });
 
@@ -149,13 +153,26 @@
     } catch (e) {}
 
     todo.sort((a, b) => b.w - a.w);
-    let ci2 = 0; const gauge = a => { if (a.dist == null) return ''; const x = 50 + Math.max(-30, Math.min(30, a.dist * 100)) / 30 * 50; return `<span class="hm-gauge" aria-hidden="true"><i class="mid"></i><i class="dot" style="left:${x.toFixed(1)}%;background:var(${a.dist >= 0 ? '--green' : '--red'})"></i></span><span class="hm-gauge-cap"><span>−30 %</span><span>moyenne 50 jours</span><span>+30 %</span></span>`; };
-    const card = a => `<button type="button" class="hm-act" style="--i:${3 + ci2++}" data-go="${a.go}" data-sym="${a.sym || ''}"><span class="hm-badge ${a.b}">${a.l}</span><span class="hm-act-t">${a.t}</span>${a.v ? `<span class="hm-act-v">${a.v}</span>` : ''}<span class="hm-act-d">${a.d}</span>${gauge(a)}</button>`;
-    $('hmActions').innerHTML = todo.length ? todo.map(card).join('') : `<div class="hm-empty">${SIG ? 'Aucune action à envisager aujourd\'hui : les signaux ne demandent ni achat ni vente.' : 'Chargement des signaux…'}</div>`;
-    $('hmWatch').innerHTML = watch.map(card).join(''); $('hmWatchH').hidden = !watch.length;
-    $('hmQuiet').innerHTML = quiet.map(q => `<li>${q}</li>`).join(''); $('hmQuietH').hidden = !quiet.length;
+    const gauge = a => { if (a.dist == null) return ''; const x = 50 + Math.max(-30, Math.min(30, a.dist * 100)) / 30 * 50; return `<span class="hm-gauge" aria-hidden="true"><i class="mid"></i><i class="dot" style="left:${x.toFixed(1)}%;background:var(${a.dist >= 0 ? '--green' : '--red'})"></i></span>`; };
+    const keeps = watch.filter(w => w.b === 'keep'), others = watch.filter(w => w.b !== 'keep');
+    const group = (kind, list, head, sub) => {
+      if (!list.length) return '';
+      const total = list.reduce((s, a) => s + (a.w || 0), 0);
+      const rows = list.map((a, i) => {
+        const it = held[a.sym], img = it && it.img ? `<img src="${esc(it.img)}" alt="">` : esc(a.sym.slice(0, 2));
+        return `<button type="button" class="hm-row" data-go="signals" style="--i:${4 + i}"><span class="asset-img">${img}</span><span class="hm-row-m"><b>${esc(a.sym)}</b><span>${a.flipTxt}</span></span><span class="hm-row-g">${gauge(a)}<small>${pct(a.dist)} vs moyenne</small></span><span class="hm-row-v">${a.w ? fv(a.w) : '—'}</span></button>`;
+      }).join('');
+      return `<div class="hm-dec ${kind}"><div class="hm-dec-h"><span class="hm-badge ${kind}">${head}</span><span class="hm-dec-t">${sub}</span>${total ? `<span class="hm-dec-v">${fv(total)}<small>${(total / tot * 100).toFixed(0)} % du portefeuille</small></span>` : ''}</div><div class="hm-dec-rows">${rows}</div></div>`;
+    };
+    const sellsL = todo.filter(a => a.b === 'sell'), buysL = todo.filter(a => a.b === 'buy');
+    const n = x => x.length > 1 ? `${x.length} cryptos` : x[0] && x[0].sym;
+    let html = group('sell', sellsL, 'Vendre', `Tendance baissière sur ${n(sellsL)}`) + group('buy', buysL, 'Achat possible', `Tendance repassée à la hausse : ${n(buysL)}`) + group('keep', keeps, 'Garder', `Tendance haussière sur ${n(keeps)}`);
+    if (!html) html = `<div class="hm-empty">${SIG ? 'Aucune décision aujourd\'hui : les signaux ne demandent ni achat ni vente.' : 'Chargement des signaux…'}</div>`;
+    $('hmActions').innerHTML = html + (quiet.length ? `<p class="hm-quietline">${quiet.join(' ')}</p>` : '');
+    $('hmWatch').innerHTML = others.map((a, i) => `<li><button type="button" class="hm-w" data-go="${a.go}" style="--i:${8 + i}"><span class="hm-w-dot ${a.b}"></span><span><b>${a.t}</b><span>${a.d}</span></span><span class="hm-w-go" aria-hidden="true">›</span></button></li>`).join('');
+    $('hmWatchH').hidden = !others.length;
     if (!firstDone) { firstDone = true; const pg = $('p-home'); pg.classList.add('hm-anim'); setTimeout(() => pg.classList.remove('hm-anim'), 1600); }
-    document.querySelectorAll('#p-home .hm-act').forEach(b => b.onclick = () => go(b.dataset.go));
+    document.querySelectorAll('#p-home [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
 
     // headline
     const sells = todo.filter(a => a.b === 'sell'), buys = todo.filter(a => a.b === 'buy');
@@ -163,10 +180,10 @@
     let title, sub;
     if (!SIG) { title = 'Ton portefeuille aujourd\'hui'; sub = ''; }
     else if (sells.length) {
-      title = `${sells.length} position${sells.length > 1 ? 's' : ''} en signal de vente`;
-      sub = `${sells.map(a => a.sym).join(', ')} : ${fv(sellVal)} exposés à une tendance baissière, soit ${(sellVal / tot * 100).toFixed(0)} % du portefeuille.` + (buys.length ? ` ${buys.length} signal${buys.length > 1 ? 'aux' : ''} d'achat par ailleurs.` : '');
-    } else if (buys.length) { title = `${buys.length} signal${buys.length > 1 ? 'aux' : ''} d'achat`; sub = `${buys.map(a => a.sym).join(', ')} : tendance repassée à la hausse.`; }
-    else { title = 'Rien à faire aujourd\'hui'; sub = 'Aucun signal ne demande d\'acheter ou de vendre. Reviens demain matin, après la mise à jour quotidienne.'; }
+      title = sells.length > 1 ? `Réduire ${sells.length} positions crypto` : `Réduire ${sells[0].sym}`;
+      sub = `${sells.map(a => a.sym).join(', ')} sont sous leur tendance : ${fv(sellVal)}, soit ${(sellVal / tot * 100).toFixed(0)} % du portefeuille.` + (buys.length ? ` Par ailleurs, ${buys.map(a => a.sym).join(', ')} repasse${buys.length > 1 ? 'nt' : ''} à la hausse.` : '');
+    } else if (buys.length) { title = buys.length > 1 ? `${buys.length} achats possibles` : `Achat possible : ${buys[0].sym}`; sub = `${buys.map(a => a.sym).join(', ')} : tendance repassée à la hausse.`; }
+    else { title = 'Rien à faire aujourd\'hui'; sub = 'Aucun signal ne demande d\'acheter ou de vendre. Prochaine mise à jour demain matin.'; }
     $('hmTitle').textContent = title; $('hmSub').textContent = sub;
   }
 

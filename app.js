@@ -70,7 +70,7 @@ function fv(usd){const v=cv(usd);const a=Math.abs(v);const d=a>=1?2:a>=0.01?4:6;
 function fq(v){if(v>=1e6)return(v/1e6).toFixed(2)+'M';if(v>=1000)return v.toLocaleString('en-US',{maximumFractionDigits:2});if(v>=1)return v.toFixed(4);return v.toFixed(6);}
 function fmc(v){if(!v)return'--';if(v>=1e12)return'$'+(v/1e12).toFixed(1)+'T';if(v>=1e9)return'$'+(v/1e9).toFixed(1)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';return'$'+v.toLocaleString();}
 function chClass(v){return v>=0?'green':'red';}
-function chText(v){return(v>=0?'+':'')+v.toFixed(2)+'%';}
+function chText(v){v=+v||0;return(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')+'\u00a0%';}
 
 // Sparkline SVG
 function sparkSVG(data,w=80,h=28){if(!data||data.length<2)return'';const mn=Math.min(...data),mx=Math.max(...data),rng=mx-mn||1;const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-mn)/rng)*h}`);const up=data[data.length-1]>=data[0];const col=up?'var(--green)':'var(--red)';return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;}
@@ -117,7 +117,7 @@ const pnl=tot-inv;document.getElementById('kpiPnl').innerHTML=`<span class="${ch
 // Best
 const best=ci.sort((a,b)=>b.ch24-a.ch24)[0];if(best)document.getElementById('kpiTotal').title=`Best: ${best.sym} ${chText(best.ch24)}`;
 // F&G
-if(fgData){let c=fgData.v>55?'var(--green)':fgData.v>25?'var(--orange)':'var(--red)';document.getElementById('kpiFG').innerHTML=`<span style="color:${c}">${fgData.v}</span><span style="font-size:0.7rem;color:${c};display:block">${fgData.l}</span>`;}}
+if(fgData){let c=fgData.v>55?'var(--green)':fgData.v>25?'var(--orange)':'var(--red)';document.getElementById('kpiFG').innerHTML=`<span style="color:${c}">${fgData.v}</span><span style="font-size:0.7rem;color:${c};display:block">${({'Extreme Fear':'Peur extrême','Fear':'Peur','Neutral':'Neutre','Greed':'Avidité','Extreme Greed':'Avidité extrême'})[fgData.l]||fgData.l}</span>`;}}
 
 // Market
 function renderMkt(){const g=document.getElementById('mktGrid');if(!mktData.length){g.innerHTML='<p class="muted center">Non disponible</p>';return;}
@@ -209,7 +209,7 @@ function updTime(){document.getElementById('lastUpd').textContent=new Date().toL
 
 // Loading
 async function loadSheets(){setS('Données...');const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb)sbTx=parseCSV(sb);const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc).map(t=>(t.Date=frDate(t.Date),t));const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);merge();popFilter();renderHist();return sbTx.length>0;}
-async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);try{const c=JSON.parse(localStorage.getItem('vault_prices')||'null');window.pricesStale=null;if(c&&c.p){let miss=0;for(const k of a)if(!prices[k]&&c.p[k]){prices[k]=c.p[k];miss++;}if(miss)window.pricesStale=c.t;}if(Object.keys(prices).length)localStorage.setItem('vault_prices',JSON.stringify({t:window.pricesStale||Date.now(),p:prices}));}catch(e){}if(!Object.keys(etfP).length){const lp=lastETFPrices();for(const tk of Object.keys(etfH))etfP[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};}renderH();renderSum();setS('ETF...');await fetchETF();renderH();renderSum();const ap=document.querySelector('.page.active');if(ap&&ap.id==='p-neverless')renderSource('nev');else if(ap&&ap.id==='p-revcrypto')renderSource('rc');else if(ap&&ap.id==='p-revrobo')renderSourceETF();setS('En direct',true);}
+async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);window.pricesStale=null;try{const miss=a.filter(k=>!prices[k]&&CGM[k]);if(miss.length){let c=null;try{const r=await fetch('data/prices.json?t='+Date.now());if(r.ok){const j=await r.json();c={t:Date.parse(j.generated),p:j.prices};}}catch(e){}const l=JSON.parse(localStorage.getItem('vault_prices')||'null');if(l&&l.p&&(!c||l.t>c.t))c=l;if(c&&c.p){let n=0;for(const k of miss)if(c.p[k]){prices[k]=c.p[k];n++;}if(n)window.pricesStale=c.t;}}if(Object.keys(prices).length)localStorage.setItem('vault_prices',JSON.stringify({t:window.pricesStale||Date.now(),p:prices}));}catch(e){}if(!Object.keys(etfP).length){const lp=lastETFPrices();for(const tk of Object.keys(etfH))etfP[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};}renderH();renderSum();setS('ETF...');await fetchETF();renderH();renderSum();const ap=document.querySelector('.page.active');if(ap&&ap.id==='p-neverless')renderSource('nev');else if(ap&&ap.id==='p-revcrypto')renderSource('rc');else if(ap&&ap.id==='p-revrobo')renderSourceETF();setS('En direct',true);}
 async function loadMkt(){setS('Marché...');mktData=await fetchMkt();renderMkt();setS('En direct',true);}
 async function refreshAll(){const b=document.querySelector('.topbar-refresh');b.classList.add('spin');await loadSheets();await loadPrices();if(mktData.length)await loadMkt();setS('En direct',true);updTime();b.classList.remove('spin');}
 
@@ -237,6 +237,7 @@ ETF_Bond:'IS3K'.split(','),
 function getSector(sym){for(const[sec,list]of Object.entries(SECTORS))if(list.includes(sym))return sec;return'Autre';}
 
 // PRU & P&L calculation from transactions
+const STABLE=new Set(['USDC','USDT','EURC','DAI','FDUSD','USDE','PYUSD']);
 function computePRU(){
 const pruData={}; // {sym: {totalCost, totalQty, sells:[], fees, passive}}
 const allTx=[];
@@ -253,8 +254,10 @@ pruData[rs].totalCost+=ra*priceR;pruData[rs].totalQty+=ra;}
 if(tx.Type==='Trade'&&sa&&ss&&!['EUR','USD'].includes(ss)){
 if(!pruData[ss])pruData[ss]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
 const pru=pruData[ss].totalQty>0?pruData[ss].totalCost/pruData[ss].totalQty:0;
-pruData[ss].sells.push({date:d,qty:sa,sellPrice:priceS,pru,pnl:(priceS-pru)*sa,src:'SB'});
-pruData[ss].totalQty-=sa;pruData[ss].totalCost=Math.max(0,pru*pruData[ss].totalQty);}
+// gain réalisé seulement sur la part dont on connaît le coût d'achat ; les stablecoins sont de la trésorerie
+const m=STABLE.has(ss)?0:Math.min(sa,Math.max(0,pruData[ss].totalQty));
+pruData[ss].sells.push({date:d,qty:sa,sellPrice:priceS,pru,pnl:m>0?(priceS-pru)*m:0,src:'SB'});
+pruData[ss].totalQty=Math.max(0,pruData[ss].totalQty-sa);pruData[ss].totalCost=pru*pruData[ss].totalQty;}
 if(fa&&fs&&!['EUR','USD'].includes(fs)){if(!pruData[fs])pruData[fs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};pruData[fs].fees+=fa*(pn(tx['USD price of fee asset'])||0);}
 if(tx.Type==='Deposit'&&tx.Description&&(tx.Description.includes('interest')||tx.Description.includes('reward')||tx.Description.includes('staking'))&&ra&&rs&&!['EUR','USD'].includes(rs)){
 if(!pruData[rs])pruData[rs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
@@ -270,7 +273,7 @@ if(!pruData[sym])pruData[sym]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0}
 // Normalize type
 const tpClean=tp.replace(/\u00a0/g,' ');
 if(tpClean==='Achat'){pruData[sym].totalCost+=val;pruData[sym].totalQty+=q;}
-else if(tpClean==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:val-pru*q,src:'RC'});pruData[sym].totalQty-=q;pruData[sym].totalCost=Math.max(0,pru*pruData[sym].totalQty);}
+else if(tpClean==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;const m=STABLE.has(sym)?0:Math.min(q,Math.max(0,pruData[sym].totalQty));pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:m>0?(val/q-pru)*m:0,src:'RC'});pruData[sym].totalQty=Math.max(0,pruData[sym].totalQty-q);pruData[sym].totalCost=pru*pruData[sym].totalQty;}
 if(fee)pruData[sym].fees+=fee;
 if(tpClean.includes('compense')||tpClean.includes('Apprendre')){pruData[sym].passive+=val;pruData[sym].totalQty+=q;}
 });
