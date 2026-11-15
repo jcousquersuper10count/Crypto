@@ -56,6 +56,8 @@ for(const tk of Object.keys(etfH)){out[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};con
 // cotation refusée si elle s'écarte trop du dernier prix payé (mauvais symbole, division non prise en compte)
 if(q&&q.price>0&&(!lp[tk]||Math.abs(q.price/lp[tk]-1)<0.4))out[tk]={eur:q.price,name:q.name||ETFN[tk]||tk,ch24:(q.ch1d||0)*100,ch7d:q.ch7d==null?null:q.ch7d*100,ch30d:q.ch30d==null?null:q.ch30d*100,ch1y:q.ch1y==null?null:q.ch1y*100,spark:q.spark||[],date:q.date,live:true};}
 etfP=out;}
+// Espèces non investies du compte Robo : versements - achats + ventes + dividendes - frais - retraits
+function roboCash(){let c=0;rrTx.forEach(t=>{const tp=(t.Type||'').toUpperCase(),a=Math.abs(pn((t['Total Amount']||'').replace('EUR','').replace(/,/g,'')));if(!a)return;if(tp.includes('TOP-UP')||tp.includes('SELL')||tp.includes('DIVIDEND'))c+=a;else if(tp.includes('BUY')||tp.includes('FEE')||tp.includes('WITHDRAW'))c-=a;});return c>0.01?c:0;}
 // Prix de revient moyen par ETF, en euros (achats, ventes, divisions d'actions)
 function etfPRU(){const q={},c={};rrTx.forEach(t=>{const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),n=pn(t.Quantity),p=pn((t['Price per share']||'').replace('EUR',''));if(!tk||!n)return;if(tp.includes('SPLIT'))q[tk]=(q[tk]||0)+n;else if(tp.includes('BUY')){q[tk]=(q[tk]||0)+n;c[tk]=(c[tk]||0)+n*p;}else if(tp.includes('SELL')&&q[tk]>0){const f=Math.min(1,n/q[tk]);c[tk]=(c[tk]||0)*(1-f);q[tk]-=n;}});const o={};for(const k in q)if(q[k]>1e-6&&c[k]>0)o[k]=c[k]/q[k];return o;}
 async function fetchMkt(){try{const r=await fetch(`${CG}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d,1y`);if(!r.ok)return[];const d=await r.json();const has=new Set(d.map(c=>c.id));const ex=[...new Set(Object.keys(cryptoH).filter(s=>cryptoH[s]>1e-7).map(s=>CGM[s]).filter(id=>id&&!has.has(id)))];if(!has.has('grass'))ex.push('grass');if(ex.length){await sleep(1200);try{const r2=await fetch(`${CG}/coins/markets?vs_currency=usd&ids=${ex.join(',')}&sparkline=false&price_change_percentage=24h,7d,30d,1y`);if(r2.ok)d.push(...await r2.json());}catch(e){}}return d;}catch(e){return[];}}
@@ -76,6 +78,7 @@ function sparkSVG(data,w=80,h=28){if(!data||data.length<2)return'';const mn=Math
 // All items
 function allItems(){const it=[];for(const[s,q]of Object.entries(cryptoH)){if(q<=1e-7)continue;const p=prices[s]||{};it.push({sym:s,qty:q,usd:q*(p.p||0),ch24:p.ch24||0,ch7d:p.ch7d||0,ch30d:p.ch30d||0,ch1y:p.ch1y||0,img:p.img||'',name:p.name||s,type:'crypto',src:getSrc(s),spark:p.spark||[]});}
 for(const[tk,q]of Object.entries(etfH)){const e=etfP[tk]||{};it.push({sym:tk,qty:q,usd:q*(e.eur||0)*eurUsd,eur:q*(e.eur||0),priceEUR:e.eur||0,ch24:e.ch24||0,ch7d:e.ch7d||0,ch30d:e.ch30d||0,ch1y:e.ch1y||0,live:!!e.live,img:'',name:e.name||ETFN[tk]||tk,type:'etf',src:'Robo',spark:e.spark||[]});}
+{const c=roboCash();if(c>0)it.push({sym:'Espèces',qty:c,usd:c*eurUsd,eur:c,priceEUR:1,ch24:0,ch7d:0,ch30d:0,ch1y:0,live:false,img:'',name:'Non investies (Revolut Robo)',type:'etf',src:'Robo',spark:[]});}
 return it;}
 
 // Render Holdings
@@ -514,10 +517,11 @@ const holdings=compRR(rrTx),ep=etfPRU();let items=[];
 for(const[tk,qty]of Object.entries(holdings)){if(qty<=0.0001)continue;const e=etfP[tk]||{};const priceEUR=e.eur||0;
 items.push({sym:tk,qty,priceEUR,valEUR:qty*priceEUR,name:e.name||ETFN[tk]||tk,pru:ep[tk]||0,e});}
 items.sort((a,b)=>b.valEUR-a.valEUR);
-const tot=items.reduce((s,i)=>s+i.valEUR,0),cost=items.reduce((s,i)=>s+i.pru*i.qty,0);
+const inv=items.reduce((s,i)=>s+i.valEUR,0),cost=items.reduce((s,i)=>s+i.pru*i.qty,0);const cash=roboCash();if(cash>0)items.push({sym:'Espèces',qty:cash,priceEUR:1,valEUR:cash,name:'Non investies',pru:0,e:{}});
+const tot=inv+cash;
 const eur=v=>v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
-const g=cost>0?(tot/cost-1)*100:0;
-document.getElementById('rrTotal').innerHTML=`<span style="font-size:1.3rem;font-weight:700">${eur(tot)}</span>${cost>0?` <span class="${chClass(g)}" style="font-size:0.85rem">${chText(g)} depuis l'achat</span>`:''}`;
+const g=cost>0?(inv/cost-1)*100:0;
+document.getElementById('rrTotal').innerHTML=`<span style="font-size:1.3rem;font-weight:700">${eur(tot)}</span>${cost>0?` <span class="${chClass(g)}" style="font-size:0.85rem">${chText(g)} sur les ETF depuis l'achat</span>`:''}`;
 const ch=v=>v==null?'<td class="muted">—</td>':`<td class="${chClass(v)}">${chText(v)}</td>`;
 const tb=document.getElementById('rrBody');
 if(!items.length){tb.innerHTML='<tr><td colspan="11" class="muted center">Aucune position</td></tr>';return;}
