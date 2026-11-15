@@ -14,6 +14,22 @@
     try { const r = await fetch('data/signals.json?t=' + Date.now()); if (r.ok) SIG = await r.json(); } catch (e) {}
     render();
   }
+  let shown = 0, raf = 0, firstDone = false;
+  function countTo(el, target) {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || Math.abs(target - shown) < 0.5) { shown = target; el.textContent = fv(target); return; }
+    cancelAnimationFrame(raf);
+    const from = shown, t0 = performance.now(), dur = shown ? 600 : 1100;
+    const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4); shown = from + (target - from) * e; el.textContent = fv(shown); if (k < 1) raf = requestAnimationFrame(step); else shown = target; };
+    raf = requestAnimationFrame(step);
+  }
+  const SEG = [['holdings', 'Tout'], ['neverless', 'Neverless'], ['revcrypto', 'Revolut Crypto'], ['revrobo', 'Revolut Robo']];
+  function paintSeg(p) {
+    document.querySelectorAll('.seg').forEach(el => {
+      el.innerHTML = SEG.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === p}" data-p="${k}">${l}</button>`).join('');
+      el.querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.p));
+    });
+  }
   const eurToUsd = v => v * (typeof eurUsd === 'number' ? eurUsd : 1);
 
   function lastDate(tx) {
@@ -34,8 +50,8 @@
     if (!havePrices) { $('hmTitle').textContent = 'Prix indisponibles pour l\'instant'; $('hmSub').textContent = 'Le fournisseur de prix limite les demandes. Clique sur ↻ en haut à droite dans une minute.'; $('hmActions').innerHTML = '<div class="hm-empty">Les actions s\'affichent dès que les prix sont chargés.</div>'; return; }
 
     // figures
-    $('hmTotal').textContent = fv(tot);
-    const stale = window.pricesStale ? ' · prix du ' + new Date(window.pricesStale).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' (fournisseur saturé)' : '';
+    countTo($('hmTotal'), tot);
+    const stale = window.pricesStale ? 'Certains prix datent du ' + new Date(window.pricesStale).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '' : '';
     const ci = items.filter(i => i.type === 'crypto' && i.usd >= MIN_HELD), ct = ci.reduce((s, i) => s + i.usd, 0);
     if (ct > 0) { const w = ci.reduce((s, i) => s + i.ch24 * i.usd, 0) / ct; $('hmChg').innerHTML = `<span class="${chClass(w)}">${chText(w)} sur 24 h (crypto)</span><span class="muted">${stale}</span>`; }
     $('hmPnl').innerHTML = $('kpiPnl').innerHTML; $('hmInv').innerHTML = $('kpiInv').innerHTML;
@@ -45,7 +61,7 @@
     $('hmPos').innerHTML = top.map(i => {
       const al = tot > 0 ? i.usd / tot : 0;
       const img = i.img ? `<img src="${esc(i.img)}" alt="">` : esc(i.sym.slice(0, 2));
-      return `<div class="hm-p"><div class="asset-img">${img}</div><div><span class="n">${esc(i.sym)}</span><span class="muted"> ${esc(i.name)}</span><span class="s"><i style="width:${Math.round(al * 100)}%"></i></span></div><div class="v">${fv(i.usd)}<small class="${i.type === 'crypto' ? chClass(i.ch24) : 'muted'}">${i.type === 'crypto' ? chText(i.ch24) : 'ETF'} · ${(al * 100).toFixed(0)} %</small></div></div>`;
+      return `<div class="hm-p" style="--i:${4 + top.indexOf(i)}"><div class="asset-img">${img}</div><div><span class="n">${esc(i.sym)}</span><span class="muted"> ${esc(i.name)}</span><span class="s"><i style="width:${Math.round(al * 100)}%"></i></span></div><div class="v">${fv(i.usd)}<small class="${i.type === 'crypto' ? chClass(i.ch24) : 'muted'}">${i.type === 'crypto' ? chText(i.ch24) : 'ETF'} · ${(al * 100).toFixed(0)} %</small></div></div>`;
     }).join('') || '<div class="hm-empty">Aucune position.</div>';
 
     // actions
@@ -88,10 +104,11 @@
     } catch (e) {}
 
     todo.sort((a, b) => b.w - a.w);
-    const card = a => `<button type="button" class="hm-act" data-go="${a.go}" data-sym="${a.sym || ''}"><span class="hm-badge ${a.b}">${a.l}</span><span class="hm-act-t">${a.t}</span>${a.v ? `<span class="hm-act-v">${a.v}</span>` : ''}<span class="hm-act-d">${a.d}</span></button>`;
+    let ci2 = 0; const card = a => `<button type="button" class="hm-act" style="--i:${3 + ci2++}" data-go="${a.go}" data-sym="${a.sym || ''}"><span class="hm-badge ${a.b}">${a.l}</span><span class="hm-act-t">${a.t}</span>${a.v ? `<span class="hm-act-v">${a.v}</span>` : ''}<span class="hm-act-d">${a.d}</span></button>`;
     $('hmActions').innerHTML = todo.length ? todo.map(card).join('') : `<div class="hm-empty">${SIG ? 'Aucune action à envisager aujourd\'hui : les signaux ne demandent ni achat ni vente.' : 'Chargement des signaux…'}</div>`;
     $('hmWatch').innerHTML = watch.map(card).join(''); $('hmWatchH').hidden = !watch.length;
     $('hmQuiet').innerHTML = quiet.map(q => `<li>${q}</li>`).join(''); $('hmQuietH').hidden = !quiet.length;
+    if (!firstDone) { firstDone = true; const pg = $('p-home'); pg.classList.add('hm-anim'); setTimeout(() => pg.classList.remove('hm-anim'), 1600); }
     document.querySelectorAll('#p-home .hm-act').forEach(b => b.onclick = () => go(b.dataset.go));
 
     // headline
@@ -111,6 +128,17 @@
   const prevSum = window.renderSum;
   window.renderSum = function () { prevSum.apply(this, arguments); try { render(); } catch (e) { console.error(e); } };
   const prevGo = window.go;
-  window.go = function (p) { prevGo(p); if (p === 'home') { loadSig(); render(); } };
+  window.go = function (p) {
+    prevGo(p);
+    const grp = SEG.some(s => s[0] === p);
+    if (grp) { paintSeg(p); document.querySelectorAll('.sb-link[data-page]').forEach(l => l.classList.toggle('active', l.dataset.page === 'holdings')); }
+    const more = document.querySelector('.sb-more'); if (more && more.querySelector(`[data-page="${p}"]`)) more.open = true;
+    if (p === 'home') { loadSig(); render(); }
+    window.scrollTo({ top: 0 });
+  };
+  paintSeg('holdings');
+  // wrong password: shake the entry card
+  const err = $('gateErr');
+  if (err) new MutationObserver(() => { if (err.textContent) { const g = $('gate'); g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake'); } }).observe(err, { childList: true });
   loadSig();
 })();

@@ -11,30 +11,25 @@
 <link rel="stylesheet" href="theme.css">
 </head>
 <body>
-<div id="gate" class="gate"><div class="gate-box"><div class="gate-logo">◈ VAULT</div><p class="gate-sub">Entrez le mot de passe</p><input type="password" id="gatePwd" placeholder="••••••••" autofocus><button onclick="checkPwd()">Accéder</button><p class="gate-err" id="gateErr"></p></div></div>
+<div id="gate" class="gate"><div class="gate-glow"></div><div class="gate-box"><div class="gate-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path class="g1" d="M12 2 21 7v10l-9 5-9-5V7z"/><path class="g2" d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z"/></svg><span>VAULT</span></div><p class="gate-sub">Ton portefeuille, une décision par jour.</p><input type="password" id="gatePwd" placeholder="Mot de passe" autofocus aria-label="Mot de passe"><button onclick="checkPwd()">Entrer</button><p class="gate-err" id="gateErr"></p></div></div>
 <div id="app" class="app" style="display:none">
 <aside class="sidebar" id="sidebar">
 <div class="sb-top">
 <div class="sb-logo" onclick="toggleSidebar()"><span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z"/></svg></span><span class="sb-name">VAULT</span></div>
 <nav class="sb-nav">
-<div class="sb-sec">Aujourd'hui</div>
 <a class="sb-link active" data-page="home" onclick="go('home')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z"/></svg></i><span>Aujourd'hui</span></a>
-<div class="sb-sec">Portefeuille</div>
-<a class="sb-link" data-page="holdings" onclick="go('holdings')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12v4"/><path d="M16 13h2"/></svg></i><span>Positions</span></a>
-<a class="sb-link" data-page="neverless" onclick="go('neverless')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg></i><span>Neverless</span></a>
-<a class="sb-link" data-page="revcrypto" onclick="go('revcrypto')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="6"/><path d="M15.5 9.6a6 6 0 1 1-5.9 5.9"/></svg></i><span>Revolut Crypto</span></a>
-<a class="sb-link" data-page="revrobo" onclick="go('revrobo')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10"/><path d="M11 20V4"/><path d="M17 20v-7"/><path d="M2 20h20"/></svg></i><span>Revolut Robo</span></a>
-<div class="sb-sec">Analyse</div>
+<a class="sb-link" data-page="holdings" onclick="go('holdings')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12v4"/><path d="M16 13h2"/></svg></i><span>Portefeuille</span></a>
 <a class="sb-link" data-page="signals" onclick="go('signals')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></i><span>Signaux</span></a>
 <a class="sb-link" data-page="performance" onclick="go('performance')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Performance</span></a>
+<a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><span>Historique</span></a>
+<a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg></i><span>Importer</span></a>
+<details class="sb-more"><summary class="sb-link"><i class="sb-i"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></i><span>Plus</span></summary>
 <a class="sb-link" data-page="risk" onclick="go('risk')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></i><span>Risque</span></a>
 <a class="sb-link" data-page="evolution" onclick="go('evolution')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></i><span>Évolution</span></a>
 <a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg></i><span>Marché</span></a>
-<div class="sb-sec">Gestion</div>
 <a class="sb-link" data-page="strategy" onclick="go('strategy')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Stratégie</span></a>
-<a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><span>Historique</span></a>
 <a class="sb-link" data-page="fiscal" onclick="go('fiscal')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7"/><path d="M9 16h7"/></svg></i><span>Fiscal</span></a>
-<a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg></i><span>Import</span></a>
+</details>
 </nav>
 </div>
 <div class="sb-bottom">
@@ -51,7 +46,7 @@
 <!-- Holdings -->
 <!-- Aujourd'hui -->
 <section class="page active" id="p-home">
-<div class="hm-hero">
+<div class="hm-hero"><div class="hm-glow" aria-hidden="true"></div>
 <div><div class="hm-date" id="hmDate"></div><h1 class="hm-title" id="hmTitle">Chargement de ton portefeuille…</h1><p class="hm-sub" id="hmSub"></p></div>
 <div class="hm-figs">
 <div class="hm-fig lead"><span class="hm-lbl">Valeur totale</span><span class="hm-val" id="hmTotal">--</span><span class="hm-chg" id="hmChg"></span></div>
@@ -62,7 +57,7 @@
 <div class="hm-grid">
 <div class="hm-col">
 <h3 class="hm-h">À faire</h3>
-<div class="hm-actions" id="hmActions"><div class="hm-empty">Chargement…</div></div>
+<div class="hm-actions" id="hmActions"><div class="sk" style="height:92px"></div><div class="sk" style="height:92px"></div><div class="sk" style="height:92px"></div></div>
 <h3 class="hm-h" id="hmWatchH" hidden>À surveiller</h3>
 <div class="hm-actions" id="hmWatch"></div>
 <h3 class="hm-h" id="hmQuietH" hidden>Rien à faire</h3>
@@ -70,7 +65,7 @@
 </div>
 <div class="hm-col">
 <h3 class="hm-h">Tes plus grosses positions</h3>
-<div class="hm-pos" id="hmPos"></div>
+<div class="hm-pos" id="hmPos"><div class="sk flat" style="height:300px"></div></div>
 <button class="hm-link" type="button" onclick="go('holdings')">Voir toutes les positions</button>
 <p class="hm-note">Les actions proposées appliquent une règle de tendance (prix face à sa moyenne 50 jours), testée sur le passé de tes cryptos. Elle limite les grosses pertes mais se trompe régulièrement : ce n'est ni une garantie de gain ni un conseil en investissement.</p>
 </div>
@@ -78,6 +73,7 @@
 </section>
 
 <section class="page" id="p-holdings">
+<div class="seg" role="tablist"></div>
 <div class="kpi-row">
 <div class="kpi accent"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
 <div class="kpi"><div class="kpi-label">Crypto / ETF</div><div class="kpi-val" id="kpiBreak">--</div></div>
@@ -101,18 +97,21 @@
 
 <!-- Neverless -->
 <section class="page" id="p-neverless">
+<div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Neverless (SwissBorg)</h2><div class="source-total" id="nevTotal">--</div></div>
 <div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>24h</th><th>7j</th><th>Alloc</th></tr></thead><tbody id="nevBody"></tbody></table></div>
 </section>
 
 <!-- Revolut Crypto -->
 <section class="page" id="p-revcrypto">
+<div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Revolut Crypto</h2><div class="source-total" id="rcTotal">--</div></div>
 <div class="table-wrap"><table class="htable"><thead><tr><th>Actif</th><th>Qté</th><th>Prix</th><th>Valeur</th><th>24h</th><th>7j</th><th>Alloc</th></tr></thead><tbody id="rcBody"></tbody></table></div>
 </section>
 
 <!-- Revolut Robo -->
 <section class="page" id="p-revrobo">
+<div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Revolut Robo-Advisor</h2><div class="source-total" id="rrTotal">--</div></div>
 <div class="table-wrap"><table class="htable"><thead><tr><th>ETF</th><th>Qté</th><th>Prix (€)</th><th>Valeur (€)</th><th>Alloc</th></tr></thead><tbody id="rrBody"></tbody></table></div>
 </section>
