@@ -167,18 +167,39 @@ const lblC=isDark()?'#5f6580':'#9298b0';ms.forEach((m,i)=>{const x=p+i*(bw+gp)+g
 document.getElementById('statGrid').innerHTML=[{v:sbTx.filter(t=>t.Type==='Trade').length+rcTx.filter(t=>['Achat','Vente'].includes((t.Type||'').trim())).length,l:'Trades crypto'},{v:rrTx.filter(t=>(t.Type||'').includes('BUY')||(t.Type||'').includes('SELL')).length,l:'Trades ETF'},{v:Object.keys(cryptoH).filter(s=>cryptoH[s]>1e-7).length,l:'Cryptos'},{v:Object.keys(etfH).length,l:'ETFs'},{v:sbTx.length+rcTx.length+rrTx.length,l:'Opérations'}].map(s=>`<div class="stat-item"><div class="sv">${s.v.toLocaleString()}</div><div class="sl">${s.l}</div></div>`).join('');}
 
 // Upload
-async function gasReachable(){try{const r=await fetch(GAS+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();return !!j&&typeof j==='object';}catch(e){return false;}}
 function txSig(tab){const a={Neverless:sbTx,Revolut_Crypto:rcTx,Revolut_Robo:rrTx}[tab]||[];return a.length+'|'+JSON.stringify(a[a.length-1]||{});}
-async function doUpload(tab,input){const f=input.files[0];if(!f)return;const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];const el=document.getElementById(sid);const say=(t,c)=>{el.textContent=t;el.style.color=c;};say('⏳ Vérification du script Google…','var(--orange)');
-if(!await gasReachable()){say('❌ Non envoyé : le script Google demande une connexion. Redéploie-le avec l\'accès « Tout le monde » (voir README).','var(--red)');input.value='';return;}
-const text=await f.text();const lines=text.split('\n').filter(l=>l.trim());const csvData=lines.map(l=>csvL(l));const need={Neverless:['Type','Date','Asset received','Amount received'],Revolut_Crypto:['Symbol','Type','Date'],Revolut_Robo:['Date','Ticker','Type','Quantity']}[tab];const head=(csvData[0]||[]).map(h=>h.replace(/^\uFEFF/,'').trim());const miss=need.filter(c=>!head.includes(c));if(miss.length||csvData.length<2){say('❌ Ce fichier n\'est pas le bon : il manque les colonnes '+miss.join(', ')+'. Exporte le relevé des transactions (pas le relevé de gains et pertes). Rien n\'a été modifié.','var(--red)');input.value='';return;}say('⏳ Envoi…','var(--orange)');const before=txSig(tab);
-try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'upload_csv',tabName:tab,csvData}),mode:'no-cors'});}catch(e){say('❌ '+e.message,'var(--red)');input.value='';return;}
-say(`⏳ ${csvData.length} lignes envoyées, vérification dans la Google Sheet…`,'var(--orange)');let changed=false;for(let i=0;i<4&&!changed;i++){await sleep(3000);await loadSheets();changed=txSig(tab)!==before;}
-if(changed){say(`✅ ${csvData.length} lignes enregistrées`,'var(--green)');await refreshAll();}else say('⚠️ Envoyé, mais rien n\'a changé dans la Google Sheet. Si le fichier est identique à l\'ancien, c\'est normal ; sinon le script Google n\'a pas écrit les lignes.','var(--orange)');input.value='';}
-
-// Evolution
-async function logVal(v,n){try{await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n}),mode:'no-cors'});}catch(e){}}
-async function fetchHist(){try{const r=await fetch(GAS);if(!r.ok)return[];const j=await r.json();if(j.status==='ok'&&j.data)return j.data.map(d=>({date:new Date(d.date),v:d.valueUSD})).sort((a,b)=>a.date-b.date);}catch(e){}return[];}
+// Normalise une cellule pour comparer un fichier importé à ce qui est déjà enregistré
+function normCell(v){v=String(v==null?'':v).replace(/^\uFEFF/,'').replace(/\u00a0/g,' ').trim();const n=v.replace(/\s/g,'').replace(',','.');if(/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(n))return String(+(+n).toPrecision(12));return v;}
+function rowKey(r,w){const x=[];for(let i=0;i<w;i++)x.push(normCell(r[i]));return x.join('\u0001');}
+function dateSpan(rows){const h=(rows[0]||[]).map(x=>String(x).trim());const i=h.indexOf('Date');if(i<0)return null;let lo=Infinity,hi=-Infinity;rows.slice(1).forEach(r=>{const d=Date.parse(frDate(String(r[i]||'')));if(!isNaN(d)){lo=Math.min(lo,d);hi=Math.max(hi,d);}});return lo<Infinity?[new Date(lo),new Date(hi)]:null;}
+function diffRows(cur,file){const w=Math.max((cur[0]||[]).length,(file[0]||[]).length);const bag=new Map();cur.slice(1).forEach(r=>{const k=rowKey(r,w);bag.set(k,(bag.get(k)||0)+1);});let same=0,added=0;file.slice(1).forEach(r=>{const k=rowKey(r,w);const n=bag.get(k)||0;if(n>0){same++;bag.set(k,n-1);}else added++;});let gone=0;bag.forEach(n=>gone+=n);return{read:file.length-1,same,added,gone,cur:cur.length-1};}
+const pendingUp={};
+async function doUpload(tab,input){const f=input.files[0];if(!f)return;const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];const el=document.getElementById(sid);const say=(t,c)=>{el.innerHTML=t;el.style.color=c||'';};
+input.value='';
+if(window.dataMode!=='key'){say('❌ Import impossible : saisis d\'abord ta clé d\'accès en haut de cette page.','var(--red)');return;}
+const text=await f.text();const csvData=text.split(/\r?\n/).filter(l=>l.trim()).map(l=>csvL(l));
+const need={Neverless:['Type','Date','Asset received','Amount received'],Revolut_Crypto:['Symbol','Type','Date'],Revolut_Robo:['Date','Ticker','Type','Quantity']}[tab];const head=(csvData[0]||[]).map(h=>h.replace(/^\uFEFF/,'').trim());const miss=need.filter(c=>!head.includes(c));
+if(miss.length||csvData.length<2){say('❌ Ce fichier n\'est pas le bon : il manque les colonnes '+miss.join(', ')+'. Exporte le relevé des transactions (pas le relevé de gains et pertes). Rien n\'a été modifié.','var(--red)');return;}
+const cur=(window.rawTabs[tab]||[]);const d=diffRows(cur,csvData);const sp=dateSpan(csvData),cs=dateSpan(cur);const fd=x=>x.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+pendingUp[tab]=csvData;
+const warn=d.gone>0?`<div class="imp-warn">⚠️ <b>${d.gone}</b> ligne${d.gone>1?'s':''} actuellement enregistrée${d.gone>1?'s':''} ne ${d.gone>1?'sont':'figure'} pas dans ce fichier et ${d.gone>1?'seraient supprimées':'serait supprimée'}. Vérifie que l'export couvre bien toute la période.</div>`:'';
+say(`<div class="imp-prev"><div class="imp-stats"><span><b>${d.read}</b> lues</span><span><b>${d.added}</b> nouvelles</span><span><b>${d.same}</b> déjà présentes</span><span class="${d.gone?'red':''}"><b>${d.gone}</b> disparues</span></div>
+<div class="imp-span">Fichier : ${sp?fd(sp[0])+' → '+fd(sp[1]):'dates illisibles'}${cs?` · Enregistré : ${fd(cs[0])} → ${fd(cs[1])}`:''}</div>${warn}
+<div class="imp-btns"><button type="button" class="uz-btn" onclick="confirmUpload('${tab}')">${d.gone?'Remplacer quand même':'Enregistrer'}</button><button type="button" class="imp-cancel" onclick="cancelUpload('${tab}')">Annuler</button></div>
+<div class="imp-note">Une sauvegarde de l'onglet actuel est créée avant tout remplacement.</div></div>`);}
+function cancelUpload(tab){delete pendingUp[tab];const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];document.getElementById(sid).textContent='Annulé : rien n\'a été modifié.';}
+async function confirmUpload(tab){const rows=pendingUp[tab];if(!rows)return;const sid={Neverless:'sNev',Revolut_Crypto:'sRC',Revolut_Robo:'sRR'}[tab];const el=document.getElementById(sid);el.style.color='var(--orange)';el.textContent='⏳ Envoi…';
+const j=await gasPost({action:'upload_csv',tabName:tab,csvData:rows});delete pendingUp[tab];
+if(j.status!=='ok'){el.style.color='var(--red)';el.textContent='❌ '+(j.status==='denied'?'Clé refusée par le script.':(j.message||'Échec de l\'envoi.'))+' Rien n\'a été modifié.';return;}
+el.style.color='var(--green)';el.textContent=`✅ ${j.rows} lignes enregistrées${j.backup?' · ancienne version sauvegardée':''}.`;await refreshAll();}
+async function restoreBackup(tab,name){const el=document.getElementById('bkMsg');el.textContent='⏳ Restauration…';const j=await gasPost({action:'restore_backup',tabName:tab,backup:name});el.textContent=j.status==='ok'?`✅ ${tab} restauré (${j.rows} lignes). La version remplacée est elle-même sauvegardée.`:'❌ '+(j.message||'échec');if(j.status==='ok')await refreshAll();}
+function saveKey(){const v=document.getElementById('keyInput').value.trim();try{if(v)localStorage.setItem('vault_key',v);else localStorage.removeItem('vault_key');}catch(e){}document.getElementById('keyInput').value='';refreshAll();}
+function renderKeyState(){const el=document.getElementById('keyState');if(!el)return;const m=window.dataMode;
+el.innerHTML=m==='key'?'<span class="green">● Connecté au script avec ta clé.</span>':m==='denied'?'<span class="red">● Clé refusée.</span> Vérifie-la (fonction creerCle du script).':m==='public'?'<span class="orange">● Données lues en accès public, sans clé.</span> Ta Google Sheet est lisible par tout le monde : voir les étapes ci-dessous.':'<span class="red">● Données verrouillées.</span> Saisis ta clé d\'accès pour les afficher.';
+const bk=document.getElementById('bkList');if(bk){const t=window.tabBackups||{};const rows=Object.entries(t).flatMap(([tab,l])=>l.slice(0,3).map(n=>{const m=n.match(/_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/);return`<li><span>${tab.replace('_',' ')} · ${m?`${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`:n}</span><button type="button" class="imp-cancel" onclick="restoreBackup('${tab}','${n}')">Restaurer</button></li>`;}));bk.innerHTML=rows.length?rows.join(''):'<li class="muted">Aucune sauvegarde pour l\'instant : elles sont créées à chaque import.</li>';}}
+async function logVal(v,n){if(window.dataMode!=='key')return;await gasPost({action:'log_value',valueUSD:v,valueEUR:v/eurUsd,nbAssets:n});}
+// Les points enregistrés avec des prix incomplets (bug corrigé le 15/11/2026) sont écartés : valeur < 60 % de la médiane
+async function fetchHist(){const j=await gasGet('history');if(!j||j.status!=='ok'||!j.data)return[];let d=j.data.map(x=>({date:new Date(x.date),v:+x.valueUSD})).filter(x=>x.v>0&&!isNaN(x.date)).sort((a,b)=>a.date-b.date);if(d.length>4){const m=[...d.map(x=>x.v)].sort((a,b)=>a-b)[d.length>>1];d=d.filter(x=>x.v>=0.6*m);}return d;}
 function setPeriod(d){selPer=d;document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');renderEvo();}
 function renderEvo(){const cv=document.getElementById('evoChart');const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);
 const tCol=isDark()?'#e4e6f0':'#1a1d26';const mutCol=isDark()?'#5f6580':'#9298b0';const gridCol=isDark()?'#252a3a':'#e0e3ec';
@@ -208,13 +229,25 @@ function setS(t,live){document.getElementById('statusTxt').textContent=t;documen
 function updTime(){document.getElementById('lastUpd').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
 
 // Loading
-async function loadSheets(){setS('Données...');const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb)sbTx=parseCSV(sb);const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc).map(t=>(t.Date=frDate(t.Date),t));const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);merge();popFilter();renderHist();return sbTx.length>0;}
+// Accès aux données : par le script Google avec la clé (données privées), sinon lecture publique (ancien mode)
+const vaultKey=()=>{try{return localStorage.getItem('vault_key')||'';}catch(e){return '';}};
+window.dataMode='';window.rawTabs={};window.tabBackups={};
+function rowsToObjs(rows){if(!rows||rows.length<2)return[];const h=rows[0].map(x=>String(x).replace(/^\uFEFF/,'').trim());return rows.slice(1).filter(r=>r.some(v=>String(v).trim())).map(r=>{const o={};h.forEach((k,i)=>{o[k]=String(r[i]==null?'':r[i]).trim();});return o;});}
+async function gasGet(action){const k=vaultKey();if(!k)return null;try{const r=await fetch(`${GAS}?action=${action}&key=${encodeURIComponent(k)}&_=${Date.now()}`,{cache:'no-store'});if(!r.ok)return{status:'error'};return await r.json();}catch(e){return{status:'error'};}}
+async function gasPost(body){const k=vaultKey();try{const r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(Object.assign({key:k},body))});return await r.json();}catch(e){return{status:'error',message:'script injoignable'};}}
+async function loadSheets(){setS('Données...');window.dataMode='';
+const j=await gasGet('read');
+if(j&&j.status==='ok'&&j.tabs){window.dataMode='key';window.rawTabs=j.tabs;window.tabBackups=j.backups||{};sbTx=rowsToObjs(j.tabs.Neverless);rcTx=rowsToObjs(j.tabs.Revolut_Crypto).map(t=>(t.Date=frDate(t.Date),t));rrTx=rowsToObjs(j.tabs.Revolut_Robo);}
+else{if(j&&j.status==='denied')window.dataMode='denied';
+const sb=await getCSV(SHEET_URLS.sb,'SB');if(sb){sbTx=parseCSV(sb);window.dataMode=window.dataMode||'public';}const rc=await getCSV(SHEET_URLS.rc,'RC');if(rc)rcTx=parseCSV(rc).map(t=>(t.Date=frDate(t.Date),t));const rr=await getCSV(SHEET_URLS.rr,'RR');if(rr)rrTx=parseCSV(rr);
+if(!sb&&!window.dataMode)window.dataMode='locked';}
+merge();popFilter();renderHist();try{renderKeyState();}catch(e){}return sbTx.length>0||rcTx.length>0||rrTx.length>0;}
 async function loadPrices(){setS('Prix...');const a=Object.entries(cryptoH).filter(([s,q])=>q>1e-7).map(([s])=>s);prices=await fetchPrices(a);window.pricesStale=null;try{const miss=a.filter(k=>!prices[k]&&CGM[k]);if(miss.length){let c=null;try{const r=await fetch('data/prices.json?t='+Date.now());if(r.ok){const j=await r.json();c={t:Date.parse(j.generated),p:j.prices};}}catch(e){}const l=JSON.parse(localStorage.getItem('vault_prices')||'null');if(l&&l.p&&(!c||l.t>c.t))c=l;if(c&&c.p){let n=0;for(const k of miss)if(c.p[k]){prices[k]=c.p[k];n++;}if(n)window.pricesStale=c.t;}}if(Object.keys(prices).length)localStorage.setItem('vault_prices',JSON.stringify({t:window.pricesStale||Date.now(),p:prices}));}catch(e){}if(!Object.keys(etfP).length){const lp=lastETFPrices();for(const tk of Object.keys(etfH))etfP[tk]={eur:lp[tk]||0,name:ETFN[tk]||tk};}renderH();renderSum();setS('ETF...');await fetchETF();renderH();renderSum();const ap=document.querySelector('.page.active');if(ap&&ap.id==='p-neverless')renderSource('nev');else if(ap&&ap.id==='p-revcrypto')renderSource('rc');else if(ap&&ap.id==='p-revrobo')renderSourceETF();setS('En direct',true);}
 async function loadMkt(){setS('Marché...');mktData=await fetchMkt();renderMkt();setS('En direct',true);}
 async function refreshAll(){const b=document.querySelector('.topbar-refresh');b.classList.add('spin');await loadSheets();await loadPrices();if(mktData.length)await loadMkt();setS('En direct',true);updTime();b.classList.remove('spin');}
 
 async function init(){restorePrefs();setS('Initialisation...');await Promise.all([fetchFG(),fetchEurUsd()]);
-const ok=await loadSheets();if(ok){await loadPrices();const it=allItems();const tot=it.reduce((s,i)=>s+i.usd,0);if(tot>0)logVal(tot,it.filter(i=>i.usd>=10).length);
+const ok=await loadSheets();if(!ok){setS('Données verrouillées');try{window.renderHome&&window.renderHome();}catch(e){}}if(ok){await loadPrices();const it=allItems();const tot=it.reduce((s,i)=>s+i.usd,0);const held=Object.entries(cryptoH).filter(([k,q])=>q>1e-7&&CGM[k]).map(([k])=>k);const complete=held.every(k=>prices[k]&&prices[k].p>0)&&!window.pricesStale&&Object.keys(etfH).every(k=>(etfP[k]||{}).eur>0);if(tot>0&&complete)logVal(tot,it.filter(i=>i.usd>=10).length);
 pHist=await fetchHist();if(pHist.length)document.getElementById('evoStatus').textContent=`${pHist.length} points · Depuis ${pHist[0].date.toLocaleDateString('fr-FR')}`;}
 setS('En direct',true);updTime();}
 
@@ -256,7 +289,7 @@ if(!pruData[ss])pruData[ss]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};
 const pru=pruData[ss].totalQty>0?pruData[ss].totalCost/pruData[ss].totalQty:0;
 // gain réalisé seulement sur la part dont on connaît le coût d'achat ; les stablecoins sont de la trésorerie
 const m=STABLE.has(ss)?0:Math.min(sa,Math.max(0,pruData[ss].totalQty));
-pruData[ss].sells.push({date:d,qty:sa,sellPrice:priceS,pru,pnl:m>0?(priceS-pru)*m:0,src:'SB'});
+pruData[ss].sells.push({date:d,qty:sa,sellPrice:priceS,pru,pnl:m>0?(priceS-pru)*m:0,src:'SB',excl:STABLE.has(ss)?0:(sa-m)*priceS});
 pruData[ss].totalQty=Math.max(0,pruData[ss].totalQty-sa);pruData[ss].totalCost=pru*pruData[ss].totalQty;}
 if(fa&&fs&&!['EUR','USD'].includes(fs)){if(!pruData[fs])pruData[fs]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0};pruData[fs].fees+=fa*(pn(tx['USD price of fee asset'])||0);}
 if(tx.Type==='Deposit'&&tx.Description&&(tx.Description.includes('interest')||tx.Description.includes('reward')||tx.Description.includes('staking'))&&ra&&rs&&!['EUR','USD'].includes(rs)){
@@ -273,7 +306,7 @@ if(!pruData[sym])pruData[sym]={totalCost:0,totalQty:0,sells:[],fees:0,passive:0}
 // Normalize type
 const tpClean=tp.replace(/\u00a0/g,' ');
 if(tpClean==='Achat'){pruData[sym].totalCost+=val;pruData[sym].totalQty+=q;}
-else if(tpClean==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;const m=STABLE.has(sym)?0:Math.min(q,Math.max(0,pruData[sym].totalQty));pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:m>0?(val/q-pru)*m:0,src:'RC'});pruData[sym].totalQty=Math.max(0,pruData[sym].totalQty-q);pruData[sym].totalCost=pru*pruData[sym].totalQty;}
+else if(tpClean==='Vente'){const pru=pruData[sym].totalQty>0?pruData[sym].totalCost/pruData[sym].totalQty:0;const m=STABLE.has(sym)?0:Math.min(q,Math.max(0,pruData[sym].totalQty));pruData[sym].sells.push({date:null,qty:q,sellPrice:val/q,pru,pnl:m>0?(val/q-pru)*m:0,src:'RC',excl:STABLE.has(sym)?0:(q-m)*val/q});pruData[sym].totalQty=Math.max(0,pruData[sym].totalQty-q);pruData[sym].totalCost=pru*pruData[sym].totalQty;}
 if(fee)pruData[sym].fees+=fee;
 if(tpClean.includes('compense')||tpClean.includes('Apprendre')){pruData[sym].passive+=val;pruData[sym].totalQty+=q;}
 });
@@ -296,7 +329,8 @@ rows.push({sym,avgCost,curPrice,qty,costBasis,curVal,unrealPnl,unrealPct,name:pr
 }
 for(const d of Object.values(pru)){totalReal+=d.sells.reduce((s,x)=>s+x.pnl,0);totalPassive+=d.passive;totalFees+=d.fees;}
 document.getElementById('perfUnreal').innerHTML=`<span class="${chClass(totalUnreal)}">${fv(totalUnreal)}</span>`;
-document.getElementById('perfReal').innerHTML=`<span class="${chClass(totalReal)}">${fv(totalReal)}</span>`;
+let exN=0,exV=0;for(const d of Object.values(pru))d.sells.forEach(x=>{if(x.excl>0.5){exN++;exV+=x.excl;}});
+document.getElementById('perfReal').innerHTML=`<span class="${chClass(totalReal)}">${fv(totalReal)}</span>${exN?`<span class="kpi-sub" style="display:block;font-size:0.72rem;font-weight:400;color:var(--orange)">Résultat partiel : ${exN} vente${exN>1?'s':''} (${fv(exV)}) sans coût d'achat connu, exclue${exN>1?'s':''}</span>`:''}`;
 document.getElementById('perfPassive').textContent=fv(totalPassive);
 document.getElementById('perfFees').textContent=fv(totalFees);
 rows.sort((a,b)=>b.curVal-a.curVal);

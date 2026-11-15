@@ -37,12 +37,17 @@ def trend_block(df):
     flips = above.ne(above.shift())
     start_i = int(np.where(flips.values)[0][-1])
     # strategy record over the full history
-    pos = above.astype(float).shift(1).fillna(0)
+    # Realistic timing: the signal of close t is published the next morning, so the position is
+    # taken at close t+1 (shift 2). Acting at close t itself (shift 1) flattered results a lot.
+    pos = above.astype(float).shift(2).fillna(0)
+    pos_fast = above.astype(float).shift(1).fillna(0)
     ret = c.pct_change().fillna(0)
     sw = pos.diff().abs().fillna(0)
     eq = (1 + pos * ret - sw * COST).cumprod()
     bh = (1 + ret).cumprod()
     s0 = SMA_N
+    eq_fast = (1 + pos_fast * ret - pos_fast.diff().abs().fillna(0) * COST).cumprod()
+    eq_fast = eq_fast.iloc[s0:] / eq_fast.iloc[s0]
     eq, bh = eq.iloc[s0:] / eq.iloc[s0], bh.iloc[s0:] / bh.iloc[s0]
     dd = lambda e: float((e / e.cummax() - 1).min())
     # past signals (last 12 switches) with the move that followed until the next switch
@@ -62,6 +67,7 @@ def trend_block(df):
         "rsi": float(rsi(c).iloc[-1]),
         "record": {"from": df["date"].iloc[s0].strftime("%Y-%m-%d"), "strategy": float(eq.iloc[-1] - 1), "strategy_dd": dd(eq),
                    "hold": float(bh.iloc[-1] - 1), "hold_dd": dd(bh), "switches": int(sw.iloc[s0:].sum()),
+                   "strategy_same_close": float(eq_fast.iloc[-1] - 1), "delay_days": 1,
                    "time_in": float(pos.iloc[s0:].mean())},
         "events": events,
     }
@@ -131,6 +137,7 @@ def main():
             "last": last, "history": [[d.strftime("%Y-%m-%d"), round(float(v), 8)] for d, v in zip(hist["date"], hist["close"])],
             "sma": [round(float(v), 8) if v == v else None for v in df["close"].rolling(SMA_N).mean().iloc[-730:]],
             "trend": trend_block(df), "horizons": hz, "fan": fan,
+            "stale": bool((pd.Timestamp.now(tz="UTC").normalize() - last_date).days > 2),
             "days_of_history": int(len(df)),
         }
         print(sym, "ok", f"{time.time() - t0:.0f}s", flush=True)

@@ -25,13 +25,15 @@
     const k = h.pup >= 0.55 ? 'up' : h.pup <= 0.45 ? 'down' : 'flat';
     const kWord = k === 'up' ? 'haussier' : k === 'down' ? 'baissier' : 'neutre';
     const agree = (t.above && k === 'up') || (!t.above && k === 'down');
-    const kTxt = `${kWord} à 1 mois` + (k === 'flat' ? '' : agree ? ', d\'accord' : ', en désaccord');
+    const kTxt = `${kWord} à 1 mois (non validé)`;
+    if (c.stale || (S.data && (Date.now() - Date.parse(S.data.generated)) > 36 * 3600e3))
+      return { c: 'wait', label: 'Suspendu', head: 'Signal suspendu : données de prix trop anciennes', kTxt };
     return t.above
-      ? { c: 'buy', label: 'Achat', head: 'Tendance haussière : acheter ou garder', kTxt }
-      : { c: 'sell', label: 'Vente', head: 'Tendance baissière : vendre ou attendre', kTxt };
+      ? { c: 'buy', label: 'Favorable', head: 'Tendance favorable', kTxt }
+      : { c: 'sell', label: 'Défavorable', head: 'Tendance défavorable', kTxt };
   }
   function reliability(h) {
-    if (!h.track) return ['', 'Non testé'];
+    if (!h.track) return h.source === 'history' ? ['', 'Dispersion seule'] : ['', 'Non testé'];
     const t = h.track;
     if (t.acc <= t.acc_const || t.ic < 0.05) return ['none', 'Pas d\'avantage'];
     if (t.ic < 0.15 || t.acc < t.acc_const + 0.05) return ['weak', 'Faible'];
@@ -93,11 +95,12 @@
         <dt>RSI 14 j</dt><dd>${Math.round(t.rsi)}</dd>
       </dl>
       <div class="sg-sep"></div>
-      <div class="sub" style="margin:0">Si tu avais suivi ce signal depuis le ${fdate(r.from)} (frais de 0,25 % par changement inclus) :</div>
+      <div class="sub" style="margin:0">Si tu avais suivi ce signal depuis le ${fdate(r.from)}, en agissant le lendemain du signal (frais de 0,25 % par changement inclus) :</div>
       <div class="sg-rec">
         <div><div class="lbl">Suivre le signal</div><div class="v ${cls(r.strategy)}">${pct(r.strategy, 0)}</div><div class="dd">pire recul ${pct(r.strategy_dd, 0)} · investi ${Math.round(r.time_in * 100)} % du temps</div></div>
         <div><div class="lbl">Garder sans bouger</div><div class="v ${cls(r.hold)}">${pct(r.hold, 0)}</div><div class="dd">pire recul ${pct(r.hold_dd, 0)}</div></div>
-      </div>`;
+      </div>
+      ${r.strategy_same_close != null ? `<p class="sg-line" style="margin:0">En agissant pile à la clôture du signal, impossible en pratique : ${pct(r.strategy_same_close, 0)}. Cet écart montre que le résultat dépend fortement du moment exact où l'on agit.</p>` : ''}`;
     // tabs
     $('sgTabs').innerHTML = c.horizons.map(h => `<button type="button" role="tab" aria-selected="${h.key === S.hz}" data-k="${h.key}">${h.label}</button>`).join('');
     $('sgTabs').querySelectorAll('button').forEach(b => b.onclick = () => { S.hz = b.dataset.k; renderDetail(); });

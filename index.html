@@ -166,8 +166,8 @@
 <div class="sg-detail">
 <div class="sg-panel"><h3>Signaux passés</h3><div class="sub">Chaque croisement de la moyenne 50 jours, et la variation du prix jusqu'au signal suivant. En vert : le signal avait vu juste (hausse après un achat, baisse après une vente).</div><ul class="sg-events" id="sgEvents"></ul></div>
 <div class="sg-panel sg-note"><h3>Comment lire cette page</h3>
-<p><b>Le signal</b> vient de la tendance : prix au-dessus de sa moyenne des 50 derniers jours = achat ou conservation, en dessous = vente ou attente. Sur l'historique de tes quatre cryptos, suivre cette règle a nettement limité les pertes par rapport à tout garder, mais elle rate souvent les retournements et fait des allers-retours quand le marché hésite.</p>
-<p><b>Kronos</b> donne pour chaque horizon un scénario central, une fourchette et une probabilité de hausse. Testé à environ 40 dates passées par crypto, il a deviné le sens du prix moins souvent que la « référence » (parier toujours sur le sens le plus fréquent) : sa fiabilité est affichée ligne par ligne. Il sert d'avis secondaire, pas de déclencheur.</p>
+<p><b>Le signal</b> vient de la tendance : prix au-dessus de sa moyenne des 50 derniers jours = tendance favorable, en dessous = défavorable. C'est une règle <b>expérimentale</b>. Testée hors échantillon (choix de la règle sur le passé seulement, mesure sur la période suivante, un jour de délai), elle a surtout <b>réduit les pertes</b> sur ATOM, PLUME et CETUS, mais <b>n'a pas battu la simple conservation sur BTC</b> sur l'ensemble de l'historique. Rechoisir la durée de la moyenne au fil du temps n'a pas fait mieux que garder 50 jours.</p>
+<p><b>Kronos</b> donne pour chaque horizon un scénario central, une fourchette et une probabilité de hausse. Testé à environ 40 dates passées par crypto, il a deviné le sens du prix moins souvent que la « référence » (parier toujours sur le sens le plus fréquent) : sa fiabilité est affichée ligne par ligne. Quand Kronos et la tendance vont dans le même sens, ce n'est pas une confirmation : ni l'un ni l'autre n'est validé. Il sert d'avis secondaire, pas de déclencheur.</p>
 <p><b>Les fourchettes</b> ne viennent pas de Kronos, dont les écarts étaient bien trop étroits : elles reprennent l'amplitude réelle des variations passées de chaque crypto sur la même durée. <b>Au-delà d'un mois</b>, aucune méthode testée ne prévoit le sens : le scénario central reste celui à 1 mois et seule l'amplitude s'élargit.</p>
 <div class="sg-warn">Outil d'aide à la réflexion, pas un conseil en investissement. Aucune règle ne protège d'un krach soudain ; ne place pas plus que ce que tu acceptes de perdre.</div></div>
 </div>
@@ -243,12 +243,15 @@
 <!-- Import -->
 <section class="page" id="p-import">
 <div class="page-head"><h2>Import CSV</h2></div>
-<p class="muted" style="margin-bottom:1.5rem">Importez vos fichiers. Ils s'enregistrent dans votre Google Sheet.</p>
+<div class="imp-key"><div><h3>Clé d'accès</h3><p class="muted">Tes données ne sont lues et modifiées qu'avec cette clé, propre à ton script Google. Elle reste dans ce navigateur : à saisir une fois par appareil.</p><div id="keyState" class="imp-state"></div></div>
+<div class="imp-keyrow"><input type="password" id="keyInput" placeholder="Colle ta clé ici" autocomplete="off" aria-label="Clé d'accès"><button type="button" class="uz-btn" onclick="saveKey()">Enregistrer</button></div></div>
+<p class="muted" style="margin-bottom:1.2rem">Choisis le relevé des <b>transactions</b> de chaque compte. Avant tout enregistrement, VAULT te montre ce qui change.</p>
 <div class="upload-row">
 <div class="upload-zone"><div class="uz-icon">💎</div><div class="uz-title">Neverless</div><input type="file" accept=".csv" id="fNev" onchange="doUpload('Neverless',this)" style="display:none"><label for="fNev" class="uz-btn">Choisir</label><div class="uz-status" id="sNev"></div></div>
 <div class="upload-zone"><div class="uz-icon">🪙</div><div class="uz-title">Revolut Crypto</div><input type="file" accept=".csv" id="fRC" onchange="doUpload('Revolut_Crypto',this)" style="display:none"><label for="fRC" class="uz-btn">Choisir</label><div class="uz-status" id="sRC"></div></div>
 <div class="upload-zone"><div class="uz-icon">📊</div><div class="uz-title">Revolut Robo</div><input type="file" accept=".csv" id="fRR" onchange="doUpload('Revolut_Robo',this)" style="display:none"><label for="fRR" class="uz-btn">Choisir</label><div class="uz-status" id="sRR"></div></div>
 </div>
+<div class="imp-bk"><h3>Sauvegardes</h3><p class="muted">Les 5 dernières versions de chaque onglet sont gardées dans ta Google Sheet (onglets masqués).</p><ul id="bkList"></ul><p class="imp-state" id="bkMsg"></p></div>
 </section>
 </main>
 </div>

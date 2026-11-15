@@ -88,7 +88,10 @@
     try { items = allItems(); } catch (e) { return; }
     const havePrices = typeof prices === 'object' && Object.keys(prices).length > 0;
     const tot = items.reduce((s, i) => s + i.usd, 0);
-    if (!items.length) return;
+    if (!items.length) {
+      if (window.dataMode === 'locked' || window.dataMode === 'denied') { $('hmTitle').textContent = 'Données verrouillées'; $('hmSub').textContent = window.dataMode === 'denied' ? 'La clé d\'accès enregistrée est refusée par le script Google. Saisis la bonne clé dans Importer.' : 'Tes transactions ne sont plus publiques. Saisis ta clé d\'accès dans Importer pour les afficher sur cet appareil.'; $('hmActions').innerHTML = '<button type="button" class="hm-link" onclick="go(\'import\')">Saisir ma clé d\'accès</button>'; }
+      return;
+    }
     if (!havePrices) { $('hmTitle').textContent = 'Prix indisponibles pour l\'instant'; $('hmSub').textContent = 'Le fournisseur de prix limite les demandes. Clique sur ↻ en haut à droite dans une minute.'; $('hmActions').innerHTML = '<div class="hm-empty">Les actions s\'affichent dès que les prix sont chargés.</div>'; return; }
 
     // figures
@@ -114,13 +117,15 @@
     }).join('') || '<div class="hm-empty">Aucune position.</div>';
 
     // actions
-    const todo = [], watch = [], quiet = [];
+    const todo = [], watch = [], quiet = [], susp = [];
     const held = {}; items.forEach(i => { if (i.type === 'crypto') held[i.sym] = i; });
     if (SIG) {
       const age = (now - new Date(SIG.generated)) / 36e5;
-      if (age > 36) watch.push({ b: 'warn', l: 'Données', t: 'Signaux pas à jour', d: `Dernier calcul le ${fdate(new Date(SIG.generated))}. Relance « Signaux Kronos » dans l'onglet Actions du dépôt GitHub.`, go: 'signals' });
+      const suspendAll = age > 36;
+      if (age > 36) watch.push({ b: 'warn', l: 'Données', t: 'Signaux suspendus : calcul pas à jour', d: `Dernier calcul le ${fdate(new Date(SIG.generated))}. Relance « Signaux Kronos » dans l'onglet Actions du dépôt GitHub.`, go: 'signals' });
       for (const [sym, c] of Object.entries(SIG.coins)) {
         const t = c.trend, h = held[sym], has = h && h.usd >= MIN_HELD;
+        if (suspendAll || c.stale) { if (has) susp.push(sym); continue; }
         const fresh = t.days <= 3 ? '<span class="new">Nouveau</span>' : '';
         const flip = fv(eurToUsd(t.sma));
         const val = has ? `${fv(h.usd)}<small>${(h.usd / tot * 100).toFixed(0)} % du total</small>` : '';
@@ -134,6 +139,7 @@
       }
     } else if (sigTried) watch.push({ b: 'warn', l: 'Données', t: 'Signaux indisponibles', d: 'Le fichier des signaux n\'a pas pu être chargé.', go: 'signals' });
 
+    if (window.dataMode === 'public') watch.unshift({ b: 'warn', l: 'Sécurité', t: 'Tes transactions sont lisibles par tout le monde', d: 'La Google Sheet est en accès public. Installe le script sécurisé et ta clé d\'accès, puis rends la feuille privée (voir Importer).', go: 'import' });
     // concentration
     const big = items.filter(i => tot > 0 && i.usd / tot > 0.4 && i.type === 'crypto');
     big.forEach(i => watch.push({ b: 'warn', l: 'Risque', t: `${i.sym} pèse ${(i.usd / tot * 100).toFixed(0)} % du portefeuille`, d: 'Une seule position concentre une grande part du risque. Une baisse de cette crypto touche tout le portefeuille.', go: 'risk' }));
@@ -166,8 +172,9 @@
     };
     const sellsL = todo.filter(a => a.b === 'sell'), buysL = todo.filter(a => a.b === 'buy');
     const n = x => x.length > 1 ? `${x.length} cryptos` : x[0] && x[0].sym;
-    let html = group('sell', sellsL, 'Vendre', `Tendance baissière sur ${n(sellsL)}`) + group('buy', buysL, 'Achat possible', `Tendance repassée à la hausse : ${n(buysL)}`) + group('keep', keeps, 'Garder', `Tendance haussière sur ${n(keeps)}`);
+    let html = group('sell', sellsL, 'Défavorable', `Tendance défavorable sur ${n(sellsL)}`) + group('buy', buysL, 'Favorable', `Tendance favorable, non détenu : ${n(buysL)}`) + group('keep', keeps, 'Favorable', `Tendance favorable sur ${n(keeps)}`);
     if (!html) html = `<div class="hm-empty">${SIG ? 'Aucune décision aujourd\'hui : les signaux ne demandent ni achat ni vente.' : 'Chargement des signaux…'}</div>`;
+    if (susp.length) html += `<div class="hm-empty">Signal suspendu pour ${susp.join(', ')} : données de prix trop anciennes. Aucune décision n'est proposée sans données fraîches.</div>`;
     $('hmActions').innerHTML = html + (quiet.length ? `<p class="hm-quietline">${quiet.join(' ')}</p>` : '');
     $('hmWatch').innerHTML = others.map((a, i) => `<li><button type="button" class="hm-w" data-go="${a.go}" style="--i:${8 + i}"><span class="hm-w-dot ${a.b}"></span><span><b>${a.t}</b><span>${a.d}</span></span><span class="hm-w-go" aria-hidden="true">›</span></button></li>`).join('');
     $('hmWatchH').hidden = !others.length;
@@ -178,15 +185,20 @@
     const sells = todo.filter(a => a.b === 'sell'), buys = todo.filter(a => a.b === 'buy');
     const sellVal = sells.reduce((s, a) => s + a.w, 0);
     let title, sub;
+    const covered = SIG ? items.filter(i => SIG.coins[i.sym]).reduce((s, i) => s + i.usd, 0) : 0;
+    const cov = tot > 0 ? Math.round(covered / tot * 100) : 0;
+    const caveat = ` Règle expérimentale, qui a surtout servi à limiter les pertes. Les signaux couvrent ${cov} % de ton portefeuille.`;
     if (!SIG) { title = 'Ton portefeuille aujourd\'hui'; sub = ''; }
     else if (sells.length) {
-      title = sells.length > 1 ? `Réduire ${sells.length} positions crypto` : `Réduire ${sells[0].sym}`;
-      sub = `${sells.map(a => a.sym).join(', ')} sont sous leur tendance : ${fv(sellVal)}, soit ${(sellVal / tot * 100).toFixed(0)} % du portefeuille.` + (buys.length ? ` Par ailleurs, ${buys.map(a => a.sym).join(', ')} repasse${buys.length > 1 ? 'nt' : ''} à la hausse.` : '');
-    } else if (buys.length) { title = buys.length > 1 ? `${buys.length} achats possibles` : `Achat possible : ${buys[0].sym}`; sub = `${buys.map(a => a.sym).join(', ')} : tendance repassée à la hausse.`; }
-    else { title = 'Rien à faire aujourd\'hui'; sub = 'Aucun signal ne demande d\'acheter ou de vendre. Prochaine mise à jour demain matin.'; }
+      title = `${sells.length > 1 ? sells.length + ' positions' : sells[0].sym} en tendance défavorable`;
+      sub = `${sells.map(a => a.sym).join(', ')} : ${fv(sellVal)}, soit ${(sellVal / tot * 100).toFixed(0)} % du portefeuille, sous leur moyenne 50 jours.` + (buys.length ? ` ${buys.map(a => a.sym).join(', ')} : tendance favorable.` : '') + caveat;
+    } else if (buys.length) { title = `Tendance favorable : ${buys.map(a => a.sym).join(', ')}`; sub = `Repassé${buys.length > 1 ? 's' : ''} au-dessus de la moyenne 50 jours, non détenu${buys.length > 1 ? 's' : ''}.` + caveat; }
+    else if (susp.length) { title = 'Signaux suspendus'; sub = 'Les données de prix sont trop anciennes pour proposer quoi que ce soit.'; }
+    else { title = 'Rien à signaler aujourd\'hui'; sub = 'Aucune tendance n\'a changé de sens.' + caveat; }
     $('hmTitle').textContent = title; $('hmSub').textContent = sub;
   }
 
+  window.renderHome = render;
   // hooks: re-render when figures are refreshed, and when the page opens
   const prevSum = window.renderSum;
   window.renderSum = function () { prevSum.apply(this, arguments); try { render(); } catch (e) { console.error(e); } };
