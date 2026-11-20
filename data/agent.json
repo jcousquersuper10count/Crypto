@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-20T21:20:35+00:00",
+ "genere": "2026-11-20T21:33:13+00:00",
  "derniere_cloture": "2026-11-19",
  "profil": {
   "compte": "Neverless",
@@ -29,7 +29,12 @@
   "tendance": "Tendance 50 jours",
   "tendance_vol": "Tendance + volatilité",
   "elan": "Élan (2 meilleures)",
-  "ia": "Comité IA"
+  "ia": "Comité IA (mélange)",
+  "ia_groq": "IA Groq",
+  "ia_gemini": "IA Gemini",
+  "ia_openrouter": "IA OpenRouter",
+  "ia_claude": "IA Claude",
+  "ia_local": "IA locale"
  },
  "historique": {
   "12 mois": {
@@ -4439,18 +4444,21 @@
  },
  "ia_log": {
   "2026-11-19": {
-   "cible": {},
-   "decision": "Face à la forte volatilité et le risque de perte importante, il est préférable de conserver en stablecoin. La situation actuelle ne justifie pas d'investissement dans les actifs cryptographiques.",
-   "analyses": {
-    "tendance": "La tendance baissière persiste pour la plupart des actifs, avec des écarts moyens à long terme négatifs et des baisses significatives sur les 90 jours.",
-    "risque": "La volatilité élevée et les reculs importants augmentent le risque. La proximité de l'arrêt de -20% pourrait être atteinte rapidement.",
-    "pour": "La récente baisse de l'ETH pourrait offrir une opportunité d'achat si la tendance se confirme.",
-    "contre": "La forte volatilité et le risque de perte importante freinent l'investissement, surtout sans levier."
+   "mix": {
+    "cible": {},
+    "decision": "Face à la forte volatilité et le risque de perte importante, il est préférable de conserver en stablecoin. La situation actuelle ne justifie pas d'investissement dans les actifs cryptographiques.",
+    "analyses": {
+     "tendance": "La tendance baissière persiste pour la plupart des actifs, avec des écarts moyens à long terme négatifs et des baisses significatives sur les 90 jours.",
+     "risque": "La volatilité élevée et les reculs importants augmentent le risque. La proximité de l'arrêt de -20% pourrait être atteinte rapidement.",
+     "pour": "La récente baisse de l'ETH pourrait offrir une opportunité d'achat si la tendance se confirme.",
+     "contre": "La forte volatilité et le risque de perte importante freinent l'investissement, surtout sans levier."
+    },
+    "modele": "qwen2.5:7b (modèle local)"
    },
-   "modele": "qwen2.5:7b (modèle local)"
+   "avis": {}
   }
  },
- "ia_note": null,
+ "ia_note": "Comité IA en attente : il démarre au prochain calcul du matin avec un modèle ouvert lancé dans la tâche GitHub (gratuit, sans compte). Les clés gratuites Groq et Gemini le rendent plus rapide et plus fiable.",
  "indicateurs": {
   "BTC": {
    "prix_eur": 56471.33,
