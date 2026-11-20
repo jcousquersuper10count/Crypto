@@ -1,0 +1,14 @@
+{
+  "compte": "Neverless",
+  "capital_eur": 673,
+  "capital_note": "Solde Neverless estimé le 20 novembre 2026 (CETUS 54 %, PLUME 44 %, stablecoins 2 %)",
+  "debut": "2026-11-19",
+  "arret": -0.20,
+  "levier": false,
+  "frais": 0.0,
+  "ecart_estime": 0.001,
+  "seuil_ordre": 0.03,
+  "univers": ["BTC", "ETH", "SOL", "CETUS", "PLUME"],
+  "depart": {"CETUS": 0.54, "PLUME": 0.44},
+  "objectif_annonce": "x20 en 1 mois (jugé irréaliste : +10,5 % par jour sans jour perdant)"
+}

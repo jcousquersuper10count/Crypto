@@ -250,6 +250,12 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Agent (20 novembre)
+- Profil fixé avec Julien : capital = solde Neverless (673 €), arrêt à −20 %, comptant sans levier, Neverless sans frais. Objectif ×20 en un mois non retenu.
+- `kronos/paper.py` (chaque matin) : 4 stratégies fixées à l'avance sur BTC, ETH, SOL, CETUS, PLUME (garder, tendance 50 jours, tendance + volatilité, élan 2 meilleures), décision à la clôture et exécution le lendemain, écart 0,1 %, seuil d'ordre 3 %. Test sur l'historique et trading fictif depuis le 19 novembre 2026, ordres du jour en euros.
+- `kronos/committee.py` : comité IA inspiré de TradingAgents (analystes puis gérant, API Claude), actif si le secret `ANTHROPIC_API_KEY` existe ; suivi en fictif uniquement.
+- Premiers résultats : sur 12 mois, toutes les stratégies auraient touché l'arrêt à −20 % ; sans arrêt, depuis juin 2025 : garder −80 %, tendance +10 %, élan +23 %.
+
 ### Saisie manuelle (20 novembre)
 - Bouton « ＋ Opération » en haut : achat ou vente, compte, actif, quantité, prix (prérempli au cours actuel), frais, date.
 - L'opération compte immédiatement partout (positions, prix de revient, accueil, points sur les graphiques, historique marqué « saisi à la main »).
@@ -300,3 +306,4 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 | 15 nov. (soir) | Audit : clé d'accès et script sécurisé, import avec aperçu et sauvegardes, règle revalidée hors échantillon avec un jour de délai, affichage descriptif, gain réalisé partiel, signal suspendu |
 | 20 nov. | Saisie manuelle des achats et ventes en attente d'import, rapprochement automatique |
+| 20 nov. (soir) | Onglet Agent : stratégies en test, ordres du jour, trading fictif, comité IA |
