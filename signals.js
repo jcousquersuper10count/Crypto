@@ -247,4 +247,5 @@
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (S.data && $('p-signals').classList.contains('active')) drawChart(); }, 150); });
   new MutationObserver(() => { if (S.data) drawChart(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.reloadSignals = load;
+  window.renderSignals = function () { if (S.data && document.querySelector('#p-signals.active')) render(); };
 })();

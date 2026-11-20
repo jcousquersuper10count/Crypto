@@ -38,7 +38,7 @@
 </div>
 </aside>
 <main class="main">
-<header class="topbar"><div class="topbar-status" id="statusPill"><span class="dot"></span><span id="statusTxt">Chargement...</span></div><div class="topbar-time" id="lastUpd">--</div><button class="topbar-refresh" onclick="refreshAll()">↻</button></header>
+<header class="topbar"><div class="topbar-status" id="statusPill"><span class="dot"></span><span id="statusTxt">Chargement...</span></div><div class="topbar-time" id="lastUpd">--</div><button type="button" class="mo-open" onclick="openManual()" title="Saisir un achat ou une vente">＋ Opération<span id="moCount" class="mo-count" hidden></span></button><button class="topbar-refresh" onclick="refreshAll()">↻</button></header>
 
 <!-- Alerts Banner -->
 <div class="alerts-banner" id="alertsBanner" style="display:none"></div>
@@ -251,6 +251,7 @@
 <div class="upload-zone"><div class="uz-icon">🪙</div><div class="uz-title">Revolut Crypto</div><input type="file" accept=".csv" id="fRC" onchange="doUpload('Revolut_Crypto',this)" style="display:none"><label for="fRC" class="uz-btn">Choisir</label><div class="uz-status" id="sRC"></div></div>
 <div class="upload-zone"><div class="uz-icon">📊</div><div class="uz-title">Revolut Robo</div><input type="file" accept=".csv" id="fRR" onchange="doUpload('Revolut_Robo',this)" style="display:none"><label for="fRR" class="uz-btn">Choisir</label><div class="uz-status" id="sRR"></div></div>
 </div>
+<div class="imp-bk"><h3>Opérations saisies à la main</h3><p class="muted" id="moImp">Aucune.</p></div>
 <div class="imp-bk"><h3>Sauvegardes</h3><p class="muted">Les 5 dernières versions de chaque onglet sont gardées dans ta Google Sheet (onglets masqués).</p><ul id="bkList"></ul><p class="imp-state" id="bkMsg"></p></div>
 </section>
 </main>
@@ -258,5 +259,26 @@
 <script src="app.js"></script>
 <script src="signals.js"></script>
 <script src="home.js"></script>
+<script src="manual.js"></script>
+<dialog id="moDlg" class="mo-dlg" aria-labelledby="moTitle">
+<form id="moForm" method="dialog" onsubmit="return addManual(event)">
+<div class="mo-head"><h3 id="moTitle">Saisir une opération</h3><button type="button" class="mo-x" onclick="closeManual()" aria-label="Fermer">✕</button></div>
+<p class="muted mo-sub">Elle compte tout de suite dans ton portefeuille. Quand ton prochain import contient la même opération, la saisie disparaît d'elle-même.</p>
+<div class="mo-seg" role="radiogroup" aria-label="Sens"><label><input type="radio" name="moSide" value="buy" checked><span>Achat</span></label><label><input type="radio" name="moSide" value="sell"><span>Vente</span></label></div>
+<div class="mo-grid">
+<label>Compte<select id="moAcct"><option value="Revolut_Crypto">Revolut Crypto</option><option value="Neverless">Neverless</option><option value="Revolut_Robo">Revolut Robo (ETF)</option></select></label>
+<label>Actif<input id="moSym" list="moSyms" required autocomplete="off" placeholder="BTC" oninput="moFill()"></label>
+<label>Quantité<input id="moQty" required inputmode="decimal" placeholder="0,01" oninput="moTot()"></label>
+<label>Prix unitaire (€)<input id="moPx" required inputmode="decimal" oninput="moTot()"></label>
+<label>Frais (€)<input id="moFee" inputmode="decimal" value="0" oninput="moTot()"></label>
+<label>Date<input id="moDate" type="datetime-local" required></label>
+</div>
+<datalist id="moSyms"></datalist>
+<div class="mo-tot" id="moTot"></div>
+<p class="mo-err" id="moErr" role="alert"></p>
+<div class="mo-actions"><button type="button" class="hm-link" onclick="closeManual()">Annuler</button><button type="submit" class="uz-btn">Ajouter</button></div>
+</form>
+<div class="mo-list"><h4>En attente d'import</h4><ul id="moList"></ul></div>
+</dialog>
 </body>
 </html>

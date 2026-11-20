@@ -250,6 +250,12 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Saisie manuelle (20 novembre)
+- Bouton « ＋ Opération » en haut : achat ou vente, compte, actif, quantité, prix (prérempli au cours actuel), frais, date.
+- L'opération compte immédiatement partout (positions, prix de revient, accueil, points sur les graphiques, historique marqué « saisi à la main »).
+- Elle est retirée automatiquement quand un import contient la même opération (même actif et sens, quantité à 3 % près, datée de 2 jours avant à 10 jours après).
+- Stockage : propriétés du script Google (`VAULT_MANUAL`, avec la clé) et ce navigateur ; une vente supérieure à la quantité détenue est refusée.
+
 ### Corrigé après l'audit du 15 novembre
 - Données protégées par clé, import avec aperçu des différences, sauvegardes restaurables.
 - Historique de valeur : n'enregistre plus que des totaux complets (tous les prix présents et frais) ; les anciens points partiels (moins de 60 % de la médiane) sont écartés à l'affichage.
@@ -293,3 +299,4 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 | 15 nov. | Gain réalisé corrigé (de −2 M€ à environ −1 090 €), prix crypto de secours quotidiens, accueil recentré sur une décision, accent or, teintes adoucies |
 
 | 15 nov. (soir) | Audit : clé d'accès et script sécurisé, import avec aperçu et sauvegardes, règle revalidée hors échantillon avec un jour de délai, affichage descriptif, gain réalisé partiel, signal suspendu |
+| 20 nov. | Saisie manuelle des achats et ventes en attente d'import, rapprochement automatique |

@@ -72,7 +72,7 @@ function doGet(e) {
     TABS.forEach(t => { const sh = ss.getSheetByName(t); tabs[t] = sh && sh.getLastRow() > 0 ? sh.getDataRange().getDisplayValues() : []; });
     const bk = {};
     TABS.forEach(t => { bk[t] = backups_(t); });
-    return out_({ status: 'ok', tabs: tabs, backups: bk });
+    return out_({ status: 'ok', tabs: tabs, backups: bk, manual: manualList_() });
   }
   if (p.action === 'history') {
     const sh = histSheet_();
@@ -97,6 +97,7 @@ function doPost(e) {
     if (b.action === 'upload_csv') return out_(upload_(b.tabName, b.csvData));
     if (b.action === 'restore_backup') return out_(restore_(b.tabName, b.backup));
     if (b.action === 'log_value') return out_(logValue_(b));
+    if (b.action === 'manual_save') return out_(manualSave_(b.list));
     return out_({ status: 'error', message: 'action inconnue' });
   } finally {
     lock.releaseLock();
@@ -148,4 +149,22 @@ function logValue_(b) {
   if (!(usd > 0) || !isFinite(usd) || !isFinite(eur)) return { status: 'error', message: 'valeur invalide' };
   histSheet_().appendRow([new Date().toISOString(), usd, eur, n]);
   return { status: 'ok' };
+}
+
+/* ---------- opérations saisies à la main (en attente d'import) ---------- */
+
+function manualList_() {
+  try { const v = JSON.parse(PropertiesService.getScriptProperties().getProperty('VAULT_MANUAL') || '[]'); return Array.isArray(v) ? v : []; }
+  catch (x) { return []; }
+}
+
+function manualSave_(list) {
+  if (!Array.isArray(list) || list.length > 300) return { status: 'error', message: 'liste invalide' };
+  const ok = list.every(e => e && typeof e.id === 'string' && /^(Neverless|Revolut_Crypto|Revolut_Robo)$/.test(e.acct)
+    && (e.side === 'buy' || e.side === 'sell') && /^[A-Z0-9.]{1,15}$/.test(e.sym) && +e.qty > 0 && +e.price >= 0 && !isNaN(Date.parse(e.date)));
+  if (!ok) return { status: 'error', message: 'opération invalide' };
+  const txt = JSON.stringify(list);
+  if (txt.length > 8500) return { status: 'error', message: 'trop d\'opérations en attente : importe tes relevés' };
+  PropertiesService.getScriptProperties().setProperty('VAULT_MANUAL', txt);
+  return { status: 'ok', n: list.length };
 }
