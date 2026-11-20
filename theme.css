@@ -414,3 +414,8 @@ body,.sidebar{transition:background-color .6s var(--ease),border-color .6s var(-
 @media (max-width:900px){.ag-prof{grid-template-columns:1fr 1fr;}}
 @media (max-width:520px){.ag-prof{grid-template-columns:1fr;}}
 .mo-count[hidden]{display:none;}
+.ag-verdict{font-size:.92rem;line-height:1.5;}
+.ag-avs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;margin:.8rem 0;}
+.ag-av{border:1px solid var(--border);border-left:3px solid var(--c);border-radius:12px;padding:.8rem 1rem;background:var(--bg3);font-size:.85rem;}
+.ag-av h4{margin:0 0 .1rem;font-size:.92rem;}
+.ag-av p{margin:.35rem 0;}

@@ -4,7 +4,8 @@ argumentent, puis un gérant tranche sous les contraintes du profil.
 Version compacte : deux appels par jour (analystes, puis gérant), avec uniquement des
 indicateurs de prix calculés sur les clôtures (pas d'actualités ni de réseaux sociaux).
 
-Fournisseurs gratuits pris en charge, dans cet ordre (le premier configuré est utilisé) :
+Fournisseurs gratuits pris en charge. Tous ceux qui sont configurés rendent leur avis séparément,
+puis un juge (Gemini en priorité) combine les avis ; chaque avis et le mélange sont suivis en fictif :
   GROQ_API_KEY        Groq, offre gratuite sans carte bancaire (modèle openai/gpt-oss-120b)
   GEMINI_API_KEY      Google AI Studio, offre gratuite (modèle gemini-flash-latest)
   OPENROUTER_API_KEY  OpenRouter, modèles « :free » (50 requêtes par jour)
@@ -17,23 +18,37 @@ import json, os, re, time, urllib.request
 ENV = os.environ
 
 
-def provider():
+def _mk(nom):
     m = ENV.get("VAULT_AGENT_MODEL")
-    if ENV.get("GROQ_API_KEY"):
-        return {"nom": "Groq", "url": "https://api.groq.com/openai/v1/chat/completions",
-                "cle": ENV["GROQ_API_KEY"], "modele": m or "openai/gpt-oss-120b"}
-    if ENV.get("GEMINI_API_KEY"):
-        return {"nom": "Gemini", "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-                "cle": ENV["GEMINI_API_KEY"], "modele": m or "gemini-flash-latest"}
-    if ENV.get("OPENROUTER_API_KEY"):
-        return {"nom": "OpenRouter", "url": "https://openrouter.ai/api/v1/chat/completions",
+    if nom == "groq" and ENV.get("GROQ_API_KEY"):
+        return {"id": "groq", "nom": "Groq", "url": "https://api.groq.com/openai/v1/chat/completions",
+                "cle": ENV["GROQ_API_KEY"], "modele": ENV.get("GROQ_MODEL") or m or "openai/gpt-oss-120b"}
+    if nom == "gemini" and ENV.get("GEMINI_API_KEY"):
+        return {"id": "gemini", "nom": "Gemini", "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                "cle": ENV["GEMINI_API_KEY"], "modele": ENV.get("GEMINI_MODEL") or m or "gemini-flash-latest"}
+    if nom == "openrouter" and ENV.get("OPENROUTER_API_KEY"):
+        return {"id": "openrouter", "nom": "OpenRouter", "url": "https://openrouter.ai/api/v1/chat/completions",
                 "cle": ENV["OPENROUTER_API_KEY"], "modele": m or "openai/gpt-oss-120b:free"}
-    if ENV.get("OLLAMA_URL"):
-        return {"nom": "modèle local", "url": ENV["OLLAMA_URL"].rstrip("/") + "/v1/chat/completions",
-                "cle": "ollama", "modele": m or ENV.get("OLLAMA_MODEL", "qwen2.5:7b")}
-    if ENV.get("ANTHROPIC_API_KEY"):
-        return {"nom": "Claude", "url": "anthropic", "cle": ENV["ANTHROPIC_API_KEY"], "modele": m or "claude-sonnet-5-5"}
+    if nom == "local" and ENV.get("OLLAMA_URL"):
+        return {"id": "local", "nom": "modèle local", "url": ENV["OLLAMA_URL"].rstrip("/") + "/v1/chat/completions",
+                "cle": "ollama", "modele": ENV.get("OLLAMA_MODEL") or "qwen2.5:7b"}
+    if nom == "claude" and ENV.get("ANTHROPIC_API_KEY"):
+        return {"id": "claude", "nom": "Claude", "url": "anthropic", "cle": ENV["ANTHROPIC_API_KEY"], "modele": m or "claude-sonnet-5-5"}
     return None
+
+
+ORDER = ["groq", "gemini", "openrouter", "claude", "local"]
+
+
+def providers():
+    """Tous les fournisseurs configurés (le modèle local seulement s'il n'y en a aucun autre)."""
+    ps = [p for p in (_mk(n) for n in ORDER if n != "local") if p]
+    return ps or [p for p in [_mk("local")] if p]
+
+
+def provider():
+    ps = providers()
+    return ps[0] if ps else None
 
 
 def _post(url, body, headers, timeout):
@@ -76,31 +91,18 @@ def _ask(p, system, user):
     raise err
 
 
-def decide(features, current, profile):
-    p = provider()
-    if not p:
-        raise RuntimeError("aucun fournisseur configuré")
-    univers = profile["univers"]
-    ctx = (
+def _ctx(features, current, profile):
+    return (
         f"Profil : compte {profile['compte']}, comptant uniquement (pas de levier), sans frais, "
         f"arrêt définitif si la valeur tombe à {int(profile['arret'] * 100)} % du capital de départ. "
-        f"Univers autorisé : {', '.join(univers)} ; le reste est conservé en stablecoin. "
+        f"Univers autorisé : {', '.join(profile['univers'])} ; le reste est conservé en stablecoin. "
         f"Ordres exécutés le lendemain de la décision.\n"
         f"Répartition actuelle (part du capital) : {json.dumps(current)}\n"
         f"Indicateurs à la dernière clôture (en euros) : {json.dumps(features, ensure_ascii=False)}"
     )
-    a = _ask(p,
-             "Tu es un comité d'analystes crypto prudents. Tu ne connais que les indicateurs fournis ; "
-             "n'invente aucune actualité ni aucun chiffre. Réponds en français, uniquement par un objet JSON.",
-             ctx + "\n\nProduis {\"tendance\": \"...\", \"risque\": \"...\", \"pour\": \"...\", \"contre\": \"...\"} : "
-             "analyse de tendance, analyse de risque (volatilité, reculs, proximité de l'arrêt), meilleur argument "
-             "pour investir, meilleur argument contre. 3 phrases maximum chacun.")
-    g = _ask(p,
-             "Tu es le gérant. Tu respectes strictement le profil : comptant, univers autorisé, somme des parts ≤ 1. "
-             "Tu préfères rester en stablecoin quand les arguments ne sont pas clairs. Réponds uniquement par un objet JSON.",
-             ctx + "\n\nAnalyses du comité : " + json.dumps(a, ensure_ascii=False) +
-             "\n\nDonne {\"cible\": {\"SYMBOLE\": part, ...}, \"decision\": \"2 phrases en français\"} "
-             "où part est entre 0 et 1 et où les symboles absents valent 0.")
+
+
+def _clean(g, univers):
     cible = {}
     for s, v in (g.get("cible") or {}).items():
         s = str(s).upper()
@@ -113,7 +115,79 @@ def decide(features, current, profile):
     tot = sum(cible.values())
     if tot > 1:
         cible = {s: v / tot for s, v in cible.items()}
-    return {"cible": {s: round(v, 4) for s, v in cible.items()},
+    return {s: round(v, 4) for s, v in cible.items()}
+
+
+def decide_one(p, features, current, profile):
+    ctx = _ctx(features, current, profile)
+    a = _ask(p,
+             "Tu es un comité d'analystes crypto prudents. Tu ne connais que les indicateurs fournis ; "
+             "n'invente aucune actualité ni aucun chiffre. Réponds en français, uniquement par un objet JSON.",
+             ctx + "\n\nProduis {\"tendance\": \"...\", \"risque\": \"...\", \"pour\": \"...\", \"contre\": \"...\"} : "
+             "analyse de tendance, analyse de risque (volatilité, reculs, proximité de l'arrêt), meilleur argument "
+             "pour investir, meilleur argument contre. 3 phrases maximum chacun.")
+    g = _ask(p,
+             "Tu es le gérant. Tu respectes strictement le profil : comptant, univers autorisé, somme des parts ≤ 1. "
+             "Tu préfères rester en stablecoin quand les arguments ne sont pas clairs. Réponds uniquement par un objet JSON.",
+             ctx + "\n\nAnalyses du comité : " + json.dumps(a, ensure_ascii=False) +
+             "\n\nDonne {\"cible\": {\"SYMBOLE\": part, ...}, \"decision\": \"2 phrases en français\"} "
+             "où part est entre 0 et 1 et où les symboles absents valent 0.")
+    return {"cible": _clean(g, profile["univers"]),
             "decision": str(g.get("decision", ""))[:600],
             "analyses": {k: str(a.get(k, ""))[:600] for k in ("tendance", "risque", "pour", "contre")},
             "modele": f"{p['modele']} ({p['nom']})"}
+
+
+def judge(p, avis, features, current, profile):
+    """Le juge lit les avis complets des comités et tranche ; il doit dire sur quoi ils s'accordent."""
+    ctx = _ctx(features, current, profile)
+    g = _ask(p,
+             "Tu es le juge final d'un fonds prudent. Plusieurs comités indépendants ont rendu leur avis. "
+             "Tu ne retiens une position que si leurs arguments la justifient ; en cas de désaccord, tu prends la position "
+             "la plus prudente des deux ou un compromis inférieur. Comptant, univers autorisé, somme des parts ≤ 1. "
+             "Réponds uniquement par un objet JSON.",
+             ctx + "\n\nAvis des comités : " + json.dumps(avis, ensure_ascii=False) +
+             "\n\nDonne {\"cible\": {\"SYMBOLE\": part, ...}, \"accord\": \"sur quoi les comités s'accordent ou divergent, 2 phrases\", "
+             "\"decision\": \"2 phrases en français\"}.")
+    return {"cible": _clean(g, profile["univers"]), "decision": str(g.get("decision", ""))[:600],
+            "accord": str(g.get("accord", ""))[:600], "juge": f"{p['modele']} ({p['nom']})"}
+
+
+def decide_all(features, current, profile):
+    """Avis de chaque fournisseur configuré, puis mélange jugé.
+    Retourne {"avis": {id: décision}, "mix": décision finale, "erreurs": {id: message}}."""
+    ps = providers()
+    if not ps:
+        raise RuntimeError("aucun fournisseur configuré")
+    # current : {"mix": répartition, "groq": répartition, ...}
+    avis, err = {}, {}
+    for p in ps:
+        try:
+            avis[p["id"]] = decide_one(p, features, current.get(p["id"]) or current.get("mix") or {}, profile)
+        except Exception as e:
+            err[p["id"]] = f"{type(e).__name__}"
+    if not avis:
+        raise RuntimeError("aucun comité n'a répondu : " + ", ".join(f"{k} {v}" for k, v in err.items()))
+    if len(avis) == 1:
+        k = next(iter(avis))
+        mix = dict(avis[k], accord="Un seul comité a répondu aujourd'hui : sa décision est reprise telle quelle.", juge=avis[k]["modele"])
+    else:
+        mix = None
+        # juge : Gemini en priorité (il n'a pas rendu le premier avis), sinon le premier qui répond
+        for p in sorted(ps, key=lambda x: 0 if x["id"] == "gemini" else 1):
+            try:
+                mix = judge(p, avis, features, current.get("mix") or {}, profile)
+                break
+            except Exception as e:
+                err["juge_" + p["id"]] = type(e).__name__
+        if mix is None:  # repli sans IA : pour chaque crypto, la part la plus faible des avis
+            keys = set().union(*[set(v["cible"]) for v in avis.values()])
+            cible = {s: min(v["cible"].get(s, 0) for v in avis.values()) for s in keys}
+            mix = {"cible": {s: w for s, w in cible.items() if w > 0}, "decision": "Juge indisponible : on garde la part la plus prudente de chaque avis.",
+                   "accord": "", "juge": "règle prudente"}
+    return {"avis": avis, "mix": mix, "erreurs": err}
+
+
+def decide(features, current, profile):
+    """Compatibilité : décision finale seule."""
+    return decide_all(features, current, profile)["mix"]

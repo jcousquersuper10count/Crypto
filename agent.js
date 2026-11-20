@@ -2,7 +2,7 @@
 (function () {
   const $ = id => document.getElementById(id);
   let D = null, win = 'Historique complet';
-  const COL = { garder: 'var(--fg3)', tendance: 'hsl(186 70% 58%)', tendance_vol: 'hsl(258 80% 72%)', elan: 'hsl(36 85% 60%)', ia: 'hsl(330 75% 66%)' };
+  const COL = { garder: 'var(--fg3)', tendance: 'hsl(186 70% 58%)', tendance_vol: 'hsl(258 80% 72%)', elan: 'hsl(36 85% 60%)', ia: 'hsl(330 75% 66%)', ia_groq: 'hsl(14 85% 62%)', ia_gemini: 'hsl(215 85% 66%)', ia_openrouter: 'hsl(100 55% 55%)', ia_claude: 'hsl(25 70% 60%)', ia_local: 'hsl(60 60% 55%)' };
   const eur = v => v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
   const pct = (v, d = 0) => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(d).replace('.', ',') + ' %';
   const cls = v => v >= 0 ? 'green' : 'red';
@@ -71,8 +71,18 @@
     const paper = npts > 1 ? lines(pc) + legend(keys) : `<p class="muted">Le suivi commence le ${fd(P.debut)}. La courbe apparaîtra après quelques clôtures.</p>`;
 
     /* IA */
-    const days = Object.keys(D.ia_log || {}).sort(), lastIA = days.length ? D.ia_log[days[days.length - 1]] : null;
-    const ia = lastIA ? `<div class="ag-ia"><p><b>Décision du ${fd(days[days.length - 1])} :</b> ${esc(lastIA.decision)}</p><dl>${[['Tendance', 'tendance'], ['Risque', 'risque'], ['Pour', 'pour'], ['Contre', 'contre']].map(([l, k]) => `<dt>${l}</dt><dd>${esc(lastIA.analyses[k])}</dd>`).join('')}</dl><small class="muted">Modèle ${esc(lastIA.modele)} · ${days.length} décision${days.length > 1 ? 's' : ''} enregistrée${days.length > 1 ? 's' : ''}</small></div>` : '';
+    const days = Object.keys(D.ia_log || {}).sort(), L = days.length ? D.ia_log[days[days.length - 1]] : null;
+    const one = (v, title, k) => `<div class="ag-av" style="--c:${COL[k] || 'var(--accent)'}"><h4>${esc(title)}</h4><p class="ag-tgt">${esc(v.modele || v.juge || '')}</p>
+      <p><b>Cible :</b> ${Object.entries(v.cible || {}).map(([a, w]) => esc(a) + ' ' + Math.round(w * 100) + ' %').join(' · ') || 'tout en stablecoin'}</p><p>${esc(v.decision)}</p>
+      ${v.analyses ? `<dl>${[['Tendance', 'tendance'], ['Risque', 'risque'], ['Pour', 'pour'], ['Contre', 'contre']].map(([l, kk]) => `<dt>${l}</dt><dd>${esc(v.analyses[kk])}</dd>`).join('')}</dl>` : ''}</div>`;
+    let ia = '';
+    if (L) {
+      const mix = L.mix || L, avis = L.avis || {};
+      ia = `<div class="ag-ia"><p class="ag-verdict"><b>Verdict du ${fd(days[days.length - 1])} :</b> ${esc(mix.decision)}${mix.accord ? `<br><span class="muted">${esc(mix.accord)}</span>` : ''}</p>
+        <p class="ag-tgt">Cible retenue : ${Object.entries(mix.cible || {}).map(([a, w]) => esc(a) + ' ' + Math.round(w * 100) + ' %').join(' · ') || 'tout en stablecoin'} · juge ${esc(mix.juge || mix.modele || '')}</p>
+        ${Object.keys(avis).length ? `<div class="ag-avs">${Object.entries(avis).map(([k, v]) => one(v, D.noms['ia_' + k] || k, 'ia_' + k)).join('')}</div>` : (mix.analyses ? one(mix, 'Analyse', 'ia') : '')}
+        <small class="muted">${days.length} jour${days.length > 1 ? 's' : ''} de décisions enregistré${days.length > 1 ? 's' : ''}</small></div>`;
+    }
 
     root.innerHTML = `${prof}
       <h3 class="ag-h">Ordres du jour <small>exécution prévue dans la journée, sur Neverless</small></h3>
@@ -85,8 +95,8 @@
         <div class="ag-tw"><table class="ag-t"><thead><tr><th>Stratégie</th><th>Avec ton arrêt</th><th>Arrêt touché</th><th>Sans arrêt</th><th>Pire recul</th><th>Ordres</th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="sub">Toutes les cryptos de l'univers (${P.univers.join(', ')}) ont fortement baissé sur la période : aucune règle ne transforme ça en gain, elles limitent seulement la casse. Les règles ont été fixées avant le test et ne sont pas ajustées après coup.</p>
       </section>
-      <section class="ag-panel"><h3>Comité IA</h3>${D.ia_note ? `<p class="sub">${esc(D.ia_note)}</p>` : ''}${ia}
-        <p class="sub">Inspiré de TradingAgents : des analystes argumentent (tendance, risque, pour, contre), un gérant tranche dans les limites de ton profil. Il est seulement suivi en fictif : le modèle connaît déjà les prix passés, un test sur l'historique serait faussé.</p></section>`;
+      <section class="ag-panel"><h3>Comité IA : deux modèles et un juge</h3>${D.ia_note ? `<p class="sub">${esc(D.ia_note)}</p>` : ''}${ia}
+        <p class="sub">Inspiré de TradingAgents. Chaque modèle (Groq, Gemini) réunit ses analystes (tendance, risque, pour, contre) et rend sa propre décision ; un juge lit les deux avis et garde la position la plus prudente en cas de désaccord. Chaque avis et le mélange ont leur propre suivi fictif, pour juger lequel fait le mieux. Pas de test sur l'historique : les modèles connaissent déjà les prix passés.</p></section>`;
   }
   window.agWin = w => { win = w; render(); };
 

@@ -41,7 +41,12 @@ NAMES = {
     "tendance": "Tendance 50 jours",
     "tendance_vol": "Tendance + volatilité",
     "elan": "Élan (2 meilleures)",
-    "ia": "Comité IA",
+    "ia": "Comité IA (mélange)",
+    "ia_groq": "IA Groq",
+    "ia_gemini": "IA Gemini",
+    "ia_openrouter": "IA OpenRouter",
+    "ia_claude": "IA Claude",
+    "ia_local": "IA locale",
 }
 
 
@@ -240,26 +245,38 @@ def main():
     ia_log = dict(prev.get("ia_log", {}))
     feats = features(px)
     ia_note = None
-    from committee import provider, decide as ia_decide
-    prov = provider()
-    if prov:
-        try:
-            key = last.strftime("%Y-%m-%d")
-            if key not in ia_log:
-                cur = prev.get("papier", {}).get("ia", {}).get("repartition", w0)
-                ia_log[key] = ia_decide(feats, cur, PROFILE)
-        except Exception as e:  # le comité ne doit jamais bloquer le reste
-            ia_note = f"Comité IA indisponible aujourd'hui ({prov['nom']}) : {type(e).__name__}. Nouvel essai demain."
+    from committee import providers, decide_all
+    # anciennes entrées (un seul comité) : converties au nouveau format
+    ia_log = {d: (v if "mix" in v else {"mix": v, "avis": {}}) for d, v in ia_log.items()}
+    provs = providers()
+    if provs:
+        key = last.strftime("%Y-%m-%d")
+        if key not in ia_log:
+            pp = prev.get("papier", {})
+            cur = {"mix": pp.get("ia", {}).get("repartition", w0)}
+            for p in provs:
+                cur[p["id"]] = pp.get("ia_" + p["id"], {}).get("repartition", w0)
+            try:
+                ia_log[key] = decide_all(feats, cur, PROFILE)
+                if ia_log[key].get("erreurs"):
+                    ia_note = "Sans réponse aujourd'hui : " + ", ".join(ia_log[key]["erreurs"]) + ". Nouvel essai demain."
+            except Exception as e:  # le comité ne doit jamais bloquer le reste
+                ia_note = f"Comité IA indisponible aujourd'hui : {e}. Nouvel essai demain."
     else:
         ia_note = ("Comité IA en attente : il démarre au prochain calcul du matin avec un modèle ouvert lancé dans la tâche GitHub "
-                   "(gratuit, sans compte). Une clé gratuite Groq ou Gemini le rend plus rapide et plus fiable.")
+                   "(gratuit, sans compte). Les clés gratuites Groq et Gemini le rendent plus rapide et plus fiable.")
 
     paper = {}
-    for k in ["garder"] + list(RULES) + ["ia"]:
-        if k == "ia":
-            if not ia_log:
+    ia_ids = sorted({a for v in ia_log.values() for a in (v.get("avis") or {})})
+    for k in ["garder"] + list(RULES) + ["ia"] + ["ia_" + a for a in ia_ids]:
+        if k == "ia" or k.startswith("ia_"):
+            if k == "ia":
+                lg = {d: v["mix"]["cible"] for d, v in ia_log.items() if v.get("mix")}
+            else:
+                lg = {d: v["avis"][k[3:]]["cible"] for d, v in ia_log.items() if k[3:] in (v.get("avis") or {})}
+            if not lg:
                 continue
-            c, t, n, cw, st, sd, pend = simulate(px, pstart, w0, log={d: v["cible"] for d, v in ia_log.items()})
+            c, t, n, cw, st, sd, pend = simulate(px, pstart, w0, log=lg)
         else:
             c, t, n, cw, st, sd, pend = simulate(px, pstart, w0, RULES.get(k))
         eq = c[-1][1]
