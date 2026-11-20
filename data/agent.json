@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-20T20:45:56+00:00",
+ "genere": "2026-11-20T21:20:35+00:00",
  "derniere_cloture": "2026-11-19",
  "profil": {
   "compte": "Neverless",
@@ -4407,10 +4407,50 @@
     }
    ],
    "valeur": 1.0
+  },
+  "ia": {
+   "rendement": 0.0,
+   "recul_max": 0.0,
+   "ordres": 0,
+   "arret": null,
+   "courbe": [
+    [
+     "2026-11-19",
+     1.0
+    ]
+   ],
+   "repartition": {
+    "CETUS": 0.54,
+    "PLUME": 0.44
+   },
+   "cible": {},
+   "ordres_du_jour": [
+    {
+     "actif": "CETUS",
+     "part": -0.54
+    },
+    {
+     "actif": "PLUME",
+     "part": -0.44
+    }
+   ],
+   "valeur": 1.0
   }
  },
- "ia_log": {},
- "ia_note": "Comité IA en attente : il démarre au prochain calcul du matin avec un modèle ouvert lancé dans la tâche GitHub (gratuit, sans compte). Une clé gratuite Groq ou Gemini le rend plus rapide et plus fiable.",
+ "ia_log": {
+  "2026-11-19": {
+   "cible": {},
+   "decision": "Face à la forte volatilité et le risque de perte importante, il est préférable de conserver en stablecoin. La situation actuelle ne justifie pas d'investissement dans les actifs cryptographiques.",
+   "analyses": {
+    "tendance": "La tendance baissière persiste pour la plupart des actifs, avec des écarts moyens à long terme négatifs et des baisses significatives sur les 90 jours.",
+    "risque": "La volatilité élevée et les reculs importants augmentent le risque. La proximité de l'arrêt de -20% pourrait être atteinte rapidement.",
+    "pour": "La récente baisse de l'ETH pourrait offrir une opportunité d'achat si la tendance se confirme.",
+    "contre": "La forte volatilité et le risque de perte importante freinent l'investissement, surtout sans levier."
+   },
+   "modele": "qwen2.5:7b (modèle local)"
+  }
+ },
+ "ia_note": null,
  "indicateurs": {
   "BTC": {
    "prix_eur": 56471.33,
