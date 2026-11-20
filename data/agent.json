@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-20T20:37:14+00:00",
+ "genere": "2026-11-20T20:45:56+00:00",
  "derniere_cloture": "2026-11-19",
  "profil": {
   "compte": "Neverless",
@@ -4410,7 +4410,7 @@
   }
  },
  "ia_log": {},
- "ia_note": "Comité IA inactif : ajoute le secret ANTHROPIC_API_KEY au dépôt GitHub pour l'activer.",
+ "ia_note": "Comité IA en attente : il démarre au prochain calcul du matin avec un modèle ouvert lancé dans la tâche GitHub (gratuit, sans compte). Une clé gratuite Groq ou Gemini le rend plus rapide et plus fiable.",
  "indicateurs": {
   "BTC": {
    "prix_eur": 56471.33,

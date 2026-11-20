@@ -240,17 +240,19 @@ def main():
     ia_log = dict(prev.get("ia_log", {}))
     feats = features(px)
     ia_note = None
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    from committee import provider, decide as ia_decide
+    prov = provider()
+    if prov:
         try:
-            from committee import decide as ia_decide
             key = last.strftime("%Y-%m-%d")
             if key not in ia_log:
                 cur = prev.get("papier", {}).get("ia", {}).get("repartition", w0)
                 ia_log[key] = ia_decide(feats, cur, PROFILE)
         except Exception as e:  # le comité ne doit jamais bloquer le reste
-            ia_note = f"Comité IA indisponible aujourd'hui : {type(e).__name__}"
+            ia_note = f"Comité IA indisponible aujourd'hui ({prov['nom']}) : {type(e).__name__}. Nouvel essai demain."
     else:
-        ia_note = "Comité IA inactif : ajoute le secret ANTHROPIC_API_KEY au dépôt GitHub pour l'activer."
+        ia_note = ("Comité IA en attente : il démarre au prochain calcul du matin avec un modèle ouvert lancé dans la tâche GitHub "
+                   "(gratuit, sans compte). Une clé gratuite Groq ou Gemini le rend plus rapide et plus fiable.")
 
     paper = {}
     for k in ["garder"] + list(RULES) + ["ia"]:
