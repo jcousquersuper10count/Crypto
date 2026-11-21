@@ -92,6 +92,7 @@
   /* instantané pour la tâche du matin (alertes), au plus toutes les 30 minutes */
   async function snapshot(P, R, E) {
     if (window.dataMode !== 'key' || typeof gasPost !== 'function') return;
+    if (!window.nlState) { setTimeout(() => render().catch(() => {}), 3000); return; } // attendre les positions Neverless
     let last = 0; try { last = +localStorage.getItem('vault_snap_t') || 0; } catch (e) {}
     if (Date.now() - last < 30 * 6e4) return;
     if (window.pricesStale && Date.now() - new Date(window.pricesStale).getTime() > 12 * 36e5) return; // prix trop anciens
