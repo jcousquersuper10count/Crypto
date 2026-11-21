@@ -44,7 +44,7 @@ function compSB(tx){const b={},F=new Set(['EUR','USD']);tx.forEach(t=>{const ra=
 function compRC(tx){const b={};tx.forEach(t=>{const s=(t.Symbol||'').trim(),tp=(t.Type||'').trim().replace(/\u00a0/g,' '),q=pn(t.Quantity);if(!s||!q)return;if(tp==='Achat'||tp.includes('compense')||tp.includes('Apprendre')||tp.includes('staking'))b[s]=(b[s]||0)+q;else if(tp==='Vente'||tp==='Envoi')b[s]=(b[s]||0)-q;});return b;}
 function compRR(tx){const b={};tx.forEach(t=>{const tk=(t.Ticker||'').trim(),tp=(t.Type||'').trim(),q=pn(t.Quantity);if(!tk||!q)return;if(tp.includes('BUY')||tp.includes('SPLIT'))b[tk]=(b[tk]||0)+q;else if(tp.includes('SELL'))b[tk]=(b[tk]||0)-q;});return b;}
 function merge(){cryptoH={};[compSB(sbTx),compRC(rcTx)].forEach(b=>{for(const[s,q]of Object.entries(b))cryptoH[s]=(cryptoH[s]||0)+q;});for(const s of Object.keys(cryptoH))if(Math.abs(cryptoH[s])<1e-7)delete cryptoH[s];etfH={};for(const[t,q]of Object.entries(compRR(rrTx)))if(q>1e-4)etfH[t]=q;}
-function getSrc(s){const a=(compSB(sbTx)[s]||0)>1e-7,b=(compRC(rcTx)[s]||0)>1e-7;return a&&b?'Multi':b?'Revolut':'SwissBorg';}
+function getSrc(s){const a=(compSB(sbTx)[s]||0)>1e-7,b=(compRC(rcTx)[s]||0)>1e-7;return a&&b?'Neverless + Revolut':b?'Revolut':'Neverless';}
 
 // Prices
 async function fetchEurUsd(){try{const r=await fetch(`${CG}/simple/price?ids=tether&vs_currencies=eur`);if(r.ok){const d=await r.json();if(d.tether?.eur)eurUsd=1/d.tether.eur;}}catch(e){}}
@@ -67,7 +67,7 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // Display helpers
 function cv(usd){return cur()==='eur'?usd/eurUsd:usd;}
 function fv(usd){const v=cv(usd);const a=Math.abs(v);const d=a>=1?2:a>=0.01?4:6;const n=v.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});return cur()==='eur'?n+'\u00a0€':'$'+n;}
-function fq(v){if(v>=1e6)return(v/1e6).toFixed(2)+'M';if(v>=1000)return v.toLocaleString('en-US',{maximumFractionDigits:2});if(v>=1)return v.toFixed(4);return v.toFixed(6);}
+function fq(v){const f=(d)=>v.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:d});if(v>=1e6)return(v/1e6).toLocaleString('fr-FR',{maximumFractionDigits:2})+'\u00a0M';if(v>=1000)return f(2);if(v>=1)return f(4);return f(6);}
 function fmc(v){if(!v)return'--';if(v>=1e12)return'$'+(v/1e12).toFixed(1)+'T';if(v>=1e9)return'$'+(v/1e9).toFixed(1)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';return'$'+v.toLocaleString();}
 function chClass(v){return v>=0?'green':'red';}
 function chText(v){v=+v||0;return(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')+'\u00a0%';}
@@ -87,7 +87,7 @@ it.sort((a,b)=>{let va,vb;switch(sort.col){case'name':return sort.dir==='asc'?a.
 const tot=it.reduce((s,i)=>s+i.usd,0);
 if(!it.length){tb.innerHTML='<tr><td colspan="10" class="muted center">Aucune position ≥ 10$</td></tr>';return;}
 const sc={SwissBorg:'#22c55e',Revolut:'#3b82f6',Multi:'#8b5cf6',Robo:'#f97316'};
-tb.innerHTML=it.map(i=>{const al=tot>0?(i.usd/tot*100):0;const e=i.type==='etf';const pr=e?`€${i.priceEUR.toFixed(2)}`:fv(prices[i.sym]?.p||0);
+tb.innerHTML=it.map(i=>{const al=tot>0?(i.usd/tot*100):0;const e=i.type==='etf';const pr=e?`${i.priceEUR.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})}\u00a0€`:fv(prices[i.sym]?.p||0);
 const fc=(v,isE)=>isE?'<td class="muted">—</td>':`<td class="${chClass(v)}">${chText(v)}</td>`;
 const c=sc[i.src]||'#888';
 return`<tr>
@@ -95,7 +95,7 @@ return`<tr>
 <td class="mono">${fq(i.qty)}</td><td class="mono">${pr}</td><td class="mono" style="font-weight:600">${fv(i.usd)}</td>
 ${fc(i.ch24,e)}${fc(i.ch7d,e)}${fc(i.ch30d,e)}${fc(i.ch1y,e)}
 <td class="spark-cell">${sparkSVG(i.spark)}</td>
-<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1).replace('.',',')}\u00a0%</span></div></td>
 </tr>`;}).join('');}
 
 function sortCol(c){if(sort.col===c)sort.dir=sort.dir==='desc'?'asc':'desc';else{sort.col=c;sort.dir='desc';}document.querySelectorAll('.htable th').forEach(t=>{t.classList.remove('sorted','asc','desc');});const th=document.querySelector(`.htable th[data-col="${c}"]`);if(th){th.classList.add('sorted',sort.dir);}renderH();}
@@ -104,7 +104,7 @@ function renderSum(){const it=allItems();const tot=it.reduce((s,i)=>s+i.usd,0);
 const cryptoUSD=it.filter(i=>i.type==='crypto').reduce((s,i)=>s+i.usd,0);
 const etfEUR=it.filter(i=>i.type==='etf').reduce((s,i)=>s+(i.eur||0),0);
 document.getElementById('kpiTotal').textContent=fv(tot);
-document.getElementById('kpiBreak').innerHTML=`${fv(cryptoUSD)}<span style="font-size:0.75rem;color:var(--fg3)"> / €${etfEUR.toFixed(0)}</span>`;
+document.getElementById('kpiBreak').innerHTML=`${fv(cryptoUSD)}<div class="kpi-sub" style="color:var(--fg3);font-size:.8rem;font-weight:400;letter-spacing:0">ETF : ${Math.round(etfEUR).toLocaleString('fr-FR')}\u00a0€</div>`;
 // 24h change
 const ci=it.filter(i=>i.type==='crypto'&&i.usd>=10);const ct=ci.reduce((s,i)=>s+i.usd,0);
 if(ct>0){const w=ci.reduce((s,i)=>s+(i.ch24*i.usd),0)/ct;document.getElementById('kpiChange').innerHTML=`<span class="${chClass(w)}">${w>=0?'▲':'▼'} ${chText(w)}</span>`;}
@@ -514,7 +514,7 @@ return`<tr>
 <td class="${i.pru>0?chClass(i.pnlPct):'muted'}">${i.pru>0?chText(i.pnlPct):'—'}</td>
 ${fc(i.ch24,e&&!i.live)}${fc(i.ch7d,e&&!i.live)}
 <td class="spark-cell">${sparkSVG(i.spark)}</td>
-<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1).replace('.',',')}\u00a0%</span></div></td>
 </tr>`;}).join('');
 };
 
@@ -545,7 +545,7 @@ return`<tr>
 <td><div class="asset-cell"><div class="asset-img">${i.img?`<img src="${i.img}" onerror="this.parentElement.textContent='${i.sym.slice(0,2)}'">`:i.sym.slice(0,2)}</div><div class="asset-info"><div class="name">${i.name}</div><div class="sym">${i.sym}</div></div></div></td>
 <td class="mono">${fq(i.qty)}</td><td class="mono">${fv(i.priceUSD)}</td><td class="mono" style="font-weight:600">${fv(i.valUSD)}</td>
 <td class="${chClass(i.ch24)}">${chText(i.ch24)}</td><td class="${chClass(i.ch7d)}">${chText(i.ch7d)}</td>
-<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1).replace('.',',')}\u00a0%</span></div></td>
 </tr>`;}).join('');
 }
 
@@ -568,7 +568,7 @@ return`<tr>
 <td class="mono">${fq(i.qty)}</td><td class="mono">${eur(i.priceEUR)}</td><td class="mono" style="font-weight:600">${eur(i.valEUR)}</td>
 <td class="mono">${i.pru>0?eur(i.pru):'—'}</td>${ch(pnl)}${ch(L?i.e.ch24:null)}${ch(L?i.e.ch7d:null)}${ch(L?i.e.ch30d:null)}
 <td class="spark-cell">${sparkSVG(i.e.spark||[])}</td>
-<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1)}%</span></div></td>
+<td><div class="alloc-wrap"><div class="alloc-bar"><div class="alloc-fill" style="width:${Math.min(al,100)}%"></div></div><span class="alloc-pct">${al.toFixed(1).replace('.',',')}\u00a0%</span></div></td>
 </tr>`;}).join('');
 const d=items.map(i=>i.e.date).filter(Boolean).sort().pop();const n=document.getElementById('rrNote');if(n)n.textContent=d?`Cours de clôture du ${new Date(d+'T12:00:00Z').toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}, mis à jour chaque matin. Courbe : 60 dernières séances.`:'Cours du jour indisponibles : dernier prix payé affiché.';
 }

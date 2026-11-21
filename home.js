@@ -112,7 +112,7 @@
     const top = items.filter(i => i.usd >= MIN_HELD).sort((a, b) => b.usd - a.usd).slice(0, 6);
     $('hmPos').innerHTML = top.map(i => {
       const al = tot > 0 ? i.usd / tot : 0;
-      const img = i.img ? `<img src="${esc(i.img)}" alt="">` : esc(i.sym.slice(0, 2));
+      const img = i.img ? `<img src="${esc(i.img)}" alt="" onerror="this.replaceWith(document.createTextNode('${esc(i.sym.slice(0, 2))}'))">` : esc(i.sym.slice(0, 2));
       return `<div class="hm-p" style="--i:${4 + top.indexOf(i)}"><div class="asset-img">${img}</div><div><span class="n">${esc(i.sym)}</span><span class="muted"> ${esc(i.name)}</span><span class="s"><i style="width:${Math.round(al * 100)}%"></i></span></div><div class="v">${fv(i.usd)}<small class="${i.type === 'crypto' ? chClass(i.ch24) : 'muted'}">${i.type === 'crypto' ? chText(i.ch24) : 'ETF'} · ${(al * 100).toFixed(0)} %</small></div></div>`;
     }).join('') || '<div class="hm-empty">Aucune position.</div>';
 
@@ -165,7 +165,7 @@
       if (!list.length) return '';
       const total = list.reduce((s, a) => s + (a.w || 0), 0);
       const rows = list.map((a, i) => {
-        const it = held[a.sym], img = it && it.img ? `<img src="${esc(it.img)}" alt="">` : esc(a.sym.slice(0, 2));
+        const it = held[a.sym], img = it && it.img ? `<img src="${esc(it.img)}" alt="" onerror="this.replaceWith(document.createTextNode('${esc(a.sym.slice(0, 2))}'))">` : esc(a.sym.slice(0, 2));
         return `<button type="button" class="hm-row" data-go="signals" style="--i:${4 + i}"><span class="asset-img">${img}</span><span class="hm-row-m"><b>${esc(a.sym)}</b><span>${a.flipTxt}</span></span><span class="hm-row-g">${gauge(a)}<small>${pct(a.dist)} vs moyenne</small></span><span class="hm-row-v">${a.w ? fv(a.w) : '—'}</span></button>`;
       }).join('');
       return `<div class="hm-dec ${kind}"><div class="hm-dec-h"><span class="hm-badge ${kind}">${head}</span><span class="hm-dec-t">${sub}</span>${total ? `<span class="hm-dec-v">${fv(total)}<small>${(total / tot * 100).toFixed(0)} % du portefeuille</small></span>` : ''}</div><div class="hm-dec-rows">${rows}</div></div>`;

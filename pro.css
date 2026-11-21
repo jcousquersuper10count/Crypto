@@ -1,0 +1,137 @@
+/* VAULT — finition « banque privée ».
+   Chargé en dernier : remplace couleurs, typographie et composants communs, sans toucher à la logique.
+   Principes : une seule famille (Manrope) à chiffres alignés ; grands montants légers ; encre bleu nuit teintée
+   par onglet ; un seul accent laiton ; libellés en minuscules ; surfaces sobres, filets fins. */
+
+/* ---------- jetons ---------- */
+:root,[data-theme="light"]{
+  --bg:#f3f4f7;--bg2:#ffffff;--bg3:#eceef3;--fg:#141a26;--fg2:#556074;--fg3:#8a93a5;--border:#e2e5ec;
+  --accent:#9a7432;--accent-bg:#f6efe2;--green:#16845a;--red:#c83a3f;--orange:#b8651d;
+  --sb-bg:#f3f4f7;--sb-hover:#e9ebf0;--sb-active-bg:#ffffff;--sb-active-fg:#141a26;
+  --card-shadow:0 1px 2px rgba(20,26,38,.05);--input-bg:#fff;
+  --line:rgba(20,26,38,.08);--r-lg:16px;--r-md:10px;--r-sm:6px;
+}
+html[data-theme="dark"]{
+  --h:222;
+  --bg:hsl(var(--h) 32% 7.5%);--bg2:hsl(var(--h) 26% 10.5%);--bg3:hsl(var(--h) 22% 14%);
+  --border:hsl(var(--h) 20% 17%);--line:hsl(var(--h) 30% 80% / .07);
+  --fg:#e8ecf3;--fg2:hsl(var(--h) 14% 70%);--fg3:hsl(var(--h) 11% 52%);
+  --accent:#d6b67c;--accent-bg:hsl(38 30% 16%);
+  --green:#4cc38a;--red:#f06b6e;--orange:#e9a25a;
+  --sb-bg:hsl(var(--h) 34% 6.2%);--sb-hover:hsl(var(--h) 24% 11%);--sb-active-bg:hsl(var(--h) 24% 12.5%);--sb-active-fg:#f2f4f8;
+  --card-shadow:none;--input-bg:hsl(var(--h) 26% 8.5%);
+  --r-lg:16px;--r-md:10px;--r-sm:6px;
+}
+/* teinte de fond propre à chaque onglet, à luminosité égale */
+html[data-theme="dark"][data-page="home"]{--h:222;}
+html[data-theme="dark"][data-page="holdings"],html[data-theme="dark"][data-page="neverless"],html[data-theme="dark"][data-page="revcrypto"],html[data-theme="dark"][data-page="revrobo"]{--h:208;}
+html[data-theme="dark"][data-page="signals"]{--h:192;}
+html[data-theme="dark"][data-page="agent"]{--h:168;}
+html[data-theme="dark"][data-page="performance"]{--h:240;}
+html[data-theme="dark"][data-page="history"]{--h:262;}
+html[data-theme="dark"][data-page="import"]{--h:230;}
+html[data-theme="dark"][data-page="risk"]{--h:330;}
+html[data-theme="dark"][data-page="evolution"]{--h:280;}
+html[data-theme="dark"][data-page="market"]{--h:200;}
+html[data-theme="dark"][data-page="strategy"]{--h:150;}
+html[data-theme="dark"][data-page="fiscal"]{--h:24;}
+html[data-theme="dark"] .main::before{background:radial-gradient(80% 60% at 85% -10%,hsl(var(--h) 60% 45% / .10),transparent 70%);}
+
+/* ---------- typographie ---------- */
+body,button,input,select,textarea,.mono,.kpi-val,.kpi-sub,.alloc-pct,.ev-val,.mkt-price,.mkt-changes,.mkt-ath,
+.hist-date,.hist-recv,.hist-sent,.sv,.uz-status,.bench-val,.source-total,.sg-price,.sg-kv dd,.sg-rec .v,.sg-tbl td.num,
+.sg-tbl th.num,.topbar-status,.topbar-time,.ag-svg text,td,th{
+  font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif !important;
+}
+body{font-size:14.5px;letter-spacing:0;font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased;}
+td,.kpi-val,.hm-val,.sg-price,.v,.num{font-variant-numeric:tabular-nums;}
+svg text{font-family:'Manrope',sans-serif;}
+
+/* libellés : minuscules, discrets, sans espacement forcé */
+.kpi-label,.htable th,.ev-label,.stat-item .sl,.sb-sec,.hm-date,.hm-lbl,.hm-h,.hm-badge,.hm-act-t .new,.mo-list h4,
+.ag-prof span,.sg-pill,.sg-rec .lbl,.sg-tbl th,.ag-t th,.imp-bk h3{
+  text-transform:none !important;letter-spacing:0 !important;
+}
+.kpi-label,.hm-lbl,.ev-label,.stat-item .sl,.sg-rec .lbl,.ag-prof span{font-size:.8rem;font-weight:500;color:var(--fg3);}
+.hm-h,.hm-date{font-size:.95rem;font-weight:600;color:var(--fg);margin-bottom:.8rem;}
+.hm-date{font-size:.85rem;font-weight:500;color:var(--fg3);}
+.htable th,.sg-tbl th,.ag-t th{font-size:.78rem;font-weight:500;color:var(--fg3);}
+.page-head h2{font-size:1.6rem;font-weight:600;letter-spacing:-.025em;}
+
+/* grands montants : légers et serrés */
+.hm-val,.kpi-val{font-weight:500;letter-spacing:-.03em;}
+.hm-val{font-weight:300;letter-spacing:-.045em;}
+
+/* ---------- barre latérale ---------- */
+.sidebar{background:var(--sb-bg);border-right:1px solid var(--line);}
+.sb-name{letter-spacing:.14em;font-weight:700;font-size:.9rem;}
+.sb-link{position:relative;border-radius:var(--r-md);color:var(--fg2);font-weight:500;}
+.sb-link.active{background:var(--sb-active-bg);color:var(--sb-active-fg);}
+.sb-link.active::before{content:"";position:absolute;left:-.8rem;top:22%;bottom:22%;width:2px;border-radius:2px;background:var(--accent);}
+.sb-link.active .sb-i{color:var(--accent);}
+.sb-bottom{border-top:1px solid var(--line);}
+.sb-toggle{background:transparent;border:1px solid var(--line);}
+
+/* ---------- barre du haut ---------- */
+.topbar-status,.topbar-time{font-size:.8rem;color:var(--fg3);}
+.topbar-refresh{border:1px solid var(--line);background:transparent;}
+.mo-open{background:var(--accent);color:hsl(222 40% 10%);border:0;border-radius:var(--r-md);padding:.48rem .95rem;font-weight:600;}
+.mo-open:hover{filter:brightness(1.06);}
+.mo-count{background:hsl(222 40% 10%);color:var(--accent);}
+[data-theme="light"] .mo-open{color:#fff;}
+[data-theme="light"] .mo-count{background:#fff;color:var(--accent);}
+
+/* ---------- surfaces ---------- */
+.kpi,.table-wrap,.chart-box,.ana-card,.mkt-card,.sg-panel,.sg-card,.hm-act,.hm-pos,.hm-empty,.ag-panel,.ag-card,.ag-prof>div,
+.uz-card,.imp-card,.bench-card,.evo-stat,.stat-item{
+  background:var(--bg2);border:1px solid var(--line) !important;border-radius:var(--r-lg);box-shadow:none;
+}
+.hm-act:hover,.sg-card:hover{border-color:hsl(var(--h) 25% 30%) !important;}
+.sg-card.active,.sg-card.sel{border-color:var(--accent) !important;}
+.htable tr,.htable td,.sg-tbl td,.ag-t td,.hm-p{border-color:var(--line) !important;}
+.htable tbody tr:hover td{background:hsl(var(--h) 25% 13%);}
+[data-theme="light"] .htable tbody tr:hover td{background:#f7f8fa;}
+
+/* ligne mise en avant du tableau des horizons : lisible en sombre */
+.sg-tbl tr.sel td,.sg-tbl tr.active td,.sg-tbl tr.hl td{background:var(--accent-bg) !important;color:var(--fg) !important;}
+.sg-tbl tr.sel td *,.sg-tbl tr.active td *,.sg-tbl tr.hl td *{color:inherit;}
+
+/* boutons de période */
+.pbtn{border-radius:var(--r-sm);border:1px solid transparent;background:transparent;color:var(--fg2);font-weight:500;}
+.pbtn:hover{color:var(--fg);background:var(--bg3);}
+.pbtn.active{background:var(--bg3);color:var(--fg);border-color:var(--line);}
+
+/* pastilles : texte coloré sur fond très doux, en minuscules */
+.hm-badge,.sg-pill{font-weight:600;font-size:.74rem;border-radius:var(--r-sm);padding:.28rem .55rem;}
+.src-tag{background:transparent !important;color:var(--fg3) !important;font-size:.72rem !important;font-weight:500 !important;padding:0 !important;margin-left:.45rem !important;}
+.src-tag::before{content:"· ";}
+
+/* monogrammes des actifs sans logo */
+.asset-img{background:hsl(var(--h) 22% 16%) !important;color:var(--accent) !important;font-weight:600 !important;font-size:.72rem !important;letter-spacing:.02em;border:1px solid var(--line);}
+[data-theme="light"] .asset-img{background:var(--accent-bg) !important;}
+
+/* ---------- accueil ---------- */
+.hm-hero{border-bottom:1px solid var(--line);}
+.hm-title{font-weight:600;letter-spacing:-.035em;}
+.hm-sub{color:var(--fg2);}
+.hm-p .s{background:var(--bg3);height:3px;}
+
+/* ---------- formulaires ---------- */
+input,select,textarea{border-color:var(--line);}
+.mo-dlg{background:var(--bg2);border:1px solid var(--line);}
+
+/* ---------- graphiques Agent ---------- */
+.ag-card{border-top:2px solid var(--c) !important;}
+
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
+
+/* ---------- chiffres ---------- */
+.hm-val,.kpi-val{font-variant-numeric:proportional-nums lining-nums;}
+svg text,.ag-svg text{font-family:'Manrope',sans-serif !important;}
+/* colonnes numériques alignées à droite dans le portefeuille */
+#p-holdings .htable th:not(:first-child),#p-holdings .htable td:not(:first-child){text-align:right;}
+#p-holdings .htable th:last-child,#p-holdings .htable td:last-child{text-align:left;padding-left:1.2rem;}
+#p-holdings .htable td.spark-cell{text-align:center;}
+.htable td.mono{font-weight:500;}
+.alloc-fill{background:var(--accent);}
+.alloc-bar{background:var(--bg3);}

@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="signals.css">
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="pro.css">
 </head>
 <body>
 <div id="gate" class="gate"><div class="gate-glow"></div><div class="gate-box"><div class="gate-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path class="g1" d="M12 2 21 7v10l-9 5-9-5V7z"/><path class="g2" d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z"/></svg><span>VAULT</span></div><p class="gate-sub">Ton portefeuille, une décision par jour.</p><input type="password" id="gatePwd" placeholder="Mot de passe" autofocus aria-label="Mot de passe"><button onclick="checkPwd()">Entrer</button><p class="gate-err" id="gateErr"></p></div></div>
@@ -77,7 +78,7 @@
 <div class="seg" role="tablist"></div>
 <div class="kpi-row">
 <div class="kpi accent"><div class="kpi-label">Valeur totale</div><div class="kpi-val" id="kpiTotal">--</div><div class="kpi-sub" id="kpiChange">--</div></div>
-<div class="kpi"><div class="kpi-label">Crypto / ETF</div><div class="kpi-val" id="kpiBreak">--</div></div>
+<div class="kpi"><div class="kpi-label">Crypto</div><div class="kpi-val" id="kpiBreak">--</div></div>
 <div class="kpi"><div class="kpi-label">Investi</div><div class="kpi-val" id="kpiInv">--</div></div>
 <div class="kpi"><div class="kpi-label">Gain / perte</div><div class="kpi-val" id="kpiPnl">--</div></div>
 <div class="kpi"><div class="kpi-label">Humeur du marché</div><div class="kpi-val" id="kpiFG">--</div></div>
@@ -90,8 +91,8 @@
 <th data-col="pru" onclick="sortCol('pru')">PRU</th>
 <th data-col="pnl" onclick="sortCol('pnl')">Gain %</th>
 <th data-col="ch24" onclick="sortCol('ch24')">24h</th>
-<th data-col="ch7d" onclick="sortCol('ch7d')">7j</th>
-<th>7j</th>
+<th data-col="ch7d" onclick="sortCol('ch7d')">7 j</th>
+<th>Courbe 7 j</th>
 <th data-col="alloc" onclick="sortCol('alloc')">Alloc</th>
 </tr></thead><tbody id="holdBody"><tr><td colspan="10" class="muted center">Chargement...</td></tr></tbody></table></div>
 </section>
