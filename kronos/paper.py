@@ -257,7 +257,8 @@ def main():
         hist[label] = {"debut": start.strftime("%Y-%m-%d"), "fin": last.strftime("%Y-%m-%d"), "strategies": res}
 
     # 2) trading fictif depuis la date du profil
-    pstart = pd.Timestamp(PROFILE["debut"])
+    # au plus tard la dernière clôture connue (sinon la courbe est vide le jour du départ)
+    pstart = min(pd.Timestamp(PROFILE["debut"]), last)
     ia_log = dict(prev.get("ia_log", {}))
     feats = features(px)
     ia_note = None
