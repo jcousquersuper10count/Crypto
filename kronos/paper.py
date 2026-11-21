@@ -248,7 +248,7 @@ def main():
     # 1) test sur l'historique, deux fenêtres, départ depuis la répartition actuelle de Neverless
     hist = {}
     for label, days in (("12 mois", 365), ("Historique complet", None)):
-        start = last - pd.Timedelta(days=days) if days else px["PLUME"].dropna().index[0] + pd.Timedelta(days=60)
+        start = last - pd.Timedelta(days=days) if days else max(px[c].dropna().index[0] for c in U) + pd.Timedelta(days=60)
         res = {}
         for k in ["garder"] + list(RULES):
             c, t, n, _, st, sd, _ = simulate(px, start, w0, RULES.get(k))

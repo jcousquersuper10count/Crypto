@@ -96,7 +96,7 @@
   }
 
   function heldQty(acct, sym) {
-    const b = acct === 'Neverless' ? compSB(sbTx) : acct === 'Revolut_Crypto' ? compRC(rcTx) : compRR(rrTx);
+    const b = acct === 'Neverless' ? compSBraw(sbTx) : acct === 'Revolut_Crypto' ? compRC(rcTx) : compRR(rrTx);
     return b[sym] || 0;
   }
   function eurPrice(sym) {
