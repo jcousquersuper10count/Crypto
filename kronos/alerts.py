@@ -63,7 +63,7 @@ def eur(v):
 
 
 def tg(method, **params):
-    tok = ENV["TELEGRAM_BOT_TOKEN"]
+    tok = ENV["TELEGRAM_BOT_TOKEN"].strip()
     data = json.dumps(params).encode()
     req = urllib.request.Request(f"https://api.telegram.org/bot{tok}/{method}", data=data,
                                  headers={"Content-Type": "application/json"})
@@ -77,9 +77,17 @@ def chat_id(state):
     if state.get("chat_id"):
         return state["chat_id"]
     try:
+        me = tg("getMe").get("result", {})
+        print(f"Bot reconnu : @{me.get('username')}")
+    except Exception as ex:
+        print(f"Jeton Telegram refusé ({ex}) : vérifie le secret TELEGRAM_BOT_TOKEN (copié en entier, sans espace).")
+        return None
+    try:
         up = tg("getUpdates", limit=50).get("result", [])
-    except Exception:
+    except Exception as ex:
+        print(f"Lecture des messages du bot impossible : {ex}")
         up = []
+    print(f"{len(up)} message(s) reçu(s) par le bot")
     for u in reversed(up):
         m = u.get("message") or u.get("my_chat_member") or {}
         c = (m.get("chat") or {})
