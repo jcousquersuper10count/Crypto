@@ -67,6 +67,11 @@ function doGet(e) {
   if (!authed_(p.key)) return out_({ status: 'denied' });
   const ss = book_();
   if (p.action === 'ping') return out_({ status: 'ok' });
+  if (p.action === 'snapshot') {
+    let snap = null;
+    try { snap = JSON.parse(PropertiesService.getScriptProperties().getProperty('VAULT_SNAPSHOT') || 'null'); } catch (x) {}
+    return out_({ status: 'ok', snap: snap });
+  }
   if (p.action === 'read') {
     const tabs = {};
     TABS.forEach(t => { const sh = ss.getSheetByName(t); tabs[t] = sh && sh.getLastRow() > 0 ? sh.getDataRange().getDisplayValues() : []; });
@@ -98,6 +103,7 @@ function doPost(e) {
     if (b.action === 'restore_backup') return out_(restore_(b.tabName, b.backup));
     if (b.action === 'log_value') return out_(logValue_(b));
     if (b.action === 'manual_save') return out_(manualSave_(b.list));
+    if (b.action === 'snapshot_save') return out_(snapshotSave_(b.snap));
     return out_({ status: 'error', message: 'action inconnue' });
   } finally {
     lock.releaseLock();
@@ -167,4 +173,14 @@ function manualSave_(list) {
   if (txt.length > 8500) return { status: 'error', message: 'trop d\'opérations en attente : importe tes relevés' };
   PropertiesService.getScriptProperties().setProperty('VAULT_MANUAL', txt);
   return { status: 'ok', n: list.length };
+}
+
+/* ---------- instantané du portefeuille (pour les alertes du matin) ---------- */
+
+function snapshotSave_(snap) {
+  if (!snap || typeof snap !== 'object' || !Array.isArray(snap.positions)) return { status: 'error', message: 'instantané invalide' };
+  const txt = JSON.stringify(snap);
+  if (txt.length > 8800) return { status: 'error', message: 'instantané trop grand' };
+  PropertiesService.getScriptProperties().setProperty('VAULT_SNAPSHOT', txt);
+  return { status: 'ok' };
 }

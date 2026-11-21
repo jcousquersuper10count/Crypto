@@ -250,6 +250,11 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Règles de risque et alertes Telegram (21 novembre)
+- Accueil, « Mes règles de risque » (`risk.js`) : part crypto max (15 %), poids max par crypto (5 %, réduit si la volatilité 30 jours dépasse 60 %/an), poids max par ETF (30 %), perte max par crypto (−40 % du prix d'achat), import en retard (45 jours). Modifiables, gardées dans le navigateur ; action proposée en euros.
+- Avec la clé, VAULT envoie au script Google un instantané (positions, règles, état ; action `snapshot_save`, lu par `action=snapshot`).
+- `kronos/alerts.py`, après l'agent dans la tâche du matin : résumé quotidien sur Telegram (tendances, règles, comité IA, trading fictif) et nouveautés en tête (changement de tendance, règle nouvellement dépassée, stratégie proche de l'arrêt, nouveaux ordres IA). Secrets : `TELEGRAM_BOT_TOKEN`, facultatifs `TELEGRAM_CHAT_ID`, `VAULT_KEY`. État : `data/alerts_state.json`.
+
 ### Agent (20 novembre)
 - Profil fixé avec Julien : capital = solde Neverless (673 €), arrêt à −20 %, comptant sans levier, Neverless sans frais. Objectif ×20 en un mois non retenu.
 - `kronos/paper.py` (chaque matin) : 4 stratégies fixées à l'avance sur BTC, ETH, SOL, CETUS, PLUME (garder, tendance 50 jours, tendance + volatilité, élan 2 meilleures), décision à la clôture et exécution le lendemain, écart 0,1 %, seuil d'ordre 3 %. Test sur l'historique et trading fictif depuis le 19 novembre 2026, ordres du jour en euros.

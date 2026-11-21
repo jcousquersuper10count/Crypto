@@ -57,6 +57,8 @@
 <div class="hm-col">
 <h3 class="hm-h">Décision du jour</h3>
 <div class="hm-actions" id="hmActions"><div class="sk" style="height:260px"></div></div>
+<h3 class="hm-h">Mes règles de risque</h3>
+<div id="rkBox"></div>
 <h3 class="hm-h" id="hmWatchH" hidden>À surveiller</h3>
 <ul class="hm-watch" id="hmWatch"></ul>
 </div>
@@ -267,6 +269,7 @@
 <script src="home.js"></script>
 <script src="manual.js"></script>
 <script src="agent.js"></script>
+<script src="risk.js"></script>
 <dialog id="moDlg" class="mo-dlg" aria-labelledby="moTitle">
 <form id="moForm" method="dialog" onsubmit="return addManual(event)">
 <div class="mo-head"><h3 id="moTitle">Saisir une opération</h3><button type="button" class="mo-x" onclick="closeManual()" aria-label="Fermer">✕</button></div>
