@@ -23,5 +23,6 @@
   "etf": true,
   "loss": false,
   "import": true
- }
+ },
+ "radar": []
 }
