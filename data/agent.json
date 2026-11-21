@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-21T06:23:16+00:00",
+ "genere": "2026-11-21T06:28:45+00:00",
  "derniere_cloture": "2026-11-20",
  "profil": {
   "compte": "Neverless",
@@ -4465,35 +4465,35 @@
    "avis": {
     "groq": {
      "cible": {},
-     "decision": "Nous vendons intégralement les positions CETUS et PLUME et plaçons 100 % du capital en stablecoin. Cette mesure protège le portefeuille contre le risque de déclencher l'arrêt de -20 % du capital initial.",
+     "decision": "Compte tenu de la forte dynamique baissière et du risque de franchir le seuil d’arrêt de -20 % du capital, nous réduisons l’exposition à zéro et conservons l’ensemble du capital en stablecoin. Cette posture prudente permet de protéger le portefeuille en attendant des signaux de retournement plus clairs.",
      "analyses": {
-      "tendance": "Tous les actifs de l'univers affichent des écarts moyens négatifs importants (‑27 % à ‑30 % sur 50 j) et des baisses de 30 % à 38 % sur 30 j, indiquant une forte tendance baissière généralisée. Les volumes annuels restent élevés (44 %‑78 %), ce qui montre que le marché reste actif malgré la chute. Aucun signal de rebond n’apparaît dans les indicateurs fournis.",
-      "risque": "La volatilité est élevée (vol. 30 j > 44 %) et les reculs depuis le maximum annuel dépassent 50 % pour CETUS et PLUME, plaçant le portefeuille très près du seuil d’arrêt de ‑20 % du capital initial. La concentration totale sur deux tokens fortement décorrélés du marché ne compense pas ces pertes. Le risque de perte totale est donc accentué par l’absence de positions stabilisantes.",
-      "pour": "Les volumes importants suggèrent que les actifs conservent une liquidité suffisante pour profiter d’un éventuel rebond rapide si les conditions macro changent. De plus, la présence de deux tokens différents offre une petite diversification interne qui pourrait limiter l’impact d’un effondrement isolé.",
-      "contre": "Les écarts moyens négatifs, les baisses de 30 %‑38 % sur 30 j et les reculs de plus de 50 % depuis le sommet annuel indiquent que les prix sont profondément sous pression et que le risque de déclencher l’arrêt de ‑20 % est élevé. Le portefeuille est exposé à des actifs très dépréciés sans protection en stablecoin, augmentant la probabilité d’une perte supplémentaire."
+      "tendance": "Tous les actifs affichent des écarts négatifs importants par rapport aux moyennes mobiles 50 et 200, indiquant une dynamique baissière généralisée. Les variations sur 7, 30 et 90 jours sont fortement négatives, signe de pression vendeuse persistante. Aucun indicateur ne montre de rebond récent ou de stabilisation du prix.",
+      "risque": "La volatilité annuelle est élevée (44‑78 %), ce qui amplifie les mouvements de prix et les pertes potentielles. Les reculs depuis le maximum annuel dépassent 35 % pour BTC et atteignent plus de 60 % pour CETUS et PLUME, rapprochant le portefeuille du seuil d’arrêt de -20 % du capital initial. L’exposition actuelle à CETUS (53 %) et PLUME (45 %) augmente la sensibilité du portefeuille aux chutes supplémentaires.",
+      "pour": "Les volumes de transaction restent élevés, suggérant un intérêt du marché qui pourrait soutenir un rebond si les conditions macro s’améliorent. Les prix sont très bas par rapport à leurs sommets annuels, offrant un potentiel de plus-value important en cas de retournement. La diversification entre deux tokens réduit le risque de concentration sur un seul actif.",
+      "contre": "Tous les indicateurs de momentum sont fortement négatifs, ce qui indique que la tendance baissière est encore dominante. La proximité du stop‑loss de -20 % rend le portefeuille très vulnérable à de nouvelles baisses, surtout pour CETUS et PLUME qui ont déjà perdu plus de la moitié de leur valeur maximale. L’absence de signaux de reprise rend l’exposition actuelle très spéculative."
      },
      "modele": "openai/gpt-oss-120b (Groq)"
     }
    },
    "mix": {
     "cible": {},
-    "decision": "Nous vendons intégralement les positions CETUS et PLUME et plaçons 100 % du capital en stablecoin. Cette mesure protège le portefeuille contre le risque de déclencher l'arrêt de -20 % du capital initial.",
+    "decision": "Compte tenu de la forte dynamique baissière et du risque de franchir le seuil d’arrêt de -20 % du capital, nous réduisons l’exposition à zéro et conservons l’ensemble du capital en stablecoin. Cette posture prudente permet de protéger le portefeuille en attendant des signaux de retournement plus clairs.",
     "analyses": {
-     "tendance": "Tous les actifs de l'univers affichent des écarts moyens négatifs importants (‑27 % à ‑30 % sur 50 j) et des baisses de 30 % à 38 % sur 30 j, indiquant une forte tendance baissière généralisée. Les volumes annuels restent élevés (44 %‑78 %), ce qui montre que le marché reste actif malgré la chute. Aucun signal de rebond n’apparaît dans les indicateurs fournis.",
-     "risque": "La volatilité est élevée (vol. 30 j > 44 %) et les reculs depuis le maximum annuel dépassent 50 % pour CETUS et PLUME, plaçant le portefeuille très près du seuil d’arrêt de ‑20 % du capital initial. La concentration totale sur deux tokens fortement décorrélés du marché ne compense pas ces pertes. Le risque de perte totale est donc accentué par l’absence de positions stabilisantes.",
-     "pour": "Les volumes importants suggèrent que les actifs conservent une liquidité suffisante pour profiter d’un éventuel rebond rapide si les conditions macro changent. De plus, la présence de deux tokens différents offre une petite diversification interne qui pourrait limiter l’impact d’un effondrement isolé.",
-     "contre": "Les écarts moyens négatifs, les baisses de 30 %‑38 % sur 30 j et les reculs de plus de 50 % depuis le sommet annuel indiquent que les prix sont profondément sous pression et que le risque de déclencher l’arrêt de ‑20 % est élevé. Le portefeuille est exposé à des actifs très dépréciés sans protection en stablecoin, augmentant la probabilité d’une perte supplémentaire."
+     "tendance": "Tous les actifs affichent des écarts négatifs importants par rapport aux moyennes mobiles 50 et 200, indiquant une dynamique baissière généralisée. Les variations sur 7, 30 et 90 jours sont fortement négatives, signe de pression vendeuse persistante. Aucun indicateur ne montre de rebond récent ou de stabilisation du prix.",
+     "risque": "La volatilité annuelle est élevée (44‑78 %), ce qui amplifie les mouvements de prix et les pertes potentielles. Les reculs depuis le maximum annuel dépassent 35 % pour BTC et atteignent plus de 60 % pour CETUS et PLUME, rapprochant le portefeuille du seuil d’arrêt de -20 % du capital initial. L’exposition actuelle à CETUS (53 %) et PLUME (45 %) augmente la sensibilité du portefeuille aux chutes supplémentaires.",
+     "pour": "Les volumes de transaction restent élevés, suggérant un intérêt du marché qui pourrait soutenir un rebond si les conditions macro s’améliorent. Les prix sont très bas par rapport à leurs sommets annuels, offrant un potentiel de plus-value important en cas de retournement. La diversification entre deux tokens réduit le risque de concentration sur un seul actif.",
+     "contre": "Tous les indicateurs de momentum sont fortement négatifs, ce qui indique que la tendance baissière est encore dominante. La proximité du stop‑loss de -20 % rend le portefeuille très vulnérable à de nouvelles baisses, surtout pour CETUS et PLUME qui ont déjà perdu plus de la moitié de leur valeur maximale. L’absence de signaux de reprise rend l’exposition actuelle très spéculative."
     },
     "modele": "openai/gpt-oss-120b (Groq)",
     "accord": "Un seul comité a répondu aujourd'hui : sa décision est reprise telle quelle.",
     "juge": "openai/gpt-oss-120b (Groq)"
    },
    "erreurs": {
-    "gemini": "HTTPError"
+    "gemini": "RuntimeError: HTTP 503 [{\n  \"error\": {\n    \"code\": 503,\n    \"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\n    \"status\": \"UNAVAILABLE"
    }
   }
  },
- "ia_note": "Sans réponse aujourd'hui : gemini. Nouvel essai demain.",
+ "ia_note": "Sans réponse aujourd'hui : gemini (RuntimeError: HTTP 503 [{\n  \"error\": {\n    \"code\": 503,\n    \"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\n    \"status\": \"UNAVAILABLE). Nouvel essai au prochain calcul.",
  "indicateurs": {
   "BTC": {
    "prix_eur": 53699.13,
