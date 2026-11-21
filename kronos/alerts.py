@@ -172,6 +172,26 @@ def build(state, now):
         al.append("Trading fictif depuis le " + e(prof.get("debut", "?")) + " : " +
                   ", ".join(f"{e((ag.get('noms') or {}).get(k, k))} {(v - 1) * 100:+.1f} %".replace(".", ",") for v, k in best[:4]))
 
+    # 4) radar Neverless
+    rd = jload(os.path.join(ROOT, "data/screener.json"), {}) or {}
+    rdl = []
+    if rd.get("cryptos"):
+        lst = (rd.get("listes") or {}).get("C") or []
+        prevl = set(state.get("radar", []))
+        new = [x for x in lst if x not in prevl]
+        if new and prevl is not None and "radar" in state:
+            cr = rd["cryptos"]
+            news.append("📡 Radar : nouvelle indication d'achat (règle en test) : " +
+                        ", ".join(f"<b>{e(x)}</b> {cr[x]['var30'] * 100:+.0f} % sur 30 j".replace(".", ",") for x in new) + ".")
+        out = [x for x in prevl if x not in lst]
+        if out and "radar" in state:
+            news.append("📡 Radar : sort de la liste : " + ", ".join(e(x) for x in out) + ".")
+        state["radar"] = lst
+        if lst:
+            rdl.append("<b>Radar Neverless</b> : liste d'achat " + ", ".join(e(x) for x in lst))
+        else:
+            rdl.append("<b>Radar Neverless</b> : pas d'indication d'achat (Bitcoin sous sa moyenne 50 jours).")
+
     today = now.strftime("%Y-%m-%d")
     digest = state.get("dernier_resume") != today
     if not news and not digest:
@@ -188,6 +208,8 @@ def build(state, now):
             parts.append(f"<i>{e(snap_note)}</i>")
         if al:
             parts.append("\n".join(al))
+        if rdl:
+            parts.append("\n".join(rdl))
         state["dernier_resume"] = today
     parts.append(f'<a href="{SITE}">Ouvrir VAULT</a> · outil d\'aide à la décision, pas un conseil en investissement')
     return "\n\n".join(parts), state

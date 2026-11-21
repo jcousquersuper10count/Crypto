@@ -6,7 +6,7 @@
   "arret": -0.20,
   "levier": false,
   "frais": 0.0,
-  "ecart_estime": 0.001,
+  "ecart_estime": 0.002,
   "seuil_ordre": 0.03,
   "univers": ["BTC", "ETH", "SOL", "CETUS", "PLUME"],
   "depart": {"CETUS": 0.54, "PLUME": 0.44},

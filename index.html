@@ -21,6 +21,7 @@
 <a class="sb-link active" data-page="home" onclick="go('home')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z"/></svg></i><span>Aujourd'hui</span></a>
 <a class="sb-link" data-page="holdings" onclick="go('holdings')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12v4"/><path d="M16 13h2"/></svg></i><span>Portefeuille</span></a>
 <a class="sb-link" data-page="signals" onclick="go('signals')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></i><span>Signaux</span></a>
+<a class="sb-link" data-page="radar" onclick="go('radar')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg></i><span>Radar</span></a>
 <a class="sb-link" data-page="agent" onclick="go('agent')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/></svg></i><span>Agent</span></a>
 <a class="sb-link" data-page="performance" onclick="go('performance')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Performance</span></a>
 <a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><span>Historique</span></a>
@@ -153,6 +154,10 @@
 
 <!-- Strategy -->
 <!-- Signaux (Kronos + tendance) -->
+<section class="page" id="p-radar">
+<div class="page-head"><div><h2>Radar Neverless</h2><div class="sg-meta" id="rdMeta">Chargement…</div></div><button class="sb-toggle" type="button" onclick="reloadRadar()">Recharger</button></div>
+<div id="rdRoot"></div>
+</section>
 <section class="page" id="p-agent">
 <div class="page-head"><div><h2>Agent</h2><div class="sg-meta" id="agMeta">Chargement…</div></div><button class="sb-toggle" type="button" onclick="reloadAgent()">Recharger</button></div>
 <div id="agRoot"></div>
@@ -270,6 +275,7 @@
 <script src="manual.js"></script>
 <script src="agent.js"></script>
 <script src="risk.js"></script>
+<script src="radar.js"></script>
 <dialog id="moDlg" class="mo-dlg" aria-labelledby="moTitle">
 <form id="moForm" method="dialog" onsubmit="return addManual(event)">
 <div class="mo-head"><h3 id="moTitle">Saisir une opération</h3><button type="button" class="mo-x" onclick="closeManual()" aria-label="Fermer">✕</button></div>

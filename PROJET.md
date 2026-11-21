@@ -250,6 +250,13 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Radar Neverless (21 novembre)
+- `kronos/screener.py` (chaque matin, ~8 min) : top 330 CoinGecko hors stablecoins ∩ cryptos Neverless (API publique `neverless.com/api/trading/public/prices`, type CRYPTO, paires USD, écart achat/vente réel), historiques Gate.io vérifiés contre le prix CoinGecko (±15 %), coupure aux sauts aberrants, 30 premiers jours de cotation ignorés. ~178 cryptos.
+- Règle fixée avant le test (C) : chaque lundi, cryptos au-dessus de leur moyenne 50 j classées par variation 30 j, 5 premières à 20 %, rien si le Bitcoin est sous sa moyenne 50 j ; exécution le lendemain, moitié de l'écart Neverless par ordre. Variantes A (sans filtre) et B (90 j / volatilité) pour information.
+- Résultats au 20/11/2026 : C −3 % sur 12 mois et +38 % sur 2 ans (pire recul −56 %, résultat dépendant de quelques semaines) ; Bitcoin −31 % / −40 % ; panier égal −34 % / −71 %. Univers d'aujourd'hui : biais du survivant.
+- Onglet Radar (`radar.js`) : liste d'achat du jour, test, tableau triable et filtrable de toutes les cryptos ; Telegram : entrées et sorties de la liste.
+- Écart Neverless mesuré : ~0,3 % sur BTC, ETH, SOL ; médiane 0,39 % sur les cryptos. L'agent compte désormais 0,2 % par ordre (au lieu de 0,1 %).
+
 ### Règles de risque et alertes Telegram (21 novembre)
 - Accueil, « Mes règles de risque » (`risk.js`) : part crypto max (15 %), poids max par crypto (5 %, réduit si la volatilité 30 jours dépasse 60 %/an), poids max par ETF (30 %), perte max par crypto (−40 % du prix d'achat), import en retard (45 jours). Modifiables, gardées dans le navigateur ; action proposée en euros.
 - Avec la clé, VAULT envoie au script Google un instantané (positions, règles, état ; action `snapshot_save`, lu par `action=snapshot`).
@@ -312,3 +319,4 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 | 15 nov. (soir) | Audit : clé d'accès et script sécurisé, import avec aperçu et sauvegardes, règle revalidée hors échantillon avec un jour de délai, affichage descriptif, gain réalisé partiel, signal suspendu |
 | 20 nov. | Saisie manuelle des achats et ventes en attente d'import, rapprochement automatique |
 | 20 nov. (soir) | Onglet Agent : stratégies en test, ordres du jour, trading fictif, comité IA |
+| 21 nov. | Radar Neverless : 178 cryptos du top 330, règle d'élan avec filtre Bitcoin testée, onglet et alertes |

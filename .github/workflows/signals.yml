@@ -96,6 +96,11 @@ jobs:
         continue-on-error: true
         run: python kronos/paper.py --out data/agent.json
 
+      - name: Radar Neverless (top 300)
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: python kronos/screener.py --out data/screener.json
+
       - name: Alertes Telegram
         continue-on-error: true
         env:
