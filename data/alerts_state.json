@@ -1,0 +1,20 @@
+{
+ "signaux": {
+  "BTC": false,
+  "ATOM": false,
+  "PLUME": false,
+  "CETUS": false
+ },
+ "arrets": {
+  "garder": "ok",
+  "tendance": "ok",
+  "tendance_vol": "ok",
+  "elan": "ok",
+  "ia": "ok",
+  "ia_gemini": "ok",
+  "ia_groq": "ok"
+ },
+ "ordres_ia": "[]",
+ "dernier_resume": "2026-11-21",
+ "chat_id": 1774846143
+}
