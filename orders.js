@@ -7,7 +7,35 @@
   const $ = id => document.getElementById(id);
   const STABLE = new Set(['USDC', 'USDT', 'EURC', 'DAI', 'USDE', 'PYUSD', 'FDUSD', 'TUSD']);
   const SLOT = 0.2, MIN_ORDER_EUR = 10;
-  let RD = null, tried = false;
+  let RD = null, tried = false, AG = null, agTried = false;
+  async function loadAgent() {
+    if (AG || agTried) return AG;
+    agTried = true;
+    try { const r = await fetch('data/agent.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) AG = await r.json(); } catch (e) {}
+    return AG;
+  }
+  /* avis du comité IA, traduit en ordres sur le compte réel */
+  function iaBlock(S) {
+    if (!AG || !AG.ia_log) return '';
+    const days = Object.keys(AG.ia_log).sort(); if (!days.length) return '';
+    const E = AG.ia_log[days[days.length - 1]], M = E.mix || E, avis = E.avis || {};
+    const cible = M.cible || {}, thr = Math.max(MIN_ORDER_EUR * usdPerEur(), S.env * 0.03), ord = [];
+    S.pos.forEach(x => { const t = (cible[x.s] || 0) * S.env; if (x.v - t > thr) ord.push({ k: t > 0 ? 'trim' : 'sell', s: x.s, v: x.v - t }); });
+    Object.entries(cible).forEach(([s, w]) => { const cur = (S.pos.find(x => x.s === s) || {}).v || 0, t = w * S.env; if (t - cur > thr) ord.push({ k: 'buy', s, v: t - cur }); });
+    const lab = { sell: 'Vendre tout', trim: 'Alléger', buy: 'Acheter' };
+    const stab = Math.max(0, 1 - Object.values(cible).reduce((a, b) => a + b, 0)) * S.env;
+    const prop = ord.length ? ord.map(o => `<div class="od-o ${o.k}"><span class="od-b">${lab[o.k].split(' ')[0]}</span><span class="od-m"><b>${o.k === 'sell' ? 'Tout ' : ''}${esc(o.s)}</b></span><span class="od-v">${fv(o.v)}</span></div>`).join('')
+      + `<div class="od-o keep"><span class="od-b">Garder</span><span class="od-m"><b>Stablecoin</b></span><span class="od-v">${fv(stab)}</span></div>`
+      : `<div class="od-o keep"><span class="od-b">Garder</span><span class="od-m"><b>${Object.keys(cible).length ? 'Positions actuelles' : 'Tout en stablecoin'}</b><small>aucun ordre à passer selon le comité</small></span><span class="od-v">${fv(S.env)}</span></div>`;
+    const names = { groq: 'Groq', gemini: 'Gemini', local: 'Modèle local', openrouter: 'OpenRouter', claude: 'Claude' };
+    const one = Object.entries(avis).map(([k, v]) => `<li><b>${names[k] || k}</b> : ${esc(v.decision)}</li>`).join('');
+    const when = new Date(days[days.length - 1] + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    return `<div class="od od-ia"><div class="od-iah"><div><b>Avis du comité IA</b><small>clôture du ${when} · ${E.reel ? 'sur ton compte Neverless réel' : 'sur le portefeuille fictif de test'}</small></div><span class="od-tag">en test</span></div>
+      <p class="od-ver">${esc(M.decision)}${M.accord ? `<span>${esc(M.accord)}</span>` : ''}</p>
+      <div class="od-list">${prop}</div>
+      ${one ? `<ul class="od-avis">${one}</ul>` : ''}
+      <p class="od-note">Analyse de Groq et Gemini sur les indicateurs de prix, tranchée par un juge prudent. Ce n'est pas un conseil en investissement : son suivi fictif dans l'onglet Agent dira s'il mérite ta confiance. <button type="button" class="hm-link" onclick="go('agent')">Voir le détail</button></p></div>`;
+  }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const pc = v => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1).replace('.', ',') + ' %';
   const usdPerEur = () => (typeof eurUsd === 'number' && eurUsd > 0 ? eurUsd : 1);
@@ -97,7 +125,7 @@
       <div class="od-h"><div><span class="od-k">Enveloppe Neverless</span><b>${fv(S.env)}</b></div><div><span class="od-k">Dont stablecoin</span><b>${fv(S.stable)}</b></div><div><span class="od-k">Liste d'achat du radar</span><b>${L ? (L.length ? L.map(esc).join(', ') : 'vide') : '…'}</b></div></div>
       <div class="od-list">${body}</div>${unk}
       <p class="od-note">Règle du radar (en test) : jusqu'à 5 cryptos à 20 % de l'enveloppe, revue chaque lundi ; rien si le Bitcoin est sous sa moyenne 50 jours. Après un achat ou une vente, note-le avec « ＋ Opération » pour que les ordres se mettent à jour.</p>
-    </div>${revolutBlock()}`;
+    </div>${iaBlock(S)}${revolutBlock()}`;
     // titre de l'accueil
     if (RD) {
       const n = S.orders.length;
@@ -109,8 +137,8 @@
   }
 
   const prevSum = window.renderSum;
-  window.renderSum = function () { prevSum.apply(this, arguments); loadRadar().then(() => { try { render(); } catch (e) { console.error(e); } }); };
+  window.renderSum = function () { prevSum.apply(this, arguments); Promise.all([loadRadar(), loadAgent()]).then(() => { try { render(); } catch (e) { console.error(e); } }); };
   const prevGo = window.go;
-  window.go = function (p) { prevGo(p); if (p === 'home') loadRadar().then(() => { try { render(); } catch (e) {} }); };
+  window.go = function (p) { prevGo(p); if (p === 'home') Promise.all([loadRadar(), loadAgent()]).then(() => { try { render(); } catch (e) {} }); };
   window.renderOrders = render;
 })();

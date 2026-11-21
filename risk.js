@@ -101,7 +101,7 @@
     const N = window.nlState;
     if (N && N.env > 0) {
       const k = usd => Math.round(usd / (typeof eurUsd === 'number' && eurUsd > 0 ? eurUsd : 1));
-      snap.nl = { env: k(N.env), stable: k(N.stable), garder: k(N.keep || 0), ordres: (N.orders || []).map(o => ({ k: o.k, s: o.s, e: k(o.v), w: o.why })) };
+      snap.nl = { env: k(N.env), stable: k(N.stable), garder: k(N.keep || 0), pos: (N.pos || []).map(x => ({ s: x.s, e: k(x.v) })), ordres: (N.orders || []).map(o => ({ k: o.k, s: o.s, e: k(o.v), w: o.why })) };
     }
     try { const j = await gasPost({ action: 'snapshot_save', snap }); if (j && j.status === 'ok') localStorage.setItem('vault_snap_t', String(Date.now())); } catch (e) {}
   }

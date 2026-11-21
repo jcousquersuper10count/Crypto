@@ -250,6 +250,10 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Comité IA sur le compte réel (21 novembre)
+- L'instantané contient les positions Neverless (`snap.nl.pos`) ; `paper.py` les lit avec `VAULT_KEY` et donne au comité la répartition réelle (le suivi fictif applique ses cibles à part). L'entrée du jour garde `reel` (enveloppe, répartition).
+- Accueil : carte « Avis du comité IA » sous les ordres Neverless, avec la décision du juge, l'accord ou désaccord, les ordres traduits en euros sur l'enveloppe réelle et l'avis de chaque modèle.
+
 ### Ordres du jour Neverless (21 novembre)
 - Accueil, « Ordres du jour · Neverless » (`orders.js`) : seul le compte Neverless est géré. Enveloppe = cryptos + stablecoins Neverless ; cible = liste d'achat du radar (règle C), 20 % par crypto, le reste en stablecoin ; cryptos détenues hors liste à vendre ; seuil d'ordre 3 % de l'enveloppe ou 10 €.
 - Revolut Crypto (BTC, ATOM) : conservé quoi qu'il arrive, affiché à titre indicatif avec sa tendance.

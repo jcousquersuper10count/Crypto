@@ -195,6 +195,22 @@ def weekly(curve):
     return [[d.strftime("%Y-%m-%d"), round(float(e), 4)] for d, e in s.items()]
 
 
+def real_account():
+    """Répartition réelle du compte Neverless (instantané envoyé par VAULT au script Google, avec la clé)."""
+    try:
+        from alerts import snapshot
+        snap, _ = snapshot()
+    except Exception:
+        return None
+    nl = (snap or {}).get("nl")
+    if not nl or not nl.get("env"):
+        return None
+    env = float(nl["env"])
+    rep = {p["s"]: round(p["e"] / env, 4) for p in nl.get("pos", []) if p.get("e", 0) > 0}
+    rep["STABLECOIN"] = round(float(nl.get("stable", 0)) / env, 4)
+    return {"env_eur": round(env), "repartition": rep, "date": snap.get("t", "")[:10]}
+
+
 def features(px):
     out = {}
     for s in U:
@@ -251,13 +267,19 @@ def main():
     provs = providers()
     if provs:
         key = last.strftime("%Y-%m-%d")
-        if key not in ia_log or ia_log[key].get("erreurs"):
+        reel = real_account()
+        if key not in ia_log or ia_log[key].get("erreurs") or (reel and "reel" not in ia_log[key]):
             pp = prev.get("papier", {})
             cur = {"mix": pp.get("ia", {}).get("repartition", w0)}
             for p in provs:
                 cur[p["id"]] = pp.get("ia_" + p["id"], {}).get("repartition", w0)
+            if reel:  # le comité raisonne sur ton vrai compte Neverless ; le suivi fictif applique ses cibles à part
+                for k_ in list(cur):
+                    cur[k_] = reel["repartition"]
             try:
                 ia_log[key] = decide_all(feats, cur, PROFILE)
+                if reel:
+                    ia_log[key]["reel"] = reel
                 if ia_log[key].get("erreurs"):
                     ia_note = "Sans réponse aujourd'hui : " + " ; ".join(f"{k} ({v})" for k, v in ia_log[key]["erreurs"].items()) + ". Nouvel essai au prochain calcul."
             except Exception as e:  # le comité ne doit jamais bloquer le reste

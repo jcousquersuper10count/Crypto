@@ -131,7 +131,7 @@ def _ctx(features, current, profile):
         f"arrêt définitif si la valeur tombe à {int(profile['arret'] * 100)} % du capital de départ. "
         f"Univers autorisé : {', '.join(profile['univers'])} ; le reste est conservé en stablecoin. "
         f"Ordres exécutés le lendemain de la décision.\n"
-        f"Répartition actuelle (part du capital) : {json.dumps(current)}\n"
+        f"Répartition actuelle (part du capital{', compte réel Neverless' if 'STABLECOIN' in current else ''}) : {json.dumps(current)}\n"
         f"Indicateurs à la dernière clôture (en euros) : {json.dumps(features, ensure_ascii=False)}"
     )
 

@@ -270,3 +270,14 @@ html[data-theme="dark"][data-page="radar"]{--h:200;}
 @media (max-width:600px){.od-h{grid-template-columns:1fr 1fr;}.od-o{grid-template-columns:70px minmax(0,1fr) auto;}}
 .od-unk summary{cursor:pointer;}.od-unk{padding-bottom:0;}
 .sg-more{grid-column:1/-1;justify-self:start;background:transparent;border:1px dashed var(--line);color:var(--fg2);border-radius:var(--r-md);padding:.45rem .8rem;font:inherit;font-size:.8rem;cursor:pointer;}.sg-more:hover{color:var(--fg);}
+/* avis du comité IA sur l'accueil */
+.od-ia{margin-top:.8rem;border-left:3px solid hsl(330 70% 66%);}
+.od-iah{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;padding:1rem 1.1rem .4rem;}
+.od-iah b{display:block;font-size:.98rem;}
+.od-iah small{color:var(--fg3);font-size:.78rem;}
+.od-tag{font-size:.7rem;font-weight:600;color:hsl(330 70% 70%);background:hsl(330 60% 50% / .14);border-radius:5px;padding:.2rem .45rem;white-space:nowrap;}
+.od-ver{margin:0;padding:.2rem 1.1rem .8rem;font-size:.92rem;line-height:1.5;}
+.od-ver span{display:block;color:var(--fg2);font-size:.82rem;margin-top:.3rem;}
+.od-avis{list-style:none;margin:0;padding:.7rem 1.1rem 0;display:grid;gap:.4rem;font-size:.82rem;color:var(--fg2);line-height:1.45;}
+.od-avis b{color:var(--fg);font-weight:600;}
+.od-note .hm-link{margin:0 0 0 .3rem;padding:0;border:0;background:none;color:var(--accent);font-size:.78rem;}
