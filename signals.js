@@ -151,11 +151,35 @@
     const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
     let best = null, bd = 14;
     MARKS.forEach(m => { const d = Math.hypot(m.x - mx, m.y - my); if (d < bd) { bd = d; best = m; } });
-    if (!best) { tip.hidden = true; return; }
+    if (!best) { crosshair(mx, my); return; }
+    hideXh();
     tip.innerHTML = `<b class="${best.k === 'buy' ? 'green' : 'red'}">${best.k === 'buy' ? 'Achat' : 'Vente'}</b> · ${fdate(best.date)}<br>${best.q.toLocaleString('fr-FR', { maximumFractionDigits: 4 })} ${esc(S.coin)} · cours du jour ${eur(best.price)}`;
     tip.style.left = Math.min(Math.max(best.x, 90), cv.clientWidth - 90) + 'px'; tip.style.top = best.y + 'px'; tip.hidden = false;
   }
-  document.addEventListener('pointermove', ev => { if (ev.target && ev.target.id === 'sgChart') tipAt(ev); else { const t = $('sgTip'); if (t && !t.hidden) t.hidden = true; } });
+  function hideXh() { const x = $('sgXh'); if (x) x.hidden = true; }
+  function crosshair(mx) {
+    const G = S.geo, tip = $('sgTip'), cv = $('sgChart'); if (!G || !tip) return;
+    let xh = $('sgXh');
+    if (!xh) { xh = document.createElement('div'); xh.id = 'sgXh'; xh.className = 'sg-xh'; xh.innerHTML = '<i></i><b></b>'; cv.parentElement.appendChild(xh); }
+    const t = G.xMin + (mx - G.mL) / (G.W - G.mL - G.mR) * (G.xMax - G.xMin);
+    if (mx < G.mL || mx > G.W - G.mR) { hideXh(); tip.hidden = true; return; }
+    let html, px, py;
+    if (t <= 0) {
+      let k = 0, bd = Infinity; G.hist.forEach((p, i) => { const d = Math.abs(G.tOf(p[0]) - t); if (d < bd) { bd = d; k = i; } });
+      const p = G.hist[k], m = G.sma[k]; px = G.X(G.tOf(p[0])); py = G.Y(p[1]);
+      html = `<b>${fdate(p[0])}</b><br>Prix ${eur(p[1])}` + (m ? `<br><span class="muted">Moyenne 50 j ${eur(m)}</span><br><span class="${p[1] >= m ? 'green' : 'red'}">${p[1] >= m ? 'au-dessus' : 'sous'} de ${Math.abs((p[1] / m - 1) * 100).toFixed(1).replace('.', ',')} %</span>` : '');
+    } else {
+      let f = G.fan[0], bd = Infinity; G.fan.forEach(x => { const d = Math.abs(x[0] - t); if (d < bd) { bd = d; f = x; } });
+      px = G.X(f[0]); py = G.Y(G.last * f[3]);
+      const d = new Date(G.t0 + f[0] * 864e5).toISOString().slice(0, 10);
+      html = `<b>${fdate(d)}</b> <span class="muted">scénario</span><br>Central ${eur(G.last * f[3])}<br><span class="muted">8 cas sur 10 : ${eur(G.last * f[1])} – ${eur(G.last * f[5])}</span>`;
+    }
+    xh.hidden = false; xh.style.left = px + 'px'; xh.querySelector('i').style.top = py + 'px';
+    xh.style.top = G.mT + 'px'; xh.style.height = (G.H - G.mT - G.mB) + 'px'; xh.querySelector('i').style.top = (py - G.mT) + 'px';
+    tip.innerHTML = html; tip.hidden = false;
+    tip.style.left = Math.min(Math.max(px, 95), cv.clientWidth - 95) + 'px'; tip.style.top = Math.max(py, 70) + 'px';
+  }
+  document.addEventListener('pointermove', ev => { if (ev.target && ev.target.id === 'sgChart') tipAt(ev); else { const t = $('sgTip'); if (t && !t.hidden) t.hidden = true; hideXh(); } });
   document.addEventListener('pointerdown', ev => { if (ev.target && ev.target.id === 'sgChart') tipAt(ev); });
 
   /* ---------- chart ---------- */
@@ -179,8 +203,8 @@
     const mL = 6, mR = 62, mT = 10, mB = 24;
     const X = t => mL + (t - xMin) / (xMax - xMin) * (W - mL - mR);
     const Y = p => mT + (hi - p) / (hi - lo) * (H - mT - mB);
-    g.font = "11px 'Geist Mono', monospace"; g.fillStyle = css('--fg3'); g.textBaseline = 'middle';
-    nice(lo, hi, 5).forEach(v => { const y = Y(v); g.strokeStyle = css('--border'); g.lineWidth = 1; g.beginPath(); g.moveTo(mL, y); g.lineTo(W - mR, y); g.stroke(); g.textAlign = 'left'; g.fillText(short(v), W - mR + 6, y); });
+    g.font = "500 11px Manrope, system-ui, sans-serif"; g.fillStyle = css('--fg3'); g.textBaseline = 'middle';
+    nice(lo, hi, 5).forEach(v => { const y = Y(v); g.strokeStyle = css('--line') || css('--border'); g.lineWidth = 1; g.beginPath(); g.moveTo(mL, y); g.lineTo(W - mR, y); g.stroke(); g.textAlign = 'left'; g.fillText(short(v), W - mR + 6, y); });
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     const span = xMax - xMin;
     nice(xMin, xMax, Math.max(3, Math.floor(W / 110))).forEach(t => {
@@ -193,7 +217,8 @@
     // bands
     const accent = css('--accent') || '#4f6ef7';
     const band = (a, b, alpha) => {
-      g.globalAlpha = alpha; g.fillStyle = accent; g.beginPath();
+      const gr = g.createLinearGradient(x0, 0, W - mR, 0); gr.addColorStop(0, accent); gr.addColorStop(1, 'transparent');
+      g.globalAlpha = alpha * 1.6; g.fillStyle = gr; g.beginPath();
       g.moveTo(x0, Y(c.last)); fan.forEach(f => g.lineTo(X(f[0]), Y(c.last * f[a])));
       for (let i = fan.length - 1; i >= 0; i--) g.lineTo(X(fan[i][0]), Y(c.last * fan[i][b]));
       g.lineTo(x0, Y(c.last)); g.fill(); g.globalAlpha = 1;
@@ -202,9 +227,15 @@
     // SMA
     g.strokeStyle = css('--orange'); g.lineWidth = 1.4; g.beginPath(); let st = false;
     hist.forEach((p, i) => { const v = sma[i]; if (!v) return; const x = X(tOf(p[0])), y = Y(v); st ? g.lineTo(x, y) : (g.moveTo(x, y), st = true); }); g.stroke();
-    // price
-    g.strokeStyle = css('--fg'); g.lineWidth = 1.6; g.lineJoin = 'round'; g.beginPath();
+    // price : aire dégradée sous la courbe puis trait
+    const up = hist[hist.length - 1][1] >= (sma[sma.length - 1] || 0), tone = css(up ? '--green' : '--red');
+    const area = g.createLinearGradient(0, mT, 0, H - mB); area.addColorStop(0, tone); area.addColorStop(1, 'transparent');
+    g.globalAlpha = 0.16; g.fillStyle = area; g.beginPath();
+    hist.forEach((p, i) => { const x = X(tOf(p[0])), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.lineTo(X(tOf(hist[hist.length - 1][0])), H - mB); g.lineTo(X(tOf(hist[0][0])), H - mB); g.closePath(); g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = css('--fg'); g.lineWidth = 1.8; g.lineJoin = 'round'; g.beginPath();
     hist.forEach((p, i) => { const x = X(tOf(p[0])), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+    S.geo = { hist, sma, fan, last: c.last, X, Y, tOf, t0, x0, xMin, xMax, mL, mR, mT, mB, W, H };
     // the user's own buys and sells, one dot per day, placed on that day's close
     MARKS = [];
     const byDay = trades(S.coin), first = hist[0][0];
@@ -231,7 +262,12 @@
     fan.forEach(f => g.lineTo(X(f[0]), Y(c.last * f[3]))); g.stroke(); g.setLineDash([]);
     const e = fan[fan.length - 1];
     g.fillStyle = accent; g.beginPath(); g.arc(X(e[0]), Y(c.last * e[3]), 4, 0, 7); g.fill();
-    g.fillStyle = css('--fg'); g.beginPath(); g.arc(x0, Y(c.last), 3, 0, 7); g.fill();
+    g.fillStyle = css('--fg'); g.beginPath(); g.arc(x0, Y(c.last), 3.5, 0, 7); g.fill();
+    g.globalAlpha = 0.25; g.beginPath(); g.arc(x0, Y(c.last), 8, 0, 7); g.fill(); g.globalAlpha = 1;
+    // étiquette du dernier prix sur l'axe de droite
+    const ly = Y(c.last), lt = short(c.last), tw = g.measureText(lt).width + 12;
+    g.fillStyle = css('--fg'); g.beginPath(); g.roundRect(W - mR + 2, ly - 10, tw, 20, 5); g.fill();
+    g.fillStyle = css('--bg'); g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = "700 11px Manrope, system-ui, sans-serif"; g.fillText(lt, W - mR + 8, ly + 0.5);
   }
   function nice(a, b, n) {
     const sp = b - a; if (!(sp > 0)) return [a];

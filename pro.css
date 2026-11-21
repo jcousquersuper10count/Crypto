@@ -135,3 +135,56 @@ svg text,.ag-svg text{font-family:'Manrope',sans-serif !important;}
 .htable td.mono{font-weight:500;}
 .alloc-fill{background:var(--accent);}
 .alloc-bar{background:var(--bg3);}
+
+/* ---------- carte du portefeuille (accueil) ---------- */
+.hm-tile.wide{display:flex !important;flex-direction:column-reverse;gap:.9rem;padding:1rem !important;align-items:stretch !important;}
+.hm-tile.wide .hm-ring,.hm-tile.wide .hm-ringleg{width:100%;height:auto;}
+.hm-tile.wide .hm-ring svg{display:none;}
+.tm{position:relative;width:100%;aspect-ratio:16/11;border-radius:12px;overflow:hidden;}
+.tm-c{position:absolute;border:0;margin:0;padding:.55rem .6rem;text-align:left;cursor:pointer;color:#f3f6fa;
+  box-shadow:inset 0 0 0 1.5px var(--bg2);display:flex;flex-direction:column;justify-content:flex-start;gap:.1rem;overflow:hidden;
+  font-family:inherit;transition:filter .15s;}
+.tm-c{background:linear-gradient(160deg,rgba(255,255,255,.07),transparent 55%),var(--tc);}
+.tm-c:hover,.tm-c:focus-visible{filter:brightness(1.18);outline:none;}
+.tm-c b{font-size:.92rem;font-weight:700;letter-spacing:-.01em;line-height:1.1;}
+.tm-c span{font-size:.8rem;font-weight:600;opacity:.92;font-variant-numeric:tabular-nums;}
+.tm-c small{font-size:.72rem;opacity:.62;font-variant-numeric:tabular-nums;margin-top:auto;}
+.tm-c.sm{padding:.35rem .4rem;}.tm-c.sm b{font-size:.74rem;}.tm-c.sm span{font-size:.68rem;}
+.tm-c.xs{padding:.2rem .25rem;}.tm-c.xs b{font-size:.6rem;}
+.tm-strip{display:flex;height:6px;border-radius:99px;overflow:hidden;gap:2px;}
+.tm-strip span{min-width:3px;}
+.tm-leg{display:flex;flex-wrap:wrap;gap:.3rem 1.1rem;font-size:.8rem;color:var(--fg2);margin-top:.55rem;}
+.tm-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:.35rem;vertical-align:0;}
+.tm-leg b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums;}
+.tm-leg small{color:var(--fg3);}
+[data-theme="light"] .tm-c{color:#fff;}
+[data-theme="light"] .tm-c[style*="--tc:var(--bg3)"]{color:var(--fg);}
+
+/* ---------- curseur sur la courbe de valeur ---------- */
+.hm-curve{position:relative;}
+.hm-curve svg{cursor:crosshair;touch-action:pan-y;}
+.hm-xh{position:absolute;top:0;height:110px;width:0;border-left:1px dashed hsl(var(--h) 20% 60% / .45);pointer-events:none;}
+.hm-xh i{position:absolute;left:-5px;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 4px hsl(var(--h) 30% 80% / .15);}
+.hm-xh>span{position:absolute;top:2px;left:10px;white-space:nowrap;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:.35rem .55rem;font-size:.76rem;line-height:1.45;color:var(--fg2);box-shadow:0 10px 30px -12px rgba(0,0,0,.6);}
+.hm-xh>span b{color:var(--fg);font-weight:600;}
+.hm-xh.left>span{left:auto;right:8px;}
+
+/* ---------- curseur du graphique Signaux ---------- */
+#sgChart{cursor:crosshair;height:360px;touch-action:pan-y;}
+.sg-xh{position:absolute;width:0;border-left:1px dashed hsl(var(--h) 20% 60% / .5);pointer-events:none;}
+.sg-xh i{position:absolute;left:-5.5px;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 5px hsl(var(--h) 30% 80% / .16);}
+.sg-xh b{display:none;}
+.sg-tip{background:hsl(var(--h) 24% 14% / .96) !important;backdrop-filter:blur(6px);border:1px solid var(--line) !important;border-radius:10px !important;padding:.5rem .7rem !important;
+  box-shadow:0 14px 34px -14px rgba(0,0,0,.7);transform:translate(-50%,calc(-100% - 14px)) !important;font-size:.78rem !important;}
+[data-theme="light"] .sg-tip{background:#fff !important;}
+
+/* ---------- étiquettes en bout de courbe (Agent) ---------- */
+.ag-end{font-size:11px;font-weight:600;}
+.ag-svg polyline{stroke-linejoin:round;stroke-linecap:round;}
+
+.hm-ringleg .tm-strip{display:flex !important;grid-template-columns:none;}
+.hm-ringleg .tm-leg{display:flex !important;grid-template-columns:none;}
+.tm-c b,.tm-c span,.tm-c small{white-space:nowrap;}
+.tm-c.sm small{display:none;}
+.tm-c.xs span{display:none;}
+.hm-tile.wide{gap:.7rem;}

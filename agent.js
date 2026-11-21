@@ -14,17 +14,21 @@
     render();
   }
 
-  function lines(series, w = 640, h = 220) {
+  function lines(series, w = 760, h = 230) {
     const all = Object.values(series).flat(); if (!all.length) return '';
     const ts = all.map(p => Date.parse(p[0])), vs = all.map(p => p[1]);
     const t0 = Math.min(...ts), t1 = Math.max(...ts), lo = Math.min(...vs, 1) * 0.97, hi = Math.max(...vs, 1) * 1.03;
-    const pad = { l: 44, r: 10, t: 10, b: 22 };
+    const pad = { l: 44, r: 150, t: 10, b: 22 };
     const X = t => pad.l + (t1 > t0 ? (t - t0) / (t1 - t0) : 0) * (w - pad.l - pad.r), Y = v => pad.t + (hi - v) / (hi - lo) * (h - pad.t - pad.b);
     const ticks = [lo, 1, hi].filter((v, i, a) => a.indexOf(v) === i).map(v => `<g><line x1="${pad.l}" x2="${w - pad.r}" y1="${Y(v)}" y2="${Y(v)}" class="ag-grid${v === 1 ? ' base' : ''}"/><text x="${pad.l - 6}" y="${Y(v) + 3}" text-anchor="end">${pct(v - 1)}</text></g>`).join('');
     const stop = D.profil.arret != null ? `<line x1="${pad.l}" x2="${w - pad.r}" y1="${Y(1 + D.profil.arret)}" y2="${Y(1 + D.profil.arret)}" class="ag-stop"/><text x="${w - pad.r}" y="${Y(1 + D.profil.arret) - 4}" text-anchor="end" class="ag-stopt">arrêt ${pct(D.profil.arret)}</text>` : '';
     const pl = Object.entries(series).map(([k, s]) => `<polyline fill="none" stroke="${COL[k]}" stroke-width="${k === 'garder' ? 1.4 : 2}" ${k === 'garder' ? 'stroke-dasharray="4 3"' : ''} points="${s.map(p => X(Date.parse(p[0])).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' ')}"/>`).join('');
+    // étiquettes directes en bout de courbe (évite d'aller lire la légende)
+    const ends = Object.entries(series).filter(([, s]) => s.length).map(([k, s]) => ({ k, v: s[s.length - 1][1], y: Y(s[s.length - 1][1]) })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
+    const lab = ends.map(e => `<text x="${w - pad.r + 6}" y="${(e.y + 3.5).toFixed(1)}" class="ag-end" fill="${COL[e.k]}">${esc((D.noms[e.k] || e.k).replace(/ \(.*\)/, ''))} ${pct(e.v - 1)}</text>`).join('');
     const d0 = new Date(t0), d1 = new Date(t1), fm = d => d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
-    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Évolution des stratégies">${ticks}${stop}${pl}<text x="${pad.l}" y="${h - 4}">${fm(d0)}</text><text x="${w - pad.r}" y="${h - 4}" text-anchor="end">${fm(d1)}</text></svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Évolution des stratégies">${ticks}${stop}${pl}${lab}<text x="${pad.l}" y="${h - 4}">${fm(d0)}</text><text x="${w - pad.r}" y="${h - 4}" text-anchor="end">${fm(d1)}</text></svg>`;
   }
   const legend = keys => `<div class="ag-leg">${keys.map(k => `<span><i style="background:${COL[k]}"></i>${esc(D.noms[k] || k)}</span>`).join('')}</div>`;
 
