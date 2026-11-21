@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 5 * * *"   # every day, 05:17 UTC (after the daily candle closes)
   workflow_dispatch:        # "Run workflow" button for a manual refresh
+    inputs:
+      agent_seul:
+        description: "Recalculer seulement l'agent (sans les prévisions Kronos)"
+        type: boolean
+        default: false
   push:                     # also when the forecasting code changes
     branches: [main]
     paths: ["kronos/**", ".github/workflows/signals.yml"]
@@ -41,17 +46,20 @@ jobs:
           pip install -r kronos/requirements.txt
 
       - name: Get Kronos model code (pinned)
+        if: ${{ !inputs.agent_seul }}
         run: |
           git clone https://github.com/shiyu-coder/Kronos.git /tmp/Kronos
           git -C /tmp/Kronos checkout 67b630e67f6a18c9e9be918d9b4337c960db1e9a
 
       - name: Cache Kronos weights
+        if: ${{ !inputs.agent_seul }}
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
           key: kronos-weights-small-v1
 
       - name: Fetch prices and forecast
+        if: ${{ !inputs.agent_seul }}
         env:
           KRONOS_DIR: /tmp/Kronos
           KRONOS_MODEL: small

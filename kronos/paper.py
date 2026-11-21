@@ -251,7 +251,7 @@ def main():
     provs = providers()
     if provs:
         key = last.strftime("%Y-%m-%d")
-        if key not in ia_log:
+        if key not in ia_log or ia_log[key].get("erreurs"):
             pp = prev.get("papier", {})
             cur = {"mix": pp.get("ia", {}).get("repartition", w0)}
             for p in provs:
@@ -259,7 +259,7 @@ def main():
             try:
                 ia_log[key] = decide_all(feats, cur, PROFILE)
                 if ia_log[key].get("erreurs"):
-                    ia_note = "Sans réponse aujourd'hui : " + ", ".join(ia_log[key]["erreurs"]) + ". Nouvel essai demain."
+                    ia_note = "Sans réponse aujourd'hui : " + " ; ".join(f"{k} ({v})" for k, v in ia_log[key]["erreurs"].items()) + ". Nouvel essai au prochain calcul."
             except Exception as e:  # le comité ne doit jamais bloquer le reste
                 ia_note = f"Comité IA indisponible aujourd'hui : {e}. Nouvel essai demain."
     else:

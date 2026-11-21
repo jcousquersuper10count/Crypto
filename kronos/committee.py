@@ -13,7 +13,7 @@ puis un juge (Gemini en priorité) combine les avis ; chaque avis et le mélange
   ANTHROPIC_API_KEY   Claude, payant (facultatif)
 VAULT_AGENT_MODEL remplace le modèle par défaut du fournisseur choisi.
 """
-import json, os, re, time, urllib.request
+import json, os, re, time, urllib.error, urllib.request
 
 ENV = os.environ
 
@@ -25,7 +25,7 @@ def _mk(nom):
                 "cle": ENV["GROQ_API_KEY"], "modele": ENV.get("GROQ_MODEL") or m or "openai/gpt-oss-120b"}
     if nom == "gemini" and ENV.get("GEMINI_API_KEY"):
         return {"id": "gemini", "nom": "Gemini", "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-                "cle": ENV["GEMINI_API_KEY"], "modele": ENV.get("GEMINI_MODEL") or m or "gemini-flash-latest"}
+                "cle": ENV["GEMINI_API_KEY"], "modele": _gemini_model(ENV["GEMINI_API_KEY"], ENV.get("GEMINI_MODEL") or m or "gemini-flash-latest")}
     if nom == "openrouter" and ENV.get("OPENROUTER_API_KEY"):
         return {"id": "openrouter", "nom": "OpenRouter", "url": "https://openrouter.ai/api/v1/chat/completions",
                 "cle": ENV["OPENROUTER_API_KEY"], "modele": m or "openai/gpt-oss-120b:free"}
@@ -38,6 +38,30 @@ def _mk(nom):
 
 
 ORDER = ["groq", "gemini", "openrouter", "claude", "local"]
+
+
+_GEM = {}
+
+
+def _gemini_model(key, wanted):
+    """Choisit un modèle Gemini réellement disponible pour cette clé (la liste change souvent)."""
+    if wanted in _GEM:
+        return _GEM[wanted]
+    pick = wanted
+    try:
+        url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=" + key
+        with urllib.request.urlopen(url, timeout=30) as r:
+            ms = json.loads(r.read().decode()).get("models", [])
+        names = [m["name"].split("/")[-1] for m in ms if "generateContent" in m.get("supportedGenerationMethods", [])]
+        if wanted not in names:
+            bad = ("image", "tts", "audio", "live", "embedding", "vision", "exp", "preview", "thinking")
+            fl = [n for n in names if "flash" in n and not any(b in n for b in bad)]
+            fl = fl or [n for n in names if "flash" in n] or names
+            pick = next((n for n in fl if n.endswith("flash-latest")), None) or (sorted(fl)[-1] if fl else wanted)
+    except Exception:
+        pass
+    _GEM[wanted] = pick
+    return pick
 
 
 def providers():
@@ -53,8 +77,15 @@ def provider():
 
 def _post(url, body, headers, timeout):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            msg = e.read().decode()[:300]
+        except Exception:
+            msg = ""
+        raise RuntimeError(f"HTTP {e.code} {re.sub(r'AIza[0-9A-Za-z_-]+|gsk_[0-9A-Za-z]+', '***', msg)}")
 
 
 def _call(p, system, user, max_tokens=1500):
@@ -165,7 +196,7 @@ def decide_all(features, current, profile):
         try:
             avis[p["id"]] = decide_one(p, features, current.get(p["id"]) or current.get("mix") or {}, profile)
         except Exception as e:
-            err[p["id"]] = f"{type(e).__name__}"
+            err[p["id"]] = f"{type(e).__name__}: {str(e)[:200]}"
     if not avis:
         raise RuntimeError("aucun comité n'a répondu : " + ", ".join(f"{k} {v}" for k, v in err.items()))
     if len(avis) == 1:
