@@ -1,9 +1,7 @@
 {
  "signaux": {
   "BTC": false,
-  "ATOM": false,
-  "PLUME": false,
-  "CETUS": false
+  "ATOM": false
  },
  "arrets": {
   "garder": "ok",
@@ -24,5 +22,6 @@
   "loss": false,
   "import": true
  },
- "radar": []
+ "radar": [],
+ "ordres_nl": "[]"
 }
