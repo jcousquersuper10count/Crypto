@@ -108,7 +108,10 @@ def build(state, now):
     prev = state.get("signaux", {})
     cur = {}
     tl = []
+    mine = {p["s"] for p in (snap or {}).get("positions", []) if p.get("ty") == "crypto" and p.get("e", 0) >= 5}
     for s, c in (sig.get("coins") or {}).items():
+        if snap and s != "BTC" and s not in mine:
+            continue  # crypto plus détenue : on n'en parle plus
         t = c.get("trend") or {}
         if c.get("stale"):
             tl.append(f"{e(s)} : suspendu (données anciennes)")

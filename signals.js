@@ -62,7 +62,12 @@
   function render() {
     const D = S.data;
     $('sgMeta').textContent = 'Mis à jour le ' + new Date(D.generated).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + D.model + ' · moyenne mobile ' + D.sma_n + ' jours';
-    const syms = ORDER.filter(s => D.coins[s]).concat(Object.keys(D.coins).filter(s => !ORDER.includes(s)));
+    const all = ORDER.filter(s => D.coins[s]).concat(Object.keys(D.coins).filter(s => !ORDER.includes(s)));
+    // seulement les cryptos détenues (au moins 5 €), plus le Bitcoin ; les autres sur demande
+    const isHeld = s => (holding(s) || 0) * D.coins[s].last >= 5;
+    const hidden = all.filter(s => s !== 'BTC' && !isHeld(s));
+    const syms = S.showAll ? all : all.filter(s => !hidden.includes(s));
+    if (!syms.includes(S.coin)) S.coin = syms[0];
     $('sgCards').innerHTML = syms.map(sym => {
       const c = D.coins[sym], v = verdict(c), t = c.trend, h1 = c.horizons.find(x => x.key === '1s');
       const q = holding(sym);
@@ -74,6 +79,7 @@
         ${q ? `<div class="sg-line">Ta position : <b>${q.toLocaleString('fr-FR', { maximumFractionDigits: 4 })}</b> ≈ ${eur(q * c.last)}</div>` : ''}
       </button>`;
     }).join('');
+    if (hidden.length) $('sgCards').insertAdjacentHTML('beforeend', `<button type="button" class="sg-more" onclick="sgToggleAll()">${S.showAll ? 'Masquer' : 'Afficher'} les cryptos non détenues (${hidden.join(', ')})</button>`);
     $('sgCards').querySelectorAll('.sg-card').forEach(b => b.onclick = () => { S.coin = b.dataset.sym; render(); });
     renderDetail();
   }
@@ -283,5 +289,6 @@
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (S.data && $('p-signals').classList.contains('active')) drawChart(); }, 150); });
   new MutationObserver(() => { if (S.data) drawChart(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   window.reloadSignals = load;
+  window.sgToggleAll = function () { S.showAll = !S.showAll; render(); };
   window.renderSignals = function () { if (S.data && document.querySelector('#p-signals.active')) render(); };
 })();

@@ -269,3 +269,4 @@ html[data-theme="dark"][data-page="radar"]{--h:200;}
 .od-rv small{text-align:right;font-size:.78rem;}
 @media (max-width:600px){.od-h{grid-template-columns:1fr 1fr;}.od-o{grid-template-columns:70px minmax(0,1fr) auto;}}
 .od-unk summary{cursor:pointer;}.od-unk{padding-bottom:0;}
+.sg-more{grid-column:1/-1;justify-self:start;background:transparent;border:1px dashed var(--line);color:var(--fg2);border-radius:var(--r-md);padding:.45rem .8rem;font:inherit;font-size:.8rem;cursor:pointer;}.sg-more:hover{color:var(--fg);}
