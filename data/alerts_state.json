@@ -1,7 +1,6 @@
 {
  "signaux": {
-  "BTC": false,
-  "ATOM": false
+  "BTC": false
  },
  "arrets": {
   "garder": "ok",
@@ -17,9 +16,9 @@
  "chat_id": 1774846143,
  "regles": {
   "crypto": true,
-  "line": false,
+  "line": true,
   "etf": true,
-  "loss": false,
+  "loss": true,
   "import": true
  },
  "radar": [],
