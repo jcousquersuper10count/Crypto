@@ -41,6 +41,7 @@ ORDER = ["groq", "gemini", "openrouter", "claude", "local"]
 
 
 _GEM = {}
+_GEM_ALT = []
 
 
 def _gemini_model(key, wanted):
@@ -58,6 +59,8 @@ def _gemini_model(key, wanted):
             fl = [n for n in names if "flash" in n and not any(b in n for b in bad)]
             fl = fl or [n for n in names if "flash" in n] or names
             pick = next((n for n in fl if n.endswith("flash-latest")), None) or (sorted(fl)[-1] if fl else wanted)
+        bad = ("image", "tts", "audio", "live", "embedding", "vision")
+        _GEM_ALT[:] = [n for n in sorted({n for n in names if "flash" in n and not any(b in n for b in bad)}, reverse=True) if n != pick][:4]
     except Exception:
         pass
     _GEM[wanted] = pick
@@ -111,9 +114,9 @@ def _json(txt):
     return json.loads(m.group(0))
 
 
-def _ask(p, system, user):
+def _ask(p, system, user, tries=2):
     err = None
-    for i in range(3):
+    for i in range(tries):
         try:
             return _json(_call(p, system, user))
         except Exception as e:  # réponse mal formée ou limite de requêtes : on réessaie
@@ -193,10 +196,16 @@ def decide_all(features, current, profile):
     # current : {"mix": répartition, "groq": répartition, ...}
     avis, err = {}, {}
     for p in ps:
-        try:
-            avis[p["id"]] = decide_one(p, features, current.get(p["id"]) or current.get("mix") or {}, profile)
-        except Exception as e:
-            err[p["id"]] = f"{type(e).__name__}: {str(e)[:200]}"
+        cands = [p] + ([dict(p, modele=a) for a in _GEM_ALT] if p["id"] == "gemini" else [])
+        for q in cands:  # Gemini saturé (503/429) : on essaie un autre modèle Flash
+            try:
+                avis[p["id"]] = decide_one(q, features, current.get(p["id"]) or current.get("mix") or {}, profile)
+                err.pop(p["id"], None)
+                break
+            except Exception as e:
+                err[p["id"]] = f"{type(e).__name__}: {str(e)[:200]}"
+                if not re.search(r"HTTP (503|429|404)", str(e)):
+                    break
     if not avis:
         raise RuntimeError("aucun comité n'a répondu : " + ", ".join(f"{k} {v}" for k, v in err.items()))
     if len(avis) == 1:
