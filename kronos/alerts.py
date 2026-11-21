@@ -141,6 +141,20 @@ def build(state, now):
             head += f"\n<i>Positions du {snap['t'][:10]} : ouvre VAULT pour les actualiser.</i>"
         rl.insert(0, head)
 
+    # 2 bis) ordres Neverless (calculés par VAULT à ta dernière visite)
+    ol = []
+    nl = (snap or {}).get("nl")
+    if nl:
+        lab = {"sell": "Vendre tout", "trim": "Alléger", "buy": "Acheter"}
+        od = nl.get("ordres") or []
+        lines_ = [f"• {lab.get(o['k'], o['k'])} {e(o['s'])} : {eur(o['e'])} ({e(o['w'])})" for o in od]
+        lines_.append(f"• Garder {eur(nl.get('garder', 0))} en stablecoin")
+        ol.append(f"<b>Ordres Neverless</b> (enveloppe {eur(nl.get('env', 0))})\n" + "\n".join(lines_))
+        sig_o = json.dumps([[o["k"], o["s"]] for o in od])
+        if od and state.get("ordres_nl") not in (None, sig_o):
+            news.append("🧾 Nouveaux ordres Neverless : " + " ; ".join(f"{lab.get(o['k'], o['k']).lower()} {e(o['s'])} {eur(o['e'])}" for o in od) + ".")
+        state["ordres_nl"] = sig_o
+
     # 3) agent : stratégies proches de l'arrêt, ordres du comité IA
     al = []
     pp = ag.get("papier") or {}
@@ -200,6 +214,8 @@ def build(state, now):
     if news:
         parts.append("<b>Nouveau</b>\n" + "\n".join(news))
     if digest:
+        if ol:
+            parts.append("\n".join(ol))
         if tl:
             parts.append("<b>Tendances (moyenne 50 jours)</b>\n" + "\n".join(tl))
         if rl:

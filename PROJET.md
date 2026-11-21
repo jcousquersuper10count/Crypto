@@ -250,6 +250,12 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 
 ## 8. Points connus et suite possible
 
+### Ordres du jour Neverless (21 novembre)
+- Accueil, « Ordres du jour · Neverless » (`orders.js`) : seul le compte Neverless est géré. Enveloppe = cryptos + stablecoins Neverless ; cible = liste d'achat du radar (règle C), 20 % par crypto, le reste en stablecoin ; cryptos détenues hors liste à vendre ; seuil d'ordre 3 % de l'enveloppe ou 10 €.
+- Revolut Crypto (BTC, ATOM) : conservé quoi qu'il arrive, affiché à titre indicatif avec sa tendance.
+- Saisie manuelle Neverless : achats payés et ventes encaissées en USDC.
+- Les ordres partent dans l'instantané (`snap.nl`) et dans le résumé Telegram ; nouveaux ordres signalés en tête.
+
 ### Radar Neverless (21 novembre)
 - `kronos/screener.py` (chaque matin, ~8 min) : top 330 CoinGecko hors stablecoins ∩ cryptos Neverless (API publique `neverless.com/api/trading/public/prices`, type CRYPTO, paires USD, écart achat/vente réel), historiques Gate.io vérifiés contre le prix CoinGecko (±15 %), coupure aux sauts aberrants, 30 premiers jours de cotation ignorés. ~178 cryptos.
 - Règle fixée avant le test (C) : chaque lundi, cryptos au-dessus de leur moyenne 50 j classées par variation 30 j, 5 premières à 20 %, rien si le Bitcoin est sous sa moyenne 50 j ; exécution le lendemain, moitié de l'écart Neverless par ordre. Variantes A (sans filtre) et B (90 j / volatilité) pour information.
@@ -320,3 +326,4 @@ Compter environ une heure sur processeur. Il faut cloner Kronos dans `kronos/Kro
 | 20 nov. | Saisie manuelle des achats et ventes en attente d'import, rapprochement automatique |
 | 20 nov. (soir) | Onglet Agent : stratégies en test, ordres du jour, trading fictif, comité IA |
 | 21 nov. | Radar Neverless : 178 cryptos du top 330, règle d'élan avec filtre Bitcoin testée, onglet et alertes |
+| 21 nov. (midi) | Ordres du jour Neverless à partir de la liste du radar ; Revolut indicatif |

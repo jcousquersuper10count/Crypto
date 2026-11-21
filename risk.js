@@ -98,6 +98,11 @@
     const snap = { t: new Date().toISOString(), regles: R, total_eur: Math.round(E.tot),
       positions: P.filter(p => p.eur >= 5).map(p => ({ s: p.sym, ty: p.type, e: Math.round(p.eur * 100) / 100, g: p.pnl == null ? null : Math.round(p.pnl * 10) / 10 })),
       comptes: E.ld, etat: E.rows.map(r => ({ id: r.id, ok: r.ok, t: r.t, a: r.a })) };
+    const N = window.nlState;
+    if (N && N.env > 0) {
+      const k = usd => Math.round(usd / (typeof eurUsd === 'number' && eurUsd > 0 ? eurUsd : 1));
+      snap.nl = { env: k(N.env), stable: k(N.stable), garder: k(N.keep || 0), ordres: (N.orders || []).map(o => ({ k: o.k, s: o.s, e: k(o.v), w: o.why })) };
+    }
     try { const j = await gasPost({ action: 'snapshot_save', snap }); if (j && j.status === 'ok') localStorage.setItem('vault_snap_t', String(Date.now())); } catch (e) {}
   }
 

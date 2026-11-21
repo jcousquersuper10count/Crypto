@@ -54,12 +54,13 @@
     const q = +e.qty, p = +e.price, f = +e.fee || 0, v = q * p, s = n => String(+n.toPrecision(12)), r = window.eurUsd || eurUsd;
     if (e.acct === 'Revolut_Crypto') return ['rc', { Symbol: e.sym, Type: e.side === 'buy' ? 'Achat' : 'Vente', Quantity: s(q), Price: s(p) + '€', Value: s(v) + '€', Fees: s(f) + '€', Date: e.date, _manual: e.id }];
     if (e.acct === 'Revolut_Robo') return ['rr', { Date: e.date, Ticker: e.sym, Type: e.side === 'buy' ? 'BUY - MARKET' : 'SELL - MARKET', Quantity: s(q), 'Price per share': 'EUR ' + s(p), 'Total Amount': 'EUR ' + s(e.side === 'buy' ? v + f : v - f), Currency: 'EUR', 'FX Rate': '', _manual: e.id }];
-    const buy = e.side === 'buy';
+    // Neverless : l'enveloppe est en stablecoin, achats payés et ventes encaissées en USDC
+    const buy = e.side === 'buy', usdc = v * eurUsd, fu = f * eurUsd;
     return ['sb', { Type: 'Trade', Date: e.date, Description: 'Saisi à la main',
-      'Amount received': s(buy ? q : v - f), 'Asset received': buy ? e.sym : 'EUR',
-      'Amount sent': s(buy ? v + f : q), 'Asset sent': buy ? 'EUR' : e.sym,
+      'Amount received': s(buy ? q : usdc - fu), 'Asset received': buy ? e.sym : 'USDC',
+      'Amount sent': s(buy ? usdc + fu : q), 'Asset sent': buy ? 'USDC' : e.sym,
       Fee: '', 'Asset of the fee': '',
-      'USD price of asset received': s(buy ? p * eurUsd : eurUsd), 'USD price of asset sent': s(buy ? eurUsd : p * eurUsd), 'USD price of fee asset': '', _manual: e.id }];
+      'USD price of asset received': s(buy ? p * eurUsd : 1), 'USD price of asset sent': s(buy ? 1 : p * eurUsd), 'USD price of fee asset': '', _manual: e.id }];
   }
 
   /* appelé par loadSheets, juste avant le calcul des positions */
