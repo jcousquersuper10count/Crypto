@@ -16,5 +16,12 @@
  },
  "ordres_ia": "[]",
  "dernier_resume": "2026-11-21",
- "chat_id": 1774846143
+ "chat_id": 1774846143,
+ "regles": {
+  "crypto": true,
+  "line": false,
+  "etf": true,
+  "loss": false,
+  "import": true
+ }
 }
