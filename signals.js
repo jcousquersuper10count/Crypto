@@ -242,6 +242,8 @@
     g.strokeStyle = css('--fg'); g.lineWidth = 1.8; g.lineJoin = 'round'; g.beginPath();
     hist.forEach((p, i) => { const x = X(tOf(p[0])), y = Y(p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
     S.geo = { hist, sma, fan, last: c.last, X, Y, tOf, t0, x0, xMin, xMax, mL, mR, mT, mB, W, H };
+    cv.setAttribute('role', 'img');
+    cv.setAttribute('aria-label', `${S.coin} : ${eur(c.last)}, ${hist[hist.length - 1][1] >= (sma[sma.length - 1] || 0) ? 'au-dessus' : 'sous'} de sa moyenne 50 jours (${eur(sma[sma.length - 1] || 0)}). Bande grise : scénarios Kronos, non validés.`);
     // the user's own buys and sells, one dot per day, placed on that day's close
     MARKS = [];
     const byDay = trades(S.coin), first = hist[0][0];

@@ -28,7 +28,7 @@
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
     const lab = ends.map(e => `<text x="${w - pad.r + 6}" y="${(e.y + 3.5).toFixed(1)}" class="ag-end" fill="${COL[e.k]}">${esc((D.noms[e.k] || e.k).replace(/ \(.*\)/, ''))} ${pct(e.v - 1)}</text>`).join('');
     const d0 = new Date(t0), d1 = new Date(t1), fm = d => d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
-    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Évolution des stratégies">${ticks}${stop}${pl}${lab}<text x="${pad.l}" y="${h - 4}">${fm(d0)}</text><text x="${w - pad.r}" y="${h - 4}" text-anchor="end">${fm(d1)}</text></svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Évolution des stratégies : ${ends.map(e => (D.noms[e.k] || e.k) + ' ' + pct(e.v - 1)).join(', ')}">${ticks}${stop}${pl}${lab}<text x="${pad.l}" y="${h - 4}">${fm(d0)}</text><text x="${w - pad.r}" y="${h - 4}" text-anchor="end">${fm(d1)}</text></svg>`;
   }
   const legend = keys => `<div class="ag-leg">${keys.map(k => `<span><i style="background:${COL[k]}"></i>${esc(D.noms[k] || k)}</span>`).join('')}</div>`;
 

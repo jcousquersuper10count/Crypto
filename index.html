@@ -6,10 +6,10 @@
 <title>Vault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=202611211122">
-<link rel="stylesheet" href="signals.css?v=202611211122">
-<link rel="stylesheet" href="theme.css?v=202611211122">
-<link rel="stylesheet" href="pro.css?v=202611211122">
+<link rel="stylesheet" href="style.css?v=202611211153">
+<link rel="stylesheet" href="signals.css?v=202611211153">
+<link rel="stylesheet" href="theme.css?v=202611211153">
+<link rel="stylesheet" href="pro.css?v=202611211153">
 </head>
 <body>
 <div id="gate" class="gate"><div class="gate-glow"></div><div class="gate-box"><div class="gate-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path class="g1" d="M12 2 21 7v10l-9 5-9-5V7z"/><path class="g2" d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z"/></svg><span>VAULT</span></div><p class="gate-sub">Ton portefeuille, une décision par jour.</p><input type="password" id="gatePwd" placeholder="Mot de passe" autofocus aria-label="Mot de passe"><button onclick="checkPwd()">Entrer</button><p class="gate-err" id="gateErr"></p></div></div>
@@ -69,10 +69,9 @@
 <div class="hm-tile"><span class="hm-lbl">Investi</span><span class="hm-val sm" id="hmInv">--</span><span class="hm-tsub">versements cumulés</span></div>
 <div class="hm-tile wide"><div class="hm-ring" id="hmRing"></div><div class="hm-ringleg" id="hmRingLeg"></div></div>
 </div>
-<h3 class="hm-h">Plus grosses positions</h3>
-<div class="hm-pos" id="hmPos"><div class="sk flat" style="height:300px"></div></div>
+<div class="hm-pos" id="hmPos" hidden></div>
 <button class="hm-link" type="button" onclick="go('holdings')">Tout le portefeuille</button>
-<p class="hm-note">Les décisions appliquent une règle de tendance (prix face à sa moyenne 50 jours), testée sur le passé de tes cryptos. Elle limite les grosses pertes mais se trompe régulièrement : ce n'est ni une garantie de gain ni un conseil en investissement.</p>
+<p class="hm-note">Les ordres Neverless appliquent la règle du Radar (élan parmi les cryptos en tendance, rien si le Bitcoin est sous sa moyenne 50 jours), testée sur le passé. Elle limite les grosses baisses mais se trompe régulièrement : c'est une aide à la décision, pas un conseil en investissement.</p>
 </div>
 </div>
 </section>
@@ -269,14 +268,15 @@
 </section>
 </main>
 </div>
-<script src="app.js?v=202611211122"></script>
-<script src="signals.js?v=202611211122"></script>
-<script src="home.js?v=202611211122"></script>
-<script src="manual.js?v=202611211122"></script>
-<script src="agent.js?v=202611211122"></script>
-<script src="risk.js?v=202611211122"></script>
-<script src="radar.js?v=202611211122"></script>
-<script src="orders.js?v=202611211122"></script>
+<script src="app.js?v=202611211153"></script>
+<script src="signals.js?v=202611211153"></script>
+<script src="home.js?v=202611211153"></script>
+<script src="manual.js?v=202611211153"></script>
+<script src="agent.js?v=202611211153"></script>
+<script src="risk.js?v=202611211153"></script>
+<script src="radar.js?v=202611211153"></script>
+<script src="ui.js?v=202611211153"></script>
+<script src="orders.js?v=202611211153"></script>
 <dialog id="moDlg" class="mo-dlg" aria-labelledby="moTitle">
 <form id="moForm" method="dialog" onsubmit="return addManual(event)">
 <div class="mo-head"><h3 id="moTitle">Saisir une opération</h3><button type="button" class="mo-x" onclick="closeManual()" aria-label="Fermer">✕</button></div>

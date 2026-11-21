@@ -30,7 +30,7 @@
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
     const lab = ends.map(e => `<text x="${w - P.r + 6}" y="${(e.y + 3.5).toFixed(1)}" class="ag-end" fill="${COL[e.k]}">${esc(NAMES[e.k].replace(/ \(.*\)/, ''))} ${pc(e.v - 1, 0)}</text>`).join('');
     const fm = t => new Date(t).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
-    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Test sur l'historique">${grid}${pl}${lab}<text x="${P.l}" y="${h - 4}">${fm(t0)}</text><text x="${w - P.r}" y="${h - 4}" text-anchor="end">${fm(t1)}</text></svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" class="ag-svg" role="img" aria-label="Test sur l'historique : ${ends.map(e => NAMES[e.k] + ' ' + pc(e.v - 1, 0)).join(', ')}">${grid}${pl}${lab}<text x="${P.l}" y="${h - 4}">${fm(t0)}</text><text x="${w - P.r}" y="${h - 4}" text-anchor="end">${fm(t1)}</text></svg>`;
   }
 
   function card(s, c, i) {

@@ -281,3 +281,49 @@ html[data-theme="dark"][data-page="radar"]{--h:200;}
 .od-avis{list-style:none;margin:0;padding:.7rem 1.1rem 0;display:grid;gap:.4rem;font-size:.82rem;color:var(--fg2);line-height:1.45;}
 .od-avis b{color:var(--fg);font-weight:600;}
 .od-note .hm-link{margin:0 0 0 .3rem;padding:0;border:0;background:none;color:var(--accent);font-size:.78rem;}
+
+/* =========================================================================
+   Revue « apple-design » (21 novembre) — accessibilité, navigation, finition
+   ========================================================================= */
+/* contraste : texte tertiaire au-dessus de 4,5:1 dans les deux apparences (accessibility.md › Vision) */
+html[data-theme="dark"]{--fg3:hsl(var(--h) 12% 60%);}
+:root,[data-theme="light"]{--fg3:#5f6878;--accent:#7f5c1c;--green:#0d6e47;--red:#b3303a;--orange:#9a4f0e;}
+/* tailles minimales : rien sous 12 px (mobile : 11 pt minimum, typography.md) */
+.rd-mine,.rd-st,.od-tag,.hm-badge,.sg-pill,.mo-side,.od-b,.mo-count,.ag-prof span,.rd-card dt,.rd-a small,.rd-card header small,
+.tm-leg small,.tm-c small,.tm-c.sm span,.hm-row-g small,.hm-dec-v small,.hm-p .v small,.src-tag,.kpi-sub,small{font-size:max(.75rem,1em*.75) !important;}
+.tm-c.sm b{font-size:.8rem;}.tm-c.xs b{font-size:.72rem;}
+/* pas de graisse fine pour les montants (typography.md › « avoid light font weights ») */
+.hm-val,.hm-val.sm,.kpi-val{font-weight:450;}
+/* focus visible partout, y compris sur la carte du portefeuille */
+.tm-c:focus-visible{outline:2px solid var(--fg);outline-offset:-3px;}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* barre d'onglets sur téléphone (tab-bars.md) */
+.tabbar{display:none;}
+@media (max-width:760px){
+  .sidebar{display:none !important;}
+  .main{margin-left:0 !important;padding:.8rem .9rem calc(84px + env(safe-area-inset-bottom)) !important;}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:60;
+    padding:.35rem .4rem calc(.35rem + env(safe-area-inset-bottom));
+    background:hsl(var(--h) 30% 8% / .82);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-top:1px solid var(--line);}
+  [data-theme="light"] .tabbar{background:rgba(250,250,252,.86);}
+  .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;min-height:50px;
+    color:var(--fg3);text-decoration:none;background:none;border:0;font:inherit;font-size:.72rem;font-weight:600;cursor:pointer;border-radius:10px;}
+  .tabbar i{width:24px;height:24px;display:grid;place-items:center;}
+  .tabbar i svg{width:22px;height:22px;}
+  .tabbar .on{color:var(--accent);}
+  .topbar{padding-top:.2rem;}
+}
+@media (prefers-reduced-transparency:reduce){.tabbar{background:var(--bg2) !important;backdrop-filter:none !important;}}
+.more-dlg{width:min(420px,calc(100vw - 24px));}
+.more-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.6rem 1.2rem 1.3rem;}
+.more-grid button{display:flex;align-items:center;gap:.6rem;min-height:48px;padding:.6rem .8rem;background:var(--bg3);border:1px solid var(--line);border-radius:12px;color:var(--fg);font:inherit;font-size:.9rem;font-weight:500;cursor:pointer;text-align:left;}
+.more-grid i{width:20px;height:20px;display:grid;place-items:center;color:var(--accent);}
+.more-grid i svg{width:20px;height:20px;}
+#moreDlg{margin:auto auto 0;inset:0;position:fixed;height:fit-content;border-radius:18px 18px 0 0;}
+
+/* cibles tactiles de 44 px (accessibility.md › Mobility) */
+@media (pointer:coarse){
+  .pbtn,.hm-link,.mo-del,.imp-cancel,.sb-toggle,.topbar-refresh,.mo-open,.rd-t th,.uz-btn{min-height:44px;}
+  .pbtn{padding-left:.9rem;padding-right:.9rem;}
+}

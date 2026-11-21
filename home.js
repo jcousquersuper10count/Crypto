@@ -64,7 +64,7 @@
     const X = j => j / (N - 1) * W, Y = v => pad + (hi - v) / ((hi - lo) || 1) * (H - 2 * pad);
     const pts = s.map((v, j) => `${X(j).toFixed(1)},${Y(v).toFixed(1)}`);
     const ch = s[N - 1] / s[0] - 1, col = ch >= 0 ? 'var(--green)' : 'var(--red)';
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Valeur de tes positions sur 7 jours"><defs><linearGradient id="hmG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Valeur de tes positions sur 7 jours : de ${fv(s[0])} à ${fv(s[N - 1])}, soit ${chText((s[N - 1] / s[0] - 1) * 100)}"><defs><linearGradient id="hmG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
       <path class="ar" d="M0,${H} L${pts.join(' L')} L${W},${H} Z" fill="url(#hmG)"/><path class="ln" pathLength="1" d="M${pts.join(' L')}" stroke="${col}" vector-effect="non-scaling-stroke"/></svg>
       <div class="hm-xh" hidden><i></i><span></span></div>
       <div class="hm-curve-cap"><span>il y a 7 jours · ${fv(s[0])}</span><span class="${chClass(ch)}">${chText(ch * 100)} sur 7 jours, à positions constantes</span></div>`;
