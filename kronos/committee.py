@@ -212,14 +212,16 @@ def decide_all(features, current, profile):
         k = next(iter(avis))
         mix = dict(avis[k], accord="Un seul comité a répondu aujourd'hui : sa décision est reprise telle quelle.", juge=avis[k]["modele"])
     else:
-        mix = None
+        mix, jerr = None, {}
         # juge : Gemini en priorité (il n'a pas rendu le premier avis), sinon le premier qui répond
         for p in sorted(ps, key=lambda x: 0 if x["id"] == "gemini" else 1):
             try:
                 mix = judge(p, avis, features, current.get("mix") or {}, profile)
                 break
             except Exception as e:
-                err["juge_" + p["id"]] = type(e).__name__
+                jerr["juge_" + p["id"]] = type(e).__name__
+        if mix is None:
+            err.update(jerr)  # seul un échec de tous les juges compte comme une erreur
         if mix is None:  # repli sans IA : pour chaque crypto, la part la plus faible des avis
             keys = set().union(*[set(v["cible"]) for v in avis.values()])
             cible = {s: min(v["cible"].get(s, 0) for v in avis.values()) for s in keys}
