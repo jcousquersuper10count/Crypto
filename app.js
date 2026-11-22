@@ -17,6 +17,10 @@ let sort={col:'value',dir:'desc'},selPer=7,eurUsd=1.16;
 const cur=()=>document.documentElement.dataset.currency||'eur';
 const isDark=()=>document.documentElement.dataset.theme==='dark';
 
+// Lien personnel : …/Crypto/#cle=<clé VAULT> mémorise la clé et ouvre VAULT sans rien demander.
+// Le fragment (#…) n'est jamais envoyé au serveur ; il est effacé de l'adresse aussitôt lu.
+(function(){const m=location.hash.match(/(?:^#|&)cle=([^&]+)/);if(!m)return;try{localStorage.setItem('vault_key',decodeURIComponent(m[1]));localStorage.setItem('vault_auth','1');}catch(e){}history.replaceState(null,'',location.pathname+location.search);})();
+
 // Password
 async function sha256(s){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('');}
 async function checkPwd(){const v=document.getElementById('gatePwd').value;if(await sha256(v)===PWD_HASH){localStorage.setItem('vault_auth','1');document.getElementById('gate').style.display='none';document.getElementById('app').style.display='flex';init();}else{document.getElementById('gateErr').textContent='Mot de passe incorrect';}}

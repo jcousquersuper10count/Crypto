@@ -230,7 +230,9 @@ def build(state, now):
         if rdl:
             parts.append("\n".join(rdl))
         state["dernier_resume"] = today
-    parts.append(f'<a href="{SITE}">Ouvrir VAULT</a> · outil d\'aide à la décision, pas un conseil en investissement')
+    k = ENV.get("VAULT_KEY")
+    lien = SITE + ("#cle=" + urllib.parse.quote(k, safe="") if k else "")
+    parts.append(f'<a href="{html.escape(lien)}">Ouvrir VAULT</a> · outil d\'aide à la décision, pas un conseil en investissement')
     return "\n\n".join(parts), state
 
 
