@@ -1,6 +1,7 @@
 {
  "signaux": {
-  "BTC": false
+  "BTC": false,
+  "ATOM": false
  },
  "arrets": {
   "garder": "ok",
@@ -12,13 +13,13 @@
   "ia_groq": "ok"
  },
  "ordres_ia": "[]",
- "dernier_resume": "2026-11-21",
+ "dernier_resume": "2026-11-22",
  "chat_id": 1774846143,
  "regles": {
   "crypto": true,
-  "line": true,
+  "line": false,
   "etf": true,
-  "loss": true,
+  "loss": false,
   "import": true
  },
  "radar": [],
