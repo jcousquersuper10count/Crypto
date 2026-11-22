@@ -1,0 +1,90 @@
+/* =========================================================================
+   VAULT — style « verre holographique » (direction B, Claude Design, 22 nov.)
+   Fond violet profond avec halos, panneaux translucides, dégradé violet → menthe
+   réservé à la carte de décision et à l'action principale. Sora pour le texte,
+   JetBrains Mono pour les montants. Chargé après pro.css : il le surcharge.
+   ========================================================================= */
+html[data-theme="dark"],html[data-theme="dark"][data-page]{
+  --h:252;
+  --bg:#0c0a1d;--bg2:rgba(255,255,255,.045);--bg3:rgba(255,255,255,.075);
+  --sb-bg:#0c0a1d;--border:rgba(255,255,255,.10);--line:rgba(255,255,255,.08);
+  --fg:#f1eefc;--fg2:#c9c4e0;--fg3:#aaa3cc;
+  --accent:#b4a2ff;--accent-bg:rgba(143,116,255,.18);
+  --green:#6ff0d4;--red:#ff9b9b;--orange:#ffcf85;
+  --holo:linear-gradient(120deg,#8f74ff,#4ce8c8);
+  --r-lg:20px;--r-md:14px;--r-sm:10px;
+}
+:root,[data-theme="light"]{
+  --bg:#f4f2fb;--bg2:#ffffff;--bg3:#efecf8;--border:#e1dcf2;--line:rgba(40,24,110,.09);
+  --fg:#17132e;--fg2:#4d4770;--fg3:#605a80;
+  --accent:#5a3fd0;--accent-bg:#ebe6ff;--green:#0b7560;--red:#b8323a;--orange:#94500c;
+  --holo:linear-gradient(120deg,#6b4ef0,#14b89a);
+  --r-lg:20px;--r-md:14px;--r-sm:10px;
+}
+
+/* typographie */
+html body,html body button,html body input,html body select,html body textarea,html body .kpi-sub,html body .alloc-pct,html body svg text{
+  font-family:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif !important;}
+html body .mono,html body td.mono,html body .hm-val,html body .kpi-val,html body .ev-val,html body .mkt-price,
+html body .od-v,html body .tm-c b+small,html body .hm-tile b{
+  font-family:'JetBrains Mono',ui-monospace,monospace !important;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.hm-val{font-weight:500 !important;}
+
+/* fond : deux halos fixes, sans animation */
+html[data-theme="dark"] body{background:#0c0a1d;}
+html[data-theme="dark"] .main::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 78% -6%,rgba(124,92,255,.30),transparent 62%),
+             radial-gradient(700px 480px at 6% 40%,rgba(56,224,196,.12),transparent 60%) !important;}
+[data-theme="light"] body{background:#f4f2fb;}
+.main>*{position:relative;z-index:1;}
+
+/* panneaux en verre */
+html[data-theme="dark"] :is(.hm-tile,.hm-dec,.hm-watch,.hm-pos,.hm-act,.ag-card,.ag-panel,.rk,.rd-card,.rd-hero,.od,.od-rev,.gate-box,.card,.kpi,.panel){
+  background:rgba(255,255,255,.045) !important;border:1px solid rgba(255,255,255,.10) !important;
+  backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border-radius:var(--r-lg) !important;box-shadow:none !important;}
+
+/* carte de décision : seule à porter le liseré dégradé */
+.hm-hero{position:relative;border:1px solid transparent !important;border-radius:24px !important;
+  background:linear-gradient(var(--hero-in,#15112f),var(--hero-in,#15112f)) padding-box,var(--holo) border-box !important;box-shadow:none !important;}
+[data-theme="light"] .hm-hero{--hero-in:#ffffff;}
+.hm-hero h1,.hm-hero .hm-title{letter-spacing:-.02em;}
+
+/* action principale */
+.mo-open{background:var(--holo) !important;color:#0c0a1d !important;border:0 !important;border-radius:999px !important;font-weight:600 !important;min-height:40px;padding:0 1.1rem !important;}
+[data-theme="light"] .mo-open{color:#fff !important;}
+.topbar-refresh,.pbtn,.hm-link,.sb-toggle{border-radius:999px !important;}
+
+/* étiquettes « en test », états */
+.ag-badge,.od-tag,.sg-pill,.rd-st,.hm-badge{border-radius:999px !important;}
+
+/* --- navigation : barre de pastilles en haut sur ordinateur (ui.js la construit) --- */
+@media (min-width:761px){
+  .sidebar{display:none !important;}
+  .main{margin-left:0 !important;max-width:1280px;margin-inline:auto !important;padding:1.2rem 2rem 4rem !important;}
+  .topbar{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+}
+.topnav{display:none;}
+@media (min-width:761px){
+  .topnav{display:flex;align-items:center;gap:1.2rem;flex:1 1 auto;min-width:0;order:-1;}
+  .topnav .tn-logo{display:flex;align-items:center;gap:.6rem;font-weight:700;letter-spacing:.12em;color:var(--fg);font-size:1.05rem;}
+  .topnav .tn-logo svg{width:28px;height:28px;}
+  .topnav .tn-pills{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);}
+  .topnav .tn-pills a,.topnav .tn-pills button{display:inline-flex;align-items:center;min-height:38px;padding:0 1rem;border-radius:999px;color:var(--fg2);text-decoration:none;font:inherit;font-size:.88rem;background:none;border:0;cursor:pointer;}
+  .topnav .tn-pills a:hover,.topnav .tn-pills button:hover{color:var(--fg);}
+  .topnav .tn-pills .on{background:var(--accent-bg);color:var(--fg);font-weight:600;}
+  .topbar-status,.topbar-time{order:1;}
+}
+
+/* barre d'onglets téléphone */
+@media (max-width:760px){
+  .tabbar{background:rgba(12,10,29,.86) !important;border-top:1px solid rgba(255,255,255,.1) !important;}
+  [data-theme="light"] .tabbar{background:rgba(250,249,255,.9) !important;}
+  .tabbar .on{color:var(--accent) !important;}
+}
+
+/* graphiques : couleurs de la direction B */
+html[data-theme="dark"] .hm-curve path[stroke]{stroke-width:2.5;}
+/* répartition : ETF violet, crypto menthe (comme la maquette) */
+html[data-theme="dark"]{--etf:#8f74ff;--crypto:#4ce8c8;}
+[data-theme="light"]{--etf:#6b4ef0;--crypto:#14a58a;}
+.tm-leg b{font-family:'JetBrains Mono',monospace !important;font-weight:500;}

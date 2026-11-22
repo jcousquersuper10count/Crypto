@@ -102,7 +102,7 @@
     return out;
   }
   function ring(items, tot) {
-    const g = [['Crypto', 'var(--accent)', 0], ['ETF', 'var(--etf)', 0], ['Espèces', 'var(--fg3)', 0]];
+    const g = [['Crypto', 'var(--crypto, var(--accent))', 0], ['ETF', 'var(--etf)', 0], ['Espèces', 'var(--fg3)', 0]];
     items.forEach(i => { g[i.type === 'crypto' ? 0 : i.sym === 'Espèces' ? 2 : 1][2] += i.usd; });
     const parts = g.filter(x => x[2] > 0.5);
     const strip = `<div class="tm-strip">${parts.map(p => `<span style="flex:${p[2]};background:${p[1]}"></span>`).join('')}</div>
@@ -112,7 +112,7 @@
     const vals = big.map(i => ({ v: i.usd, sym: i.sym, name: i.type === 'etf' ? (i.name || '') : (i.name || i.sym), ch: i.sym === 'Espèces' || !i.ch7d ? null : i.ch7d, eur: i.usd }));
     if (rest.length) vals.push({ v: rest.reduce((a, i) => a + i.usd, 0), sym: `+${rest.length}`, name: 'autres positions', ch: null, eur: rest.reduce((a, i) => a + i.usd, 0) });
     const cells = squarify(vals, 0, 0, 100, 100).map(c => {
-      const k = c.ch == null ? 0 : Math.max(-1, Math.min(1, c.ch / 12)), hue = k >= 0 ? 152 : 358;
+      const k = c.ch == null ? 0 : Math.max(-1, Math.min(1, c.ch / 12)), hue = k >= 0 ? 166 : 346;
       const bg = c.ch == null ? 'var(--bg3)' : `hsl(${hue} ${30 + Math.abs(k) * 40}% ${16 + Math.abs(k) * 14}%)`;
       const small = c.w < 17 || c.h < 17, tiny = c.w < 9 || c.h < 10;
       const pct = c.ch == null ? '' : `${c.ch >= 0 ? '+' : '−'}${Math.abs(c.ch).toFixed(1).replace('.', ',')} %`;
