@@ -24,7 +24,7 @@
     Object.entries(cible).forEach(([s, w]) => { const cur = (S.pos.find(x => x.s === s) || {}).v || 0, t = w * S.env; if (t - cur > thr) ord.push({ k: 'buy', s, v: t - cur }); });
     const lab = { sell: 'Vendre tout', trim: 'Alléger', buy: 'Acheter' };
     const stab = Math.max(0, 1 - Object.values(cible).reduce((a, b) => a + b, 0)) * S.env;
-    const prop = ord.length ? ord.map(o => `<div class="od-o ${o.k}"><span class="od-b">${lab[o.k].split(' ')[0]}</span><span class="od-m"><b>${o.k === 'sell' ? 'Tout ' : ''}${esc(o.s)}</b></span><span class="od-v">${fv(o.v)}</span></div>`).join('')
+    const prop = ord.length ? ord.map(o => `<div class="od-o ${o.k}"><span class="od-b">${lab[o.k].split(' ')[0]}</span><span class="od-m"><b>${o.k === 'sell' ? 'Tout ' : ''}${esc(o.s)}</b>${costTag(o)}</span><span class="od-v">${fv(o.v)}</span></div>`).join('') + costSum(ord)
       + `<div class="od-o keep"><span class="od-b">Garder</span><span class="od-m"><b>Stablecoin</b></span><span class="od-v">${fv(stab)}</span></div>`
       : `<div class="od-o keep"><span class="od-b">Garder</span><span class="od-m"><b>${Object.keys(cible).length ? 'Positions actuelles' : 'Tout en stablecoin'}</b><small>aucun ordre à passer selon le comité</small></span><span class="od-v">${fv(S.env)}</span></div>`;
     const names = { groq: 'Groq', gemini: 'Gemini', local: 'Modèle local', openrouter: 'OpenRouter', claude: 'Claude' };
@@ -35,6 +35,23 @@
       <div class="od-list">${prop}</div>
       ${one ? `<ul class="od-avis">${one}</ul>` : ''}
       <p class="od-note">Analyse de Groq et Gemini sur les indicateurs de prix, tranchée par un juge prudent. Ce n'est pas un conseil en investissement : son suivi fictif dans l'onglet Agent dira s'il mérite ta confiance. <button type="button" class="hm-link" onclick="go('agent')">Voir le détail</button></p></div>`;
+  }
+  /* coût estimé d'un ordre sur Neverless : la moitié de l'écart achat/vente affiché (prix payé vs prix moyen).
+     Sur les relevés, le coût réel mesuré tombe au même niveau (0,15 % en moyenne). */
+  const ECART_DEF = 0.0039, ECART_HAUT = 0.008;
+  const ecartOf = s => (STABLE.has(s) ? 0.0004 : (RD && RD.cryptos && RD.cryptos[s] && RD.cryptos[s].ecart_nl) || ECART_DEF);
+  const costOf = (s, v) => v * ecartOf(s) / 2;
+  const fc = u => { const v = typeof cv === 'function' ? cv(u) : u, n = v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (typeof cur === 'function' && cur() !== 'eur') ? '$' + n : n + '\u00a0€'; };
+  const pct2 = x => (x * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' %';
+  function costTag(o) {
+    const e = ecartOf(o.s), c = costOf(o.s, o.v);
+    const warn = o.k === 'buy' && e > ECART_HAUT;
+    return `<small class="od-cost${warn ? ' warn' : ''}">coût ≈ ${fc(c)}${warn ? ` · écart élevé : un aller-retour coûte ${pct2(e)}, à ne faire que pour une tendance nette` : ''}</small>`;
+  }
+  function costSum(list) {
+    if (!list.length) return '';
+    const c = list.reduce((a, o) => a + costOf(o.s, o.v), 0), v = list.reduce((a, o) => a + o.v, 0);
+    return `<p class="od-costsum">Coût estimé de ces ordres : <b>${fc(c)}</b> (${pct2(v > 0 ? c / v : 0)} des montants échangés). Un achat ne rapporte que s'il gagne plus que l'aller-retour : environ ${pct2(ecartOf('BTC'))} sur le Bitcoin, plus sur les petites cryptos.</p>`;
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const pc = v => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1).replace('.', ',') + ' %';
@@ -116,9 +133,9 @@
     let body;
     if (!RD) body = '<div class="hm-empty">Chargement du radar…</div>';
     else {
-      const rows = S.orders.map(o => `<div class="od-o ${o.k}"><span class="od-b">${label[o.k]}</span><span class="od-m"><b>${o.k === 'sell' ? 'Tout ' : ''}${esc(o.s)}</b><small>${esc(o.why)}</small></span><span class="od-v">${fv(o.v)}</span></div>`).join('');
+      const rows = S.orders.map(o => `<div class="od-o ${o.k}"><span class="od-b">${label[o.k]}</span><span class="od-m"><b>${o.k === 'sell' ? 'Tout ' : ''}${esc(o.s)}</b><small>${esc(o.why)}</small>${costTag(o)}</span><span class="od-v">${fv(o.v)}</span></div>`).join('');
       const keep = `<div class="od-o keep"><span class="od-b">Garder</span><span class="od-m"><b>Stablecoin</b><small>${L.length ? 'le reste de l\'enveloppe' : (RD.btc_tendance ? 'aucune crypto ne remplit la règle' : 'Bitcoin sous sa moyenne 50 jours : la règle n\'achète rien')}</small></span><span class="od-v">${fv(S.keep)}</span></div>`;
-      body = rows + (S.keep >= 1 ? keep : '');
+      body = rows + (S.keep >= 1 ? keep : '') + costSum(S.orders);
     }
     const unk = S.unknown.length ? `<details class="od-note od-unk"><summary>${S.unknown.length} petite${S.unknown.length > 1 ? 's' : ''} position${S.unknown.length > 1 ? 's' : ''} sans prix connu, non comptée${S.unknown.length > 1 ? 's' : ''}</summary>${S.unknown.map(esc).join(', ')}</details>` : '';
     $('hmActions').innerHTML = `<div class="od">

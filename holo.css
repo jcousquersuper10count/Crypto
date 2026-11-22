@@ -150,3 +150,9 @@ html[data-theme="dark"]{--etf:#8f74ff;--crypto:#4ce8c8;}
 .fe-note{margin:0;color:var(--fg3);font-size:.8rem;line-height:1.5;}
 .fe-lesson{line-height:1.6;color:var(--fg2);}
 .fe-lesson b{color:var(--fg);}
+
+/* coût estimé des ordres (orders.js) */
+.od-cost{display:block;color:var(--fg3);font-size:.75rem;margin-top:.15rem;}
+.od-cost.warn{color:var(--orange);}
+.od-costsum{margin:.6rem 0 0;padding:.7rem .9rem;border-radius:var(--r-md);background:var(--bg3);color:var(--fg2);font-size:.82rem;line-height:1.5;}
+.od-costsum b{color:var(--fg);font-family:'JetBrains Mono',monospace !important;font-weight:500;}
