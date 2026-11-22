@@ -124,3 +124,29 @@ html[data-theme="dark"]{--etf:#8f74ff;--crypto:#4ce8c8;}
   .vc-box{right:12px;bottom:calc(120px + env(safe-area-inset-bottom));height:50vh;}
 }
 @media print{.vc-btn,.vc-box{display:none !important}}
+
+/* --- page Frais (fees.js) --- */
+.fe-intro{color:var(--fg2);margin:-.2rem 0 1.2rem;}
+.fe-hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:1.5rem;padding:1.8rem;border-radius:24px;margin-bottom:1rem;
+  border:1px solid transparent;background:linear-gradient(var(--hero-in,#15112f),var(--hero-in,#15112f)) padding-box,var(--holo) border-box;}
+[data-theme="light"] .fe-hero{--hero-in:#fff;}
+.fe-k{margin:0;color:var(--fg2);font-size:.9rem;}
+.fe-v{margin:.2rem 0;font:500 2.6rem 'JetBrains Mono',monospace !important;letter-spacing:-.03em;color:var(--red);}
+.fe-s{margin:0;max-width:52ch;color:var(--fg2);line-height:1.5;}
+.fe-s b{color:var(--fg);}
+.fe-legend{display:flex;flex-direction:column;gap:.5rem;font-size:.92rem;}
+.fe-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:.5rem;vertical-align:middle;}
+.fe-legend b{font-family:'JetBrains Mono',monospace !important;font-weight:500;}
+.fe-legend small{color:var(--fg3);margin-left:.3rem;}
+.fe-chart,.fe-card,.fe-lesson{padding:1.3rem 1.4rem;border-radius:var(--r-lg);background:var(--bg2);border:1px solid var(--border);}
+.fe-chart{margin-bottom:1rem;}
+.fe-chart h3,.fe-card h3{margin:0 0 .8rem;font-size:1.05rem;}
+.fe-svg{width:100%;height:auto;display:block;}
+.fe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1rem;margin-bottom:1rem;}
+.fe-card dl{display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;margin:0 0 .8rem;}
+.fe-card dt{color:var(--fg2);font-size:.88rem;}
+.fe-card dd{margin:0;text-align:right;font-family:'JetBrains Mono',monospace !important;font-size:.92rem;}
+.fe-card dd small{display:block;color:var(--fg3);font-size:.75rem;font-family:'Sora',sans-serif !important;}
+.fe-note{margin:0;color:var(--fg3);font-size:.8rem;line-height:1.5;}
+.fe-lesson{line-height:1.6;color:var(--fg2);}
+.fe-lesson b{color:var(--fg);}

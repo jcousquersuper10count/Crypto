@@ -6,11 +6,11 @@
 <title>Vault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=202611220720">
-<link rel="stylesheet" href="signals.css?v=202611220720">
-<link rel="stylesheet" href="theme.css?v=202611220720">
-<link rel="stylesheet" href="pro.css?v=202611220720">
-<link rel="stylesheet" href="holo.css?v=202611220720">
+<link rel="stylesheet" href="style.css?v=202611220731">
+<link rel="stylesheet" href="signals.css?v=202611220731">
+<link rel="stylesheet" href="theme.css?v=202611220731">
+<link rel="stylesheet" href="pro.css?v=202611220731">
+<link rel="stylesheet" href="holo.css?v=202611220731">
 </head>
 <body>
 <div id="gate" class="gate"><div class="gate-glow"></div><div class="gate-box"><div class="gate-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path class="g1" d="M12 2 21 7v10l-9 5-9-5V7z"/><path class="g2" d="M12 8l4 2.3v4.4L12 17l-4-2.3v-4.4z"/></svg><span>VAULT</span></div><p class="gate-sub">Ton portefeuille, une décision par jour.</p><input type="password" id="gatePwd" placeholder="Mot de passe" autofocus aria-label="Mot de passe"><button onclick="checkPwd()">Entrer</button><p class="gate-err" id="gateErr"></p></div></div>
@@ -28,6 +28,7 @@
 <a class="sb-link" data-page="history" onclick="go('history')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></i><span>Historique</span></a>
 <a class="sb-link" data-page="import" onclick="go('import')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg></i><span>Importer</span></a>
 <details class="sb-more"><summary class="sb-link"><i class="sb-i"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></i><span>Plus</span></summary>
+<a class="sb-link" data-page="fees" onclick="go('fees')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h15v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg></i><span>Frais</span></a>
 <a class="sb-link" data-page="risk" onclick="go('risk')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></i><span>Risque</span></a>
 <a class="sb-link" data-page="evolution" onclick="go('evolution')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></i><span>Évolution</span></a>
 <a class="sb-link" data-page="market" onclick="go('market')"><i class="sb-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg></i><span>Marché</span></a>
@@ -101,6 +102,11 @@
 </section>
 
 <!-- Neverless -->
+<section class="page" id="p-fees">
+<div class="page-head"><h2>Frais</h2></div>
+<p class="fe-intro">Ce que t'ont coûté tes mouvements et la gestion de tes comptes, d'après tes relevés importés.</p>
+<div id="feesBody"></div>
+</section>
 <section class="page" id="p-neverless">
 <div class="seg" role="tablist"></div>
 <div class="page-head"><h2>Neverless (SwissBorg)</h2><div class="source-total" id="nevTotal">--</div></div>
@@ -269,16 +275,17 @@
 </section>
 </main>
 </div>
-<script src="console.js?v=202611220720"></script>
-<script src="app.js?v=202611220720"></script>
-<script src="signals.js?v=202611220720"></script>
-<script src="home.js?v=202611220720"></script>
-<script src="manual.js?v=202611220720"></script>
-<script src="agent.js?v=202611220720"></script>
-<script src="risk.js?v=202611220720"></script>
-<script src="radar.js?v=202611220720"></script>
-<script src="ui.js?v=202611220720"></script>
-<script src="orders.js?v=202611220720"></script>
+<script src="console.js?v=202611220731"></script>
+<script src="app.js?v=202611220731"></script>
+<script src="signals.js?v=202611220731"></script>
+<script src="home.js?v=202611220731"></script>
+<script src="manual.js?v=202611220731"></script>
+<script src="agent.js?v=202611220731"></script>
+<script src="risk.js?v=202611220731"></script>
+<script src="radar.js?v=202611220731"></script>
+<script src="fees.js?v=202611220731"></script>
+<script src="ui.js?v=202611220731"></script>
+<script src="orders.js?v=202611220731"></script>
 <dialog id="moDlg" class="mo-dlg" aria-labelledby="moTitle">
 <form id="moForm" method="dialog" onsubmit="return addManual(event)">
 <div class="mo-head"><h3 id="moTitle">Saisir une opération</h3><button type="button" class="mo-x" onclick="closeManual()" aria-label="Fermer">✕</button></div>
