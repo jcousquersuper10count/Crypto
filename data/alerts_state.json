@@ -12,8 +12,8 @@
   "ia_gemini": "ok",
   "ia_groq": "ok"
  },
- "ordres_ia": "[]",
- "dernier_resume": "2026-11-27",
+ "ordres_ia": "[{\"actif\": \"BTC\", \"part\": 0.1}, {\"actif\": \"ETH\", \"part\": 0.1}, {\"actif\": \"SOL\", \"part\": 0.1}]",
+ "dernier_resume": "2026-11-28",
  "chat_id": 1774846143,
  "regles": {
   "crypto": true,
